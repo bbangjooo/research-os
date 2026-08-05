@@ -1,0 +1,15 @@
+schema_version = 1
+
+[objective]
+primary_metric = "recall_at_1"
+direction = "maximize"
+
+[baseline]
+repeats = 2
+tolerance = 0.0
+
+[promotion]
+minimum_improvement = 0.0
+
+[authority]
+authorized_action = ""

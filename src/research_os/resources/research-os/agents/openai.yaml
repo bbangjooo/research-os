@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research OS"
+  short_description: "Run bounded graph-based research through Research OS"
+  default_prompt: "Use $research-os to inspect this project and conduct one bounded research cycle."

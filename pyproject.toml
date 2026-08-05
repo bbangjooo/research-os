@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "research-os"
+version = "0.1.0"
+description = "A clean-room, domain-neutral operating system for bounded autonomous research"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{name = "Research OS contributors"}]
+dependencies = []
+classifiers = [
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+]
+
+[project.urls]
+Repository = "https://github.com/bbangjooo/research-os"
+Issues = "https://github.com/bbangjooo/research-os/issues"
+Documentation = "https://github.com/bbangjooo/research-os/tree/main/docs"
+
+[project.scripts]
+research-os = "research_os.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+research_os = [
+    "resources/research-os/SKILL.md",
+    "resources/research-os/agents/openai.yaml",
+    "resources/research-os/references/*.md",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B"]

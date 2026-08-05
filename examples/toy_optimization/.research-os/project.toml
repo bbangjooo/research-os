@@ -1,0 +1,17 @@
+schema_version = 1
+adapter_command = ["python3", ".research-os/adapter.py"]
+
+[project]
+id = "toy-optimization"
+name = "Deterministic scalar optimization"
+
+[paths]
+mutable = ["parameter.json"]
+protected = [".research-os/adapter.py", ".research-os/project.toml", ".research-os/constitution.toml", "evaluator.py", "data/target.json"]
+evidence = ["data/target.json"]
+runtime = ".research-os/runtime"
+
+[budget]
+timeout_seconds = 5
+max_output_bytes = 262144
+max_artifact_bytes = 1048576

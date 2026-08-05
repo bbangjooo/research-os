@@ -1,0 +1,5 @@
+[
+  {"id":"d1","title":"Python concurrency","body":"threads async tasks"},
+  {"id":"d2","title":"SQLite durability","body":"transactions journals recovery"},
+  {"id":"d3","title":"Vector retrieval","body":"embeddings nearest neighbors"}
+]

@@ -1,0 +1,17 @@
+schema_version = 1
+adapter_command = ["node", ".research-os/adapter.mjs"]
+
+[project]
+id = "toy-retrieval"
+name = "Deterministic retrieval policy"
+
+[paths]
+mutable = ["retrieval.json"]
+protected = [".research-os/adapter.mjs", ".research-os/project.toml", ".research-os/constitution.toml", "evaluator.mjs", "data/corpus.json", "data/queries.json"]
+evidence = ["data/corpus.json", "data/queries.json"]
+runtime = ".research-os/runtime"
+
+[budget]
+timeout_seconds = 5
+max_output_bytes = 262144
+max_artifact_bytes = 1048576

@@ -1,0 +1,2462 @@
+"""Domain-neutral orchestration for one bounded research project.
+
+The service deliberately contains no model, market, or business-domain logic.
+Projects own candidate semantics and evaluation through their adapter; the OS
+owns isolation, budgets, provenance, lifecycle, and durable evidence.
+"""
+
+from __future__ import annotations
+
+import fcntl
+import math
+import os
+import stat
+from collections.abc import Mapping, Sequence
+from contextlib import contextmanager
+from dataclasses import dataclass, replace
+from pathlib import Path
+from statistics import fmean
+from typing import Any, cast
+
+from .agent import build_agent_context, load_agent_spec
+from .artifacts.catalog import ArtifactCatalog, ArtifactRecord
+from .config import ProjectConfig, ensure_runtime_directory, load_project_config
+from .contracts import (
+    FailureCategory,
+    Operation,
+    ProtocolResponse,
+    ResultEnvelope,
+    TerminalStatus,
+    decode_json_object,
+    normalize_json_object,
+    sha256_json,
+    validate_failure_category,
+)
+from .errors import (
+    ConfigurationError,
+    IntegrityError,
+    LifecycleError,
+    ProtocolError,
+    StaleAgentContextError,
+)
+from .execution.adapter import AdapterClient
+from .execution.workspace import WorkspaceManager, hash_tree
+from .kernel.events import Event, EventLog
+from .kernel.ids import new_experiment_id, new_id, stable_id
+from .kernel.lifecycle import coerce_state, is_terminal
+from .kernel.projection import ProjectionStore
+from .memory.findings import make_finding_event
+from .policy import Decision, decide
+from .provenance import environment_fingerprint, project_fingerprints
+
+REQUIRED_OPERATIONS = frozenset(operation.value for operation in Operation)
+_TERMINAL_EVENT_TYPES = frozenset(
+    {"EXPERIMENT_TERMINATED", "EXPERIMENT_STATUS_CHANGED"}
+)
+_ARTIFACT_EVENT_TYPES = frozenset(
+    {"ARTIFACT_RECORDED", "ARTIFACT_CAPTURED", "ARTIFACT_CATALOGUED"}
+)
+_PRESERVED_RECOVERY_REASON = "INTERRUPTED_EVIDENCE_UNTRUSTED"
+_USE_CURRENT_PRIMARY_METRIC = object()
+
+
+def _normalized_event_type(value: str) -> str:
+    return value.strip().upper().replace(".", "_").replace("-", "_")
+
+
+class AdapterOperationError(ProtocolError):
+    """A well-formed adapter response reported a failed operation."""
+
+    def __init__(self, operation: Operation, response: ProtocolResponse):
+        error = response.error
+        self.operation = operation
+        self.response = response
+        self.code = error.code if error is not None else "ADAPTER_FAILED"
+        if error is None:
+            raise ProtocolError(f"{operation.value}: failed response omitted error")
+        category = error.category
+        if category is None:
+            raise ProtocolError(
+                f"{operation.value}: failed response omitted error.category"
+            )
+        try:
+            self.category = validate_failure_category(operation, category)
+        except (TypeError, ValueError) as exc:
+            raise ProtocolError(
+                f"{operation.value}: invalid failure category for {self.code}: {exc}"
+            ) from exc
+        self.retryable = response.retryable
+        self.details = error.details
+        message = error.message
+        super().__init__(f"{operation.value}: {self.code}: {message}")
+
+
+@dataclass(frozen=True, slots=True)
+class DoctorReport:
+    project_id: str
+    project_root: str
+    capabilities: tuple[str, ...]
+    side_effects: tuple[Any, ...]
+    adapter_fingerprint: Mapping[str, Any]
+    fingerprints: Mapping[str, Any]
+    event_count: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "project_id": self.project_id,
+            "project_root": self.project_root,
+            "healthy": True,
+            "capabilities": list(self.capabilities),
+            "side_effects": list(self.side_effects),
+            "adapter_fingerprint": dict(self.adapter_fingerprint),
+            "fingerprints": dict(self.fingerprints),
+            "event_count": self.event_count,
+            "authorized_action": None,
+        }
+
+
+def _response_payload(
+    response: ProtocolResponse, operation: Operation
+) -> dict[str, Any]:
+    if not response.ok:
+        raise AdapterOperationError(operation, response)
+    return dict(response.payload)
+
+
+def _result(response: ProtocolResponse, operation: Operation) -> ResultEnvelope:
+    _response_payload(response, operation)
+    try:
+        envelope = response.result_envelope()
+    except (TypeError, ValueError, KeyError) as exc:
+        raise ProtocolError(
+            f"{operation.value} returned an invalid result envelope: {exc}"
+        ) from exc
+    if envelope.status is not None:
+        raise ProtocolError(
+            f"{operation.value} returned status; terminal status is owned by the kernel"
+        )
+    return envelope
+
+
+def _safe_error(exc: BaseException) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "type": type(exc).__name__,
+        "message": str(exc),
+    }
+    code = getattr(exc, "code", None)
+    if isinstance(code, str) and code:
+        result["code"] = code
+    retryable = getattr(exc, "retryable", None)
+    if isinstance(retryable, bool):
+        result["retryable"] = retryable
+    category = getattr(exc, "category", None)
+    if isinstance(category, FailureCategory):
+        result["category"] = category.value
+    details = getattr(exc, "details", None)
+    if isinstance(details, Mapping):
+        try:
+            result["details"] = dict(
+                normalize_json_object(details, field_name="error.details")
+            )
+        except (TypeError, ValueError):
+            result["details"] = {"normalization_error": "details were not JSON-safe"}
+    notes = getattr(exc, "__notes__", None)
+    if isinstance(notes, list) and all(isinstance(note, str) for note in notes):
+        result["notes"] = list(notes)
+    return result
+
+
+def _classify_failure(exc: BaseException) -> tuple[TerminalStatus, str]:
+    if isinstance(exc, AdapterOperationError):
+        return exc.category.terminal_status, exc.code
+    if isinstance(exc, TimeoutError):
+        return TerminalStatus.TIMED_OUT, "ADAPTER_TIMEOUT"
+    if isinstance(exc, IntegrityError):
+        return TerminalStatus.UNTRUSTED, "INTEGRITY_CHECK_FAILED"
+    if isinstance(exc, (ProtocolError, OSError)):
+        return TerminalStatus.INFRA_FAILED, "INFRASTRUCTURE_FAILURE"
+    return TerminalStatus.INFRA_FAILED, "UNEXPECTED_FAILURE"
+
+
+def _terminal_retryable(
+    status: TerminalStatus,
+    reason_code: str,
+    error: Mapping[str, Any] | None,
+) -> bool:
+    """Derive explicit retry eligibility from the terminal evidence."""
+
+    if status in {
+        TerminalStatus.INVALID_EXPERIMENT,
+        TerminalStatus.REJECTED,
+        TerminalStatus.VALIDATED,
+        TerminalStatus.UNTRUSTED,
+    }:
+        return False
+    if status in {TerminalStatus.TIMED_OUT, TerminalStatus.CANCELLED}:
+        return True
+    if (
+        status is TerminalStatus.INFRA_FAILED
+        and reason_code == "RECOVERED_INTERRUPTED_RUN"
+    ):
+        return True
+    retryable_adapter_categories = {
+        TerminalStatus.INFRA_FAILED: FailureCategory.INFRASTRUCTURE.value,
+        TerminalStatus.INSUFFICIENT_EVIDENCE: (
+            FailureCategory.INSUFFICIENT_EVIDENCE.value
+        ),
+    }
+    expected_category = retryable_adapter_categories.get(status)
+    return (
+        expected_category is not None
+        and isinstance(error, Mapping)
+        and error.get("type") == "AdapterOperationError"
+        and error.get("category") == expected_category
+        and error.get("code") == reason_code
+        and error.get("retryable") is True
+    )
+
+
+class ResearchService:
+    """Coordinate one local project without interpreting its domain."""
+
+    def __init__(self, root: str | Path):
+        self.config: ProjectConfig = load_project_config(root)
+        runtime = ensure_runtime_directory(self.config)
+        self.event_log = EventLog(runtime / "events.jsonl", self.config.project_id)
+        # A crash may leave only an uncommitted, non-newline tail. Recovery is
+        # deterministic: EventLog first verifies the complete committed prefix
+        # under its exclusive lock, then truncates only that final fragment.
+        self.event_log.recover_tail()
+        self.projection = ProjectionStore(runtime / "state.db")
+        self.catalog = ArtifactCatalog(
+            runtime / "artifacts", self.config.max_artifact_bytes
+        )
+        self.adapter = AdapterClient(self.config)
+
+    def _assert_config_unchanged(self) -> None:
+        """Fail closed when a cached service no longer matches project policy."""
+
+        current = load_project_config(self.config.root)
+        if current != self.config:
+            raise IntegrityError(
+                "project configuration changed after service construction; "
+                "create a new ResearchService instance"
+            )
+
+    def inspect(self) -> dict[str, Any]:
+        """Return the resolved local contract without invoking project code."""
+
+        self._assert_config_unchanged()
+        config = self.config
+        return {
+            "schema_version": 1,
+            "project_id": config.project_id,
+            "name": config.name,
+            "root": str(config.root),
+            "adapter_command": list(config.adapter_command),
+            "paths": {
+                "mutable": [path.as_posix() for path in config.mutable_paths],
+                "protected": [path.as_posix() for path in config.protected_paths],
+                "evidence": [path.as_posix() for path in config.evidence_paths],
+                "runtime": config.runtime_dir.as_posix(),
+            },
+            "budget": {
+                "timeout_seconds": config.timeout_seconds,
+                "max_output_bytes": config.max_output_bytes,
+                "max_artifact_bytes": config.max_artifact_bytes,
+            },
+            "objective": {
+                "primary_metric": config.primary_metric,
+                "direction": config.direction.value,
+                "baseline_repeats": config.baseline_repeats,
+                "baseline_tolerance": config.baseline_tolerance,
+                "minimum_improvement": config.minimum_improvement,
+            },
+            "authorized_action": None,
+        }
+
+    def _call(
+        self,
+        operation: Operation,
+        *,
+        payload: Mapping[str, Any] | None = None,
+        workspace: Path | None = None,
+        experiment_id: str | None = None,
+    ) -> ProtocolResponse:
+        return self.adapter.call(
+            operation,
+            payload={} if payload is None else payload,
+            workspace=workspace,
+            experiment_id=experiment_id,
+        )
+
+    def _assert_static_compatibility(self, report: DoctorReport) -> None:
+        """Verify every compatibility-bearing input against the doctor seal."""
+
+        current_project = project_fingerprints(self.config)
+        current_environment = current_project.get("environment")
+        expected_environment = report.fingerprints.get("environment")
+        if not isinstance(current_environment, Mapping) or current_environment.get(
+            "digest"
+        ) != (
+            expected_environment.get("digest")
+            if isinstance(expected_environment, Mapping)
+            else None
+        ):
+            raise IntegrityError("adapter executable environment changed after doctor")
+        expected_project_digest = report.fingerprints.get(
+            "project_compatibility_digest"
+        )
+        if current_project.get("compatibility_digest") != expected_project_digest:
+            raise IntegrityError(
+                "project compatibility inputs changed after doctor"
+            )
+
+    def _assert_environment_compatibility(self, report: DoctorReport) -> None:
+        """Check executable provenance without pre-empting stage recording."""
+
+        current = environment_fingerprint(self.config)
+        expected = report.fingerprints.get("environment")
+        if current.get("digest") != (
+            expected.get("digest") if isinstance(expected, Mapping) else None
+        ):
+            raise IntegrityError("adapter executable environment changed after doctor")
+
+    def _call_sealed(
+        self,
+        report: DoctorReport,
+        operation: Operation,
+        *,
+        payload: Mapping[str, Any] | None = None,
+        workspace: Path | None = None,
+        experiment_id: str | None = None,
+    ) -> ProtocolResponse:
+        self._assert_static_compatibility(report)
+        response = self._call(
+            operation,
+            payload=payload,
+            workspace=workspace,
+            experiment_id=experiment_id,
+        )
+        # Project-local drift is checked by the caller's WorkspaceManager after
+        # it has durably recorded this response. Checking only external argv
+        # here keeps a valid failed adapter response available as evidence.
+        self._assert_environment_compatibility(report)
+        return response
+
+    def _sync(self) -> int:
+        return self.projection.sync(self.event_log)
+
+    def _verify_projected_artifact(
+        self, projected: Mapping[str, Any]
+    ) -> ArtifactRecord:
+        payload = projected.get("payload")
+        if not isinstance(payload, Mapping):
+            raise IntegrityError("projected artifact is missing canonical payload")
+        expected = ArtifactRecord.from_mapping(payload)
+        if expected.project_id != self.config.project_id:
+            raise IntegrityError("projected artifact belongs to another project")
+        if projected.get("artifact_id") != expected.artifact_id:
+            raise IntegrityError("projected artifact ID disagrees with canonical payload")
+        stored = self.catalog.get(expected.artifact_id)
+        if stored.to_dict() != expected.to_dict():
+            raise IntegrityError(
+                "artifact manifest disagrees with canonical ARTIFACT_RECORDED evidence"
+            )
+        return stored
+
+    def _verify_terminal_artifact_bindings(
+        self,
+        projected_records: Sequence[tuple[Mapping[str, Any], ArtifactRecord]],
+    ) -> None:
+        """Bind every terminal result declaration to earlier canonical artifacts."""
+
+        by_experiment: dict[
+            str, list[tuple[Mapping[str, Any], ArtifactRecord]]
+        ] = {}
+        for projected, record in projected_records:
+            by_experiment.setdefault(record.experiment_id, []).append(
+                (projected, record)
+            )
+
+        for event in self.event_log.read():
+            event_type = _normalized_event_type(event.event_type)
+            if event_type not in _TERMINAL_EVENT_TYPES:
+                continue
+            if event_type == "EXPERIMENT_STATUS_CHANGED":
+                status = event.payload.get("status", event.payload.get("state"))
+                try:
+                    if not isinstance(status, str) or not is_terminal(status):
+                        continue
+                except (LifecycleError, TypeError, ValueError) as exc:
+                    raise IntegrityError("terminal status event is invalid") from exc
+            if "result" not in event.payload:
+                # Recovery/legacy terminals may carry no result.  Artifact
+                # records can still precede a recovery terminal, but there is
+                # no declaration here to bind in that case.
+                continue
+            result_value = event.payload["result"]
+            if not isinstance(result_value, Mapping):
+                raise IntegrityError("terminal result must be an object")
+            try:
+                result = ResultEnvelope.from_mapping(
+                    cast(Mapping[str, Any], result_value)
+                )
+            except (KeyError, TypeError, ValueError) as exc:
+                raise IntegrityError(f"terminal result is invalid: {exc}") from exc
+            if result.status is not None:
+                raise IntegrityError("terminal result cannot declare kernel status")
+            experiment_id = event.payload.get(
+                "experiment_id", event.payload.get("id")
+            )
+            if not isinstance(experiment_id, str) or not experiment_id:
+                raise IntegrityError("terminal result has an invalid experiment ID")
+            actual_records: dict[
+                str, tuple[Mapping[str, Any], ArtifactRecord]
+            ] = {}
+            for projected, record in by_experiment.get(experiment_id, []):
+                if record.relative_path in actual_records:
+                    raise IntegrityError(
+                        "terminal result has duplicate artifact paths in history"
+                    )
+                actual_records[record.relative_path] = (projected, record)
+            expected = {reference.path: reference for reference in result.artifacts}
+            if set(actual_records) != set(expected):
+                missing = sorted(set(expected) - set(actual_records))
+                extra = sorted(set(actual_records) - set(expected))
+                detail = []
+                if missing:
+                    detail.append("missing=" + ",".join(missing))
+                if extra:
+                    detail.append("extra=" + ",".join(extra))
+                raise IntegrityError(
+                    "terminal artifact declarations do not match canonical records"
+                    + (": " + "; ".join(detail) if detail else "")
+                )
+            for path, reference in expected.items():
+                projected, record = actual_records[path]
+                sequence = projected.get("event_sequence")
+                if (
+                    isinstance(sequence, bool)
+                    or not isinstance(sequence, int)
+                    or sequence >= event.sequence
+                ):
+                    raise IntegrityError(
+                        f"terminal artifact was not recorded before termination: {path}"
+                    )
+                if (
+                    record.project_id != self.config.project_id
+                    or record.experiment_id != experiment_id
+                    or record.role is not None
+                    or record.media_type != reference.media_type
+                    or dict(record.metadata)
+                    != {
+                        "retention": reference.retention,
+                        "sensitivity": reference.sensitivity,
+                    }
+                    or (
+                        reference.sha256 is not None
+                        and record.digest != reference.sha256
+                    )
+                    or (
+                        reference.size_bytes is not None
+                        and record.size != reference.size_bytes
+                    )
+                ):
+                    raise IntegrityError(
+                        f"terminal artifact metadata is inconsistent: {path}"
+                    )
+
+    def _publish_artifact_records(
+        self, experiment_id: str, records: Sequence[ArtifactRecord]
+    ) -> None:
+        """Idempotently bind captured manifests into canonical history."""
+
+        existing: dict[str, ArtifactRecord] = {}
+        for event in self.event_log.read():
+            if _normalized_event_type(event.event_type) not in _ARTIFACT_EVENT_TYPES:
+                continue
+            record = ArtifactRecord.from_mapping(event.payload)
+            if record.artifact_id in existing:
+                raise IntegrityError(
+                    f"duplicate artifact event for {record.artifact_id}"
+                )
+            existing[record.artifact_id] = record
+        for record in records:
+            if record.project_id != self.config.project_id or (
+                record.experiment_id != experiment_id
+            ):
+                raise IntegrityError("captured artifact identity is inconsistent")
+            prior = existing.get(record.artifact_id)
+            if prior is not None:
+                if prior.to_dict() != record.to_dict():
+                    raise IntegrityError(
+                        "canonical artifact event disagrees with captured manifest"
+                    )
+                continue
+            self.event_log.append(
+                "ARTIFACT_RECORDED",
+                {**record.to_dict(), "authorized_action": None},
+            )
+            existing[record.artifact_id] = record
+
+    def _artifact_records_are_published(
+        self, experiment_id: str, records: Sequence[ArtifactRecord]
+    ) -> bool:
+        """Prove that every captured record already has exact canonical evidence."""
+
+        expected = {record.artifact_id: record for record in records}
+        if len(expected) != len(records):
+            raise IntegrityError("captured artifact records contain duplicate IDs")
+        observed: dict[str, ArtifactRecord] = {}
+        for event in self.event_log.read():
+            if _normalized_event_type(event.event_type) not in _ARTIFACT_EVENT_TYPES:
+                continue
+            record = ArtifactRecord.from_mapping(event.payload)
+            if record.experiment_id != experiment_id:
+                continue
+            if record.artifact_id in observed:
+                raise IntegrityError(
+                    f"duplicate artifact event for {record.artifact_id}"
+                )
+            observed[record.artifact_id] = record
+        for artifact_id, record in expected.items():
+            published = observed.get(artifact_id)
+            if published is not None and published.to_dict() != record.to_dict():
+                raise IntegrityError(
+                    "canonical artifact event disagrees with captured manifest"
+                )
+        return all(artifact_id in observed for artifact_id in expected)
+
+    @contextmanager
+    def _workflow_lock(self):
+        """Enforce the v1 single-local-worker execution model."""
+
+        path = self.config.resolved_runtime_dir / "workflow.lock"
+        flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_CLOEXEC", 0)
+        flags |= getattr(os, "O_NOFOLLOW", 0)
+        try:
+            descriptor = os.open(path, flags, 0o600)
+        except OSError as exc:
+            raise IntegrityError(f"cannot open workflow lock: {path}") from exc
+        try:
+            info = os.fstat(descriptor)
+            if not stat.S_ISREG(info.st_mode):
+                raise IntegrityError("workflow lock is not a regular file")
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise ConfigurationError(
+                    "another baseline or experiment is already running for this project"
+                ) from exc
+            yield
+        finally:
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_UN)
+            finally:
+                os.close(descriptor)
+
+    def _ensure_initialized(self, fingerprints: Mapping[str, Any]) -> None:
+        events = self.event_log.read()
+        if events:
+            if _normalized_event_type(events[0].event_type) != "PROJECT_INITIALIZED":
+                raise IntegrityError(
+                    "the first canonical event must initialize the project"
+                )
+            self._sync()
+            return
+        self.event_log.append(
+            "PROJECT_INITIALIZED",
+            {
+                "project_id": self.config.project_id,
+                "status": "active",
+                "metadata": {
+                    "name": self.config.name,
+                    "schema_version": 1,
+                    "initial_compatibility_digest": fingerprints[
+                        "compatibility_digest"
+                    ],
+                    "authorized_action": None,
+                },
+            },
+        )
+        self._sync()
+
+    def doctor(self) -> DoctorReport:
+        """Validate configuration and initialize canonical state atomically."""
+
+        with self._workflow_lock():
+            report = self._doctor()
+            self._recover_incomplete_experiments()
+            return replace(report, event_count=len(self.event_log.read()))
+
+    def _doctor(self) -> DoctorReport:
+        """Unlocked implementation for callers already holding the workflow lock."""
+
+        self._assert_config_unchanged()
+        source_hash = hash_tree(self.config.root)
+        fingerprints = project_fingerprints(self.config)
+        describe = _response_payload(self._call(Operation.DESCRIBE), Operation.DESCRIBE)
+        if hash_tree(self.config.root) != source_hash:
+            raise IntegrityError("adapter describe modified the project checkout")
+        capabilities_value = describe.get("capabilities")
+        if (
+            not isinstance(capabilities_value, Sequence)
+            or isinstance(capabilities_value, (str, bytes, bytearray))
+            or not all(isinstance(value, str) for value in capabilities_value)
+        ):
+            raise ProtocolError(
+                "describe.capabilities must be an array of operation names"
+            )
+        capabilities = frozenset(str(value) for value in capabilities_value)
+        missing = sorted(REQUIRED_OPERATIONS - capabilities)
+        if missing:
+            raise ProtocolError(
+                "adapter is missing required capabilities: " + ", ".join(missing)
+            )
+        side_effects_value = describe.get("side_effects")
+        if not isinstance(side_effects_value, Sequence) or isinstance(
+            side_effects_value, (str, bytes, bytearray)
+        ):
+            raise ProtocolError("describe.side_effects must be an array")
+        if side_effects_value:
+            raise ConfigurationError(
+                "v1 adapters must declare no external side effects; live actions are outside Research OS"
+            )
+        adapter_fingerprint = _response_payload(
+            self._call(Operation.FINGERPRINT), Operation.FINGERPRINT
+        )
+        if hash_tree(self.config.root) != source_hash:
+            raise IntegrityError("adapter fingerprint modified the project checkout")
+        after_fingerprints = project_fingerprints(self.config)
+        if after_fingerprints != fingerprints:
+            raise IntegrityError("immutable project fingerprints drifted during doctor")
+        adapter_fingerprint_digest = sha256_json(adapter_fingerprint)
+        effective_fingerprints = {
+            **fingerprints,
+            # This is an execution-snapshot seal used to recover an orphaned
+            # workspace.  Compatibility itself remains the project+adapter
+            # digest below; mutable inputs are already represented there by
+            # ``project_fingerprints``.
+            "source_tree_digest": source_hash,
+            "project_compatibility_digest": fingerprints["compatibility_digest"],
+            "adapter": {
+                "digest": adapter_fingerprint_digest,
+                "value": adapter_fingerprint,
+            },
+            "compatibility_digest": sha256_json(
+                {
+                    "project": fingerprints["compatibility_digest"],
+                    "adapter": adapter_fingerprint_digest,
+                }
+            ),
+        }
+        self._ensure_initialized(effective_fingerprints)
+        return DoctorReport(
+            project_id=self.config.project_id,
+            project_root=str(self.config.root),
+            capabilities=tuple(sorted(capabilities)),
+            side_effects=tuple(side_effects_value),
+            adapter_fingerprint=adapter_fingerprint,
+            fingerprints=effective_fingerprints,
+            event_count=len(self.event_log.read()),
+        )
+
+    def _adapter_cleanup(
+        self, report: DoctorReport, workspace: Path, experiment_id: str
+    ) -> None:
+        response = self._call_sealed(
+            report,
+            Operation.CLEANUP,
+            workspace=workspace,
+            experiment_id=experiment_id,
+        )
+        _response_payload(response, Operation.CLEANUP)
+
+    def baseline(self) -> dict[str, Any]:
+        with self._workflow_lock():
+            return self._baseline()
+
+    def _baseline(self) -> dict[str, Any]:
+        """Measure a stable baseline in isolated snapshots and seal it."""
+
+        report = self._doctor()
+        self._recover_incomplete_experiments()
+        count = self.config.baseline_repeats
+
+        manager = WorkspaceManager(self.config)
+        results: list[ResultEnvelope] = []
+        captured_artifacts: list[dict[str, Any]] = []
+        try:
+            for index in range(count):
+                workspace_id = stable_id(
+                    "baseline",
+                    self.config.project_id,
+                    report.fingerprints["compatibility_digest"],
+                    index,
+                )
+                self._assert_static_compatibility(report)
+                handle = manager.create(workspace_id)
+                operation_error: BaseException | None = None
+                try:
+                    self._assert_static_compatibility(report)
+                    response = self._call_sealed(
+                        report,
+                        Operation.BASELINE,
+                        payload={"repetition": index, "repetitions": count},
+                        workspace=handle.path,
+                        experiment_id=workspace_id,
+                    )
+                    baseline_result = _result(response, Operation.BASELINE)
+                    results.append(baseline_result)
+                    manager.verify(
+                        handle,
+                        allowed_outputs=baseline_result.artifacts,
+                        allow_mutable=False,
+                    )
+                    for record in self.catalog.capture(
+                        handle.path,
+                        self.config.project_id,
+                        workspace_id,
+                        baseline_result.artifacts,
+                    ):
+                        captured_artifacts.append(
+                            {
+                                **record.to_dict(),
+                                "baseline_repetition": index,
+                            }
+                        )
+                except BaseException as exc:
+                    operation_error = exc
+                    raise
+                finally:
+                    integrity_errors: list[BaseException] = []
+                    adapter_is_sealed = False
+                    try:
+                        # Cleanup executes the configured project adapter, so both
+                        # the workspace and the source checkout must still be sealed.
+                        manager.verify_protected(handle)
+                        manager.verify_source_unchanged(handle)
+                        self._assert_static_compatibility(report)
+                        adapter_is_sealed = True
+                    except Exception as exc:
+                        integrity_errors.append(exc)
+                    cleanup_failure: BaseException | None = None
+                    if adapter_is_sealed:
+                        try:
+                            self._adapter_cleanup(report, handle.path, workspace_id)
+                        except IntegrityError as exc:
+                            integrity_errors.append(exc)
+                        except Exception as exc:
+                            cleanup_failure = exc
+                        try:
+                            manager.verify_protected(handle)
+                            manager.verify_source_unchanged(handle)
+                            self._assert_static_compatibility(report)
+                        except Exception as exc:
+                            integrity_errors.append(exc)
+                    try:
+                        manager.cleanup(handle)
+                    except IntegrityError as exc:
+                        integrity_errors.append(exc)
+                    except Exception as exc:
+                        cleanup_failure = cleanup_failure or exc
+                    if integrity_errors:
+                        dominant = integrity_errors[0]
+                        for secondary in integrity_errors[1:]:
+                            dominant.add_note(
+                                f"additional integrity error: {secondary}"
+                            )
+                        raise dominant from operation_error
+                    if operation_error is None and cleanup_failure is not None:
+                        raise cleanup_failure
+                    if operation_error is not None and cleanup_failure is not None:
+                        operation_error.add_note(f"cleanup error: {cleanup_failure}")
+        except BaseException as exc:
+            try:
+                manager.close()
+            except BaseException as close_exc:
+                exc.add_note(f"workspace manager close error: {close_exc}")
+            raise
+        else:
+            manager.close()
+
+        primary_values: list[float] = []
+        for index, result in enumerate(results):
+            if self.config.primary_metric not in result.metrics:
+                raise ProtocolError(
+                    f"baseline repetition {index} omitted primary metric {self.config.primary_metric!r}"
+                )
+            value = float(result.metrics[self.config.primary_metric])
+            if not math.isfinite(value):
+                raise ProtocolError("baseline primary metric must be finite")
+            primary_values.append(value)
+        spread = max(primary_values) - min(primary_values)
+        if spread > self.config.baseline_tolerance:
+            raise IntegrityError(
+                "baseline is not reproducible: "
+                f"spread {spread} exceeds tolerance {self.config.baseline_tolerance}"
+            )
+
+        metric_names = set(results[0].metrics)
+        if any(set(result.metrics) != metric_names for result in results[1:]):
+            raise ProtocolError("baseline repetitions returned different metric sets")
+        metrics = {
+            name: fmean(float(result.metrics[name]) for result in results)
+            for name in sorted(metric_names)
+        }
+        payload: dict[str, Any] = {
+            "baseline_id": new_id("baseline"),
+            "compatibility_digest": report.fingerprints["compatibility_digest"],
+            "adapter_fingerprint": dict(report.adapter_fingerprint),
+            "metrics": metrics,
+            "primary_metric": self.config.primary_metric,
+            "primary_value": metrics[self.config.primary_metric],
+            "repetitions": count,
+            "observations": [result.to_dict() for result in results],
+            "artifacts": captured_artifacts,
+            "spread": spread,
+            "tolerance": self.config.baseline_tolerance,
+            "fingerprints": dict(report.fingerprints),
+            "authorized_action": None,
+        }
+        payload["digest"] = sha256_json(payload)
+        event = self.event_log.append("BASELINE_RECORDED", payload)
+        self._sync()
+        return {**payload, "event_sequence": event.sequence}
+
+    def _validate_baseline_payload(
+        self,
+        payload: Mapping[str, Any],
+        compatibility_digest: str,
+        *,
+        enforce_current_policy: bool = True,
+    ) -> dict[str, Any]:
+        """Revalidate a sealed baseline before it can authorize comparison."""
+
+        baseline = dict(payload)
+        claimed_digest = baseline.get("digest")
+        unsigned = dict(baseline)
+        unsigned.pop("digest", None)
+        if not isinstance(claimed_digest, str) or sha256_json(unsigned) != claimed_digest:
+            raise IntegrityError("compatible baseline digest is invalid")
+        baseline_id = baseline.get("baseline_id", baseline.get("id"))
+        if not isinstance(baseline_id, str) or not baseline_id:
+            raise IntegrityError("compatible baseline has an invalid baseline ID")
+        # Projection accepts the legacy ``id`` spelling.  Downstream service
+        # code consumes one normalized shape after the original signed payload
+        # has been verified byte-for-byte above.
+        baseline["baseline_id"] = baseline_id
+        if baseline.get("compatibility_digest") != compatibility_digest:
+            raise IntegrityError("compatible baseline fingerprint is inconsistent")
+        fingerprints = baseline.get("fingerprints")
+        adapter_fingerprint = baseline.get("adapter_fingerprint")
+        if not isinstance(fingerprints, Mapping) or not isinstance(
+            adapter_fingerprint, Mapping
+        ):
+            raise IntegrityError("compatible baseline provenance is invalid")
+        adapter_seal = fingerprints.get("adapter")
+        project_digest = fingerprints.get("project_compatibility_digest")
+        if (
+            not isinstance(adapter_seal, Mapping)
+            or adapter_seal.get("value") != adapter_fingerprint
+            or adapter_seal.get("digest") != sha256_json(adapter_fingerprint)
+            or not isinstance(project_digest, str)
+            or sha256_json(
+                {
+                    "project": project_digest,
+                    "adapter": adapter_seal.get("digest"),
+                }
+            )
+            != compatibility_digest
+            or fingerprints.get("compatibility_digest") != compatibility_digest
+        ):
+            raise IntegrityError("compatible baseline provenance seal is inconsistent")
+        primary_metric = baseline.get("primary_metric")
+        if not isinstance(primary_metric, str) or not primary_metric:
+            raise IntegrityError("compatible baseline primary metric is invalid")
+        if enforce_current_policy and primary_metric != self.config.primary_metric:
+            raise IntegrityError("compatible baseline primary metric is inconsistent")
+
+        repetitions = baseline.get("repetitions")
+        if (
+            isinstance(repetitions, bool)
+            or not isinstance(repetitions, int)
+            or repetitions < 1
+        ):
+            raise IntegrityError("compatible baseline repetition count is invalid")
+        if enforce_current_policy and repetitions != self.config.baseline_repeats:
+            raise IntegrityError(
+                "compatible baseline did not use the constitution repetition count"
+            )
+        tolerance = baseline.get("tolerance")
+        if (
+            isinstance(tolerance, bool)
+            or not isinstance(tolerance, (int, float))
+            or not math.isfinite(float(tolerance))
+        ):
+            raise IntegrityError("compatible baseline tolerance is inconsistent")
+        if enforce_current_policy and float(tolerance) != self.config.baseline_tolerance:
+            raise IntegrityError("compatible baseline tolerance is inconsistent")
+
+        observations_value = baseline.get("observations")
+        if not isinstance(observations_value, Sequence) or isinstance(
+            observations_value, (str, bytes, bytearray)
+        ):
+            raise IntegrityError("compatible baseline observations must be an array")
+        if len(observations_value) != repetitions:
+            raise IntegrityError("compatible baseline repetition evidence is incomplete")
+        observations: list[ResultEnvelope] = []
+        try:
+            for value in observations_value:
+                result = ResultEnvelope.from_mapping(value)
+                if result.status is not None:
+                    raise ValueError("baseline observations cannot declare status")
+                observations.append(result)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise IntegrityError(f"compatible baseline observation is invalid: {exc}") from exc
+
+        metric_names = set(observations[0].metrics)
+        if any(set(result.metrics) != metric_names for result in observations[1:]):
+            raise IntegrityError("compatible baseline metric sets are inconsistent")
+        primary_values = [
+            float(result.metrics[primary_metric])
+            for result in observations
+            if primary_metric in result.metrics
+        ]
+        if len(primary_values) != repetitions or not all(
+            math.isfinite(value) for value in primary_values
+        ):
+            raise IntegrityError("compatible baseline primary observations are invalid")
+        expected_metrics = {
+            name: fmean(float(result.metrics[name]) for result in observations)
+            for name in sorted(metric_names)
+        }
+        if baseline.get("metrics") != expected_metrics:
+            raise IntegrityError("compatible baseline aggregate metrics are inconsistent")
+        if baseline.get("primary_value") != expected_metrics[primary_metric]:
+            raise IntegrityError("compatible baseline primary value is inconsistent")
+        expected_spread = max(primary_values) - min(primary_values)
+        if baseline.get("spread") != expected_spread:
+            raise IntegrityError("compatible baseline spread is inconsistent")
+        if expected_spread > float(tolerance):
+            raise IntegrityError("compatible baseline violates the reproducibility gate")
+
+        artifacts_value = baseline.get("artifacts", [])
+        if not isinstance(artifacts_value, Sequence) or isinstance(
+            artifacts_value, (str, bytes, bytearray)
+        ):
+            raise IntegrityError("compatible baseline artifacts must be an array")
+        expected_artifacts = {
+            (index, artifact.path): artifact
+            for index, result in enumerate(observations)
+            for artifact in result.artifacts
+        }
+        observed_artifacts: set[tuple[int, str]] = set()
+        for value in artifacts_value:
+            if not isinstance(value, Mapping):
+                raise IntegrityError("compatible baseline artifact is not an object")
+            repetition = value.get("baseline_repetition")
+            if (
+                isinstance(repetition, bool)
+                or not isinstance(repetition, int)
+                or repetition < 0
+                or repetition >= repetitions
+            ):
+                raise IntegrityError("compatible baseline artifact repetition is invalid")
+            record = ArtifactRecord.from_mapping(value)
+            if record.project_id != self.config.project_id:
+                raise IntegrityError("compatible baseline artifact belongs to another project")
+            expected_workspace = stable_id(
+                "baseline",
+                self.config.project_id,
+                compatibility_digest,
+                repetition,
+            )
+            if record.experiment_id != expected_workspace:
+                raise IntegrityError("compatible baseline artifact workspace is inconsistent")
+            key = (repetition, record.relative_path)
+            if key in observed_artifacts:
+                raise IntegrityError("compatible baseline contains a duplicate artifact")
+            observed_artifacts.add(key)
+            declared = expected_artifacts.get(key)
+            if declared is None:
+                raise IntegrityError("compatible baseline contains an undeclared artifact")
+            if (
+                record.role is not None
+                or record.media_type != declared.media_type
+                or dict(record.metadata)
+                != {
+                    "retention": declared.retention,
+                    "sensitivity": declared.sensitivity,
+                }
+                or (
+                    declared.sha256 is not None
+                    and record.digest != declared.sha256
+                )
+                or (
+                    declared.size_bytes is not None
+                    and record.size != declared.size_bytes
+                )
+            ):
+                raise IntegrityError("compatible baseline artifact metadata is inconsistent")
+            stored = self.catalog.get(record.artifact_id)
+            if stored.to_dict() != record.to_dict():
+                raise IntegrityError("compatible baseline artifact manifest is inconsistent")
+        if observed_artifacts != set(expected_artifacts):
+            raise IntegrityError("compatible baseline artifact evidence is incomplete")
+        return baseline
+
+    def _compatible_baseline(self, compatibility_digest: str) -> dict[str, Any] | None:
+        for event in reversed(self.event_log.read()):
+            if _normalized_event_type(event.event_type) != "BASELINE_RECORDED":
+                continue
+            payload = event.payload
+            if payload.get("compatibility_digest") != compatibility_digest:
+                continue
+            if payload.get("primary_metric") != self.config.primary_metric:
+                continue
+            value = payload.get("primary_value")
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise IntegrityError("compatible baseline has an invalid primary value")
+            return self._validate_baseline_payload(payload, compatibility_digest)
+        return None
+
+    def _select_attempt(
+        self,
+        candidate_digest: str,
+        parent_id: str | None,
+        compatibility_digest: str,
+        retry_of: str | None,
+    ) -> tuple[str | None, int, str | None]:
+        """Select and validate one explicit attempt without mutating history."""
+
+        if retry_of is None:
+            attempts = self.projection.candidate_attempts(
+                self.config.project_id,
+                candidate_digest,
+                parent_id,
+                compatibility_digest,
+            )
+            if attempts:
+                raise ConfigurationError(
+                    "this candidate already exists under the selected parent; "
+                    "duplicate evidence is refused"
+                )
+            return parent_id, 1, None
+
+        try:
+            prior = self.projection.experiment(self.config.project_id, retry_of)
+        except (IntegrityError, TypeError, ValueError) as exc:
+            raise ConfigurationError(f"unknown retry attempt: {retry_of}") from exc
+        prior_parent = prior.get("parent_id")
+        if prior_parent is not None and not isinstance(prior_parent, str):
+            raise IntegrityError("projected retry parent is invalid")
+        if parent_id is not None and parent_id != prior_parent:
+            raise ConfigurationError(
+                "a retry must use the same parent as the prior attempt"
+            )
+        effective_parent = prior_parent
+        if (
+            prior.get("candidate_digest") != candidate_digest
+            or prior.get("compatibility_digest") != compatibility_digest
+        ):
+            raise ConfigurationError(
+                "retry_of does not match this candidate and compatibility"
+            )
+        attempts = self.projection.candidate_attempts(
+            self.config.project_id,
+            candidate_digest,
+            effective_parent,
+            compatibility_digest,
+        )
+        if not attempts or attempts[-1].get("experiment_id") != retry_of:
+            raise ConfigurationError(
+                "retry_of must reference the most recent candidate attempt"
+            )
+        if not prior.get("retryable", False):
+            raise ConfigurationError(
+                "retry_of did not end with retryable terminal evidence"
+            )
+        prior_attempt = prior.get("attempt")
+        if (
+            isinstance(prior_attempt, bool)
+            or not isinstance(prior_attempt, int)
+            or prior_attempt < 1
+        ):
+            raise IntegrityError("projected retry attempt number is invalid")
+        return effective_parent, prior_attempt + 1, retry_of
+
+    def _evaluation_result_for_recovery(
+        self, experiment_id: str
+    ) -> ResultEnvelope | None:
+        """Read the durable evaluator response for an interrupted attempt."""
+
+        evaluate_events: list[Event] = []
+        for event in self.event_log.read():
+            if _normalized_event_type(event.event_type) not in {
+                "STAGE_COMPLETED",
+                "ADAPTER_STAGE_RECORDED",
+            }:
+                continue
+            if event.payload.get("experiment_id") != experiment_id:
+                continue
+            stage = event.payload.get(
+                "stage",
+                event.payload.get("stage_name", event.payload.get("name")),
+            )
+            if not isinstance(stage, str) or (
+                stage.strip().lower().replace("-", "_")
+                != Operation.EVALUATE.value
+            ):
+                continue
+            evaluate_events.append(event)
+        if not evaluate_events:
+            return None
+        if len(evaluate_events) != 1:
+            raise IntegrityError(
+                "interrupted experiment has duplicate evaluate stage evidence"
+            )
+        response_value = evaluate_events[0].payload.get("response")
+        if not isinstance(response_value, Mapping):
+            raise IntegrityError(
+                "interrupted evaluate stage has no canonical response"
+            )
+        try:
+            response = ProtocolResponse.from_mapping(
+                cast(Mapping[str, Any], response_value)
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise IntegrityError(
+                f"interrupted evaluate response is invalid: {exc}"
+            ) from exc
+        if not response.ok:
+            return None
+        try:
+            return _result(response, Operation.EVALUATE)
+        except (AdapterOperationError, ProtocolError) as exc:
+            raise IntegrityError(
+                f"interrupted evaluate result is invalid: {exc}"
+            ) from exc
+
+    def _validate_recovered_artifact_records(
+        self,
+        experiment_id: str,
+        result: ResultEnvelope,
+        records: Sequence[ArtifactRecord],
+        *,
+        require_complete: bool,
+    ) -> bool:
+        """Match catalog records exactly to the evaluator's declared outputs."""
+
+        expected = {reference.path: reference for reference in result.artifacts}
+        actual: dict[str, ArtifactRecord] = {}
+        for record in records:
+            if record.project_id != self.config.project_id or (
+                record.experiment_id != experiment_id
+            ):
+                raise IntegrityError(
+                    "recovered artifact belongs to another project or experiment"
+                )
+            if record.relative_path in actual:
+                raise IntegrityError(
+                    "interrupted experiment has duplicate artifact manifests"
+                )
+            actual[record.relative_path] = record
+        extra = sorted(set(actual) - set(expected))
+        if extra:
+            raise IntegrityError(
+                "interrupted experiment has undeclared artifact manifests: "
+                + ", ".join(extra)
+            )
+        for path, record in actual.items():
+            reference = expected[path]
+            expected_metadata = {
+                "retention": reference.retention,
+                "sensitivity": reference.sensitivity,
+            }
+            if (
+                record.role is not None
+                or record.media_type != reference.media_type
+                or dict(record.metadata) != expected_metadata
+            ):
+                raise IntegrityError(
+                    f"recovered artifact metadata disagrees with evaluation: {path}"
+                )
+            if reference.sha256 is not None and (
+                record.digest != reference.sha256
+                or record.size != reference.size_bytes
+            ):
+                raise IntegrityError(
+                    f"recovered artifact content disagrees with evaluation: {path}"
+                )
+        complete = set(actual) == set(expected)
+        if require_complete and not complete:
+            missing = sorted(set(expected) - set(actual))
+            raise IntegrityError(
+                "interrupted experiment is missing artifact manifests: "
+                + ", ".join(missing)
+            )
+        return complete
+
+    def _recover_interrupted_artifacts(
+        self, row: Mapping[str, Any], manager: WorkspaceManager
+    ) -> None:
+        """Seal evaluated outputs before an interrupted workspace can be removed."""
+
+        experiment_id_value = row.get("experiment_id")
+        if not isinstance(experiment_id_value, str) or not experiment_id_value:
+            raise IntegrityError("interrupted experiment identity is invalid")
+        experiment_id = experiment_id_value
+        result = self._evaluation_result_for_recovery(experiment_id)
+        existing = self.catalog.records_for_experiment(
+            self.config.project_id, experiment_id
+        )
+        if result is None:
+            if existing:
+                raise IntegrityError(
+                    "interrupted experiment has artifacts without successful evaluation"
+                )
+            return
+        complete = self._validate_recovered_artifact_records(
+            experiment_id,
+            result,
+            existing,
+            require_complete=False,
+        )
+        if complete:
+            self._publish_artifact_records(experiment_id, existing)
+            return
+        if not result.artifacts:  # pragma: no cover - complete when both sets are empty
+            return
+
+        registration = row.get("payload")
+        if not isinstance(registration, Mapping):
+            raise IntegrityError("interrupted experiment registration is invalid")
+        source_tree_digest = registration.get("source_tree_digest")
+        if not isinstance(source_tree_digest, str) or not source_tree_digest:
+            raise IntegrityError(
+                "cannot recover evaluated artifacts without a source tree seal"
+            )
+
+        handle = manager.adopt_orphan(experiment_id, source_tree_digest)
+        try:
+            manager.verify(handle, allowed_outputs=result.artifacts)
+            self.catalog.capture(
+                handle.path,
+                self.config.project_id,
+                experiment_id,
+                result.artifacts,
+            )
+            recovered = self.catalog.records_for_experiment(
+                self.config.project_id, experiment_id
+            )
+            self._validate_recovered_artifact_records(
+                experiment_id,
+                result,
+                recovered,
+                require_complete=True,
+            )
+            self._publish_artifact_records(experiment_id, recovered)
+            manager.cleanup(handle)
+        except BaseException as primary:
+            # Evidence that could not be proven remains available for a human or
+            # a later compatible recovery; generic orphan cleanup must not erase it.
+            try:
+                manager.detach(handle)
+            except BaseException as detach_error:
+                primary.add_note(
+                    "failed to detach preserved recovery workspace: "
+                    f"{type(detach_error).__name__}: {detach_error}"
+                )
+                try:
+                    manager.preserve(handle)
+                except BaseException as preserve_error:
+                    primary.add_note(
+                        "failed to relinquish recovery workspace ownership: "
+                        f"{type(preserve_error).__name__}: {preserve_error}"
+                    )
+            raise
+
+    def _recover_incomplete_experiments(self) -> list[str]:
+        """Close attempts abandoned by a previously interrupted local worker."""
+
+        # Projection rows are disposable cache state. Rebuild from the verified
+        # event stream before using them for recovery or any caller-visible
+        # query so out-of-band SQLite drift never becomes research truth.
+        self.projection.rebuild(self.event_log)
+        workspace_manager = WorkspaceManager(self.config)
+        recovered: list[str] = []
+        preserved_experiment_ids = {
+            experiment_id
+            for event in self.event_log.read()
+            if _normalized_event_type(event.event_type) in _TERMINAL_EVENT_TYPES
+            and event.payload.get("reason_code") == _PRESERVED_RECOVERY_REASON
+            and event.payload.get("preserve_workspace") is True
+            and isinstance(
+                experiment_id := event.payload.get(
+                    "experiment_id", event.payload.get("id")
+                ),
+                str,
+            )
+        }
+        try:
+            for row in self.projection.lineage(self.config.project_id):
+                if str(row.get("status", "")).lower() not in {
+                    "registered",
+                    "queued",
+                    "running",
+                }:
+                    continue
+                experiment_id = str(row["experiment_id"])
+                primary_metric = self._historical_primary_metric(row)
+                try:
+                    self._recover_interrupted_artifacts(row, workspace_manager)
+                    # No terminal is committed until the matching residue has
+                    # either been safely removed or explicitly retained below.
+                    workspace_manager.cleanup_orphan(experiment_id)
+                except (IntegrityError, ConfigurationError, LifecycleError) as exc:
+                    recovery_error = (
+                        exc
+                        if isinstance(exc, IntegrityError)
+                        else IntegrityError(f"interrupted evidence is unsafe: {exc}")
+                    )
+                    self._terminate(
+                        experiment_id,
+                        TerminalStatus.UNTRUSTED,
+                        _PRESERVED_RECOVERY_REASON,
+                        attempt=int(row.get("attempt", 1)),
+                        retry_of=row.get("retry_of")
+                        if isinstance(row.get("retry_of"), str)
+                        else None,
+                        error=recovery_error,
+                        preserve_workspace=True,
+                        primary_metric=primary_metric,
+                    )
+                    preserved_experiment_ids.add(experiment_id)
+                    recovered.append(experiment_id)
+                    continue
+                self._terminate(
+                    experiment_id,
+                    TerminalStatus.INFRA_FAILED,
+                    "RECOVERED_INTERRUPTED_RUN",
+                    attempt=int(row.get("attempt", 1)),
+                    retry_of=row.get("retry_of")
+                    if isinstance(row.get("retry_of"), str)
+                    else None,
+                    error=ProtocolError(
+                        "a previous worker stopped before recording a terminal result"
+                    ),
+                    primary_metric=primary_metric,
+                )
+                recovered.append(experiment_id)
+            self._reconcile_outcome_findings()
+            workspace_manager.cleanup_orphans(preserved_experiment_ids)
+        finally:
+            workspace_manager.close()
+        return recovered
+
+    def _historical_primary_metric(self, row: Mapping[str, Any]) -> str | None:
+        """Resolve recovery metadata from registration-time evidence only."""
+
+        registration = row.get("payload")
+        if not isinstance(registration, Mapping):
+            raise IntegrityError("interrupted experiment registration is invalid")
+        if "primary_metric" in registration:
+            value = registration["primary_metric"]
+            if not isinstance(value, str) or not value:
+                return None
+            return value
+
+        baseline_id = registration.get("baseline_id", registration.get("id"))
+        if not isinstance(baseline_id, str) or not baseline_id:
+            return None
+        created_sequence = row.get("created_sequence")
+        for event in reversed(self.event_log.read()):
+            if isinstance(created_sequence, int) and event.sequence >= created_sequence:
+                continue
+            if _normalized_event_type(event.event_type) != "BASELINE_RECORDED":
+                continue
+            if event.payload.get("baseline_id", event.payload.get("id")) != baseline_id:
+                continue
+            value = event.payload.get("primary_metric")
+            if not isinstance(value, str) or not value:
+                return None
+            return value
+        return None
+
+    def _outcome_finding_payload(self, event: Event) -> dict[str, Any]:
+        """Derive the idempotent project finding for one terminal event."""
+
+        experiment_id = event.payload.get("experiment_id", event.payload.get("id"))
+        raw_status = event.payload.get(
+            "status", event.payload.get("state", event.payload.get("outcome"))
+        )
+        reason_code = event.payload.get("reason_code")
+        if not isinstance(experiment_id, str) or not experiment_id:
+            raise IntegrityError("terminal event has an invalid experiment_id")
+        if not isinstance(raw_status, str) or not raw_status:
+            raise IntegrityError("terminal event has an invalid status")
+        try:
+            status = coerce_state(raw_status).value
+        except LifecycleError as exc:
+            raise IntegrityError("terminal event has an invalid status") from exc
+        if not isinstance(reason_code, str) or not reason_code:
+            if _normalized_event_type(event.event_type) == "EXPERIMENT_STATUS_CHANGED":
+                reason_code = "STATUS_CHANGED"
+            else:
+                reason_code = "TERMINATED"
+
+        registration: Mapping[str, Any] | None = None
+        for prior in reversed(self.event_log.read()):
+            if prior.sequence >= event.sequence:
+                continue
+            if _normalized_event_type(prior.event_type) != "EXPERIMENT_REGISTERED":
+                continue
+            prior_experiment_id = prior.payload.get(
+                "experiment_id", prior.payload.get("id")
+            )
+            if prior_experiment_id == experiment_id:
+                registration = prior.payload
+                break
+        if registration is None:
+            raise IntegrityError("terminal event has no canonical registration")
+
+        attempt = event.payload.get("attempt", registration.get("attempt", 1))
+        if isinstance(attempt, bool) or not isinstance(attempt, int) or attempt < 1:
+            raise IntegrityError("terminal event has an invalid attempt")
+        retry_of = (
+            event.payload.get("retry_of")
+            if "retry_of" in event.payload
+            else registration.get("retry_of")
+        )
+        if retry_of is not None and not isinstance(retry_of, str):
+            raise IntegrityError("terminal event has an invalid retry_of")
+
+        error = event.payload.get("error")
+        error_mapping = (
+            cast(Mapping[str, Any], error) if isinstance(error, Mapping) else None
+        )
+        try:
+            public_status = TerminalStatus.parse(status)
+        except ValueError:
+            retryable = False
+        else:
+            retryable = _terminal_retryable(
+                public_status,
+                reason_code,
+                error_mapping,
+            )
+        declared_retryable = event.payload.get("retryable")
+        if declared_retryable is not None and (
+            not isinstance(declared_retryable, bool)
+            or declared_retryable is not retryable
+        ):
+            raise IntegrityError("terminal retryable metadata is inconsistent")
+
+        decision = event.payload.get("decision")
+        primary_metric = event.payload.get("primary_metric")
+        if not isinstance(primary_metric, str) or not primary_metric:
+            primary_metric = (
+                decision.get("primary_metric")
+                if isinstance(decision, Mapping)
+                else None
+            )
+        if not isinstance(primary_metric, str) or not primary_metric:
+            primary_metric = self._historical_primary_metric(
+                {
+                    "payload": registration,
+                    "created_sequence": event.sequence,
+                }
+            )
+        return make_finding_event(
+            self.config.project_id,
+            {
+                "status": status,
+                "reason_code": reason_code,
+                "primary_metric": primary_metric,
+                "decision": decision,
+                "attempt": attempt,
+                "retry_of": retry_of,
+                "retryable": retryable,
+            },
+            experiment_id=experiment_id,
+            key="experiment_outcome",
+            evidence=[{"event_id": event.event_id, "event_hash": event.hash}],
+            metadata={"authorized_action": None},
+            finding_id=stable_id("finding", event.event_id, "experiment_outcome"),
+        )
+
+    def _validate_outcome_finding(
+        self, finding: Event, terminal: Event, expected: Mapping[str, Any]
+    ) -> None:
+        payload = finding.payload
+        if finding.sequence <= terminal.sequence:
+            raise IntegrityError("experiment outcome finding precedes its terminal event")
+        if payload.get("experiment_id") != expected.get("experiment_id"):
+            raise IntegrityError("experiment outcome finding targets the wrong experiment")
+        if payload.get("scope", "project") != "project" or payload.get(
+            "project_id", self.config.project_id
+        ) != self.config.project_id:
+            raise IntegrityError("experiment outcome finding has an invalid scope")
+        evidence = payload.get("evidence")
+        if (
+            not isinstance(evidence, Sequence)
+            or isinstance(evidence, (str, bytes, bytearray))
+            or len(evidence) != 1
+            or not isinstance(evidence[0], Mapping)
+            or evidence[0].get("event_id") != terminal.event_id
+            or evidence[0].get("event_hash") != terminal.hash
+        ):
+            raise IntegrityError("experiment outcome finding has invalid terminal evidence")
+        content = payload.get("content")
+        expected_content = expected.get("content")
+        if not isinstance(content, Mapping) or not isinstance(
+            expected_content, Mapping
+        ):
+            raise IntegrityError("experiment outcome finding content is invalid")
+        content_map = cast(Mapping[str, Any], content)
+        expected_content_map = cast(Mapping[str, Any], expected_content)
+        unexpected_content = sorted(set(content_map) - set(expected_content_map))
+        if unexpected_content:
+            raise IntegrityError(
+                "experiment outcome finding has unexpected content: "
+                + ", ".join(unexpected_content)
+            )
+        for key in ("status", "reason_code", "primary_metric"):
+            if content_map.get(key) != expected_content_map.get(key):
+                raise IntegrityError(
+                    f"experiment outcome finding has inconsistent {key}"
+                )
+        for key in ("decision", "attempt", "retry_of", "retryable"):
+            if key in content_map and content_map[key] != expected_content_map.get(key):
+                raise IntegrityError(
+                    f"experiment outcome finding has inconsistent {key}"
+                )
+        metadata = payload.get("metadata", {})
+        if not isinstance(metadata, Mapping) or metadata.get(
+            "authorized_action"
+        ) is not None:
+            raise IntegrityError("experiment outcome finding metadata is invalid")
+
+    def _reconcile_outcome_findings(self) -> int:
+        """Repair a terminal/finding split caused by an interrupted append."""
+
+        events = self.event_log.read()
+        terminals: dict[str, Event] = {}
+        expected_by_id: dict[str, tuple[Event, dict[str, Any]]] = {}
+        for event in events:
+            event_type = _normalized_event_type(event.event_type)
+            if event_type not in _TERMINAL_EVENT_TYPES:
+                continue
+            if event_type == "EXPERIMENT_STATUS_CHANGED":
+                status = event.payload.get("status", event.payload.get("state"))
+                if not isinstance(status, str):
+                    raise IntegrityError("terminal status event is invalid")
+                try:
+                    if not is_terminal(status):
+                        continue
+                except (LifecycleError, TypeError, ValueError) as exc:
+                    raise IntegrityError("terminal status event is invalid") from exc
+            expected = self._outcome_finding_payload(event)
+            finding_id = expected.get("finding_id")
+            if not isinstance(finding_id, str):  # pragma: no cover - builder invariant
+                raise IntegrityError("expected outcome finding ID is invalid")
+            terminals[event.event_id] = event
+            expected_by_id[finding_id] = (event, expected)
+
+        covered_terminal_ids: set[str] = set()
+        seen_finding_ids: set[str] = set()
+        for event in events:
+            if _normalized_event_type(event.event_type) != "FINDING_RECORDED":
+                continue
+            finding_id = event.payload.get(
+                "finding_id", event.payload.get("id")
+            )
+            if not isinstance(finding_id, str) or not finding_id:
+                finding_id = stable_id(
+                    "finding", self.config.project_id, event.event_id
+                )
+            if finding_id in seen_finding_ids:
+                raise IntegrityError(f"duplicate finding ID in canonical history: {finding_id}")
+            seen_finding_ids.add(finding_id)
+
+            reserved_identity = expected_by_id.get(finding_id)
+            finding_key = event.payload.get(
+                "key", event.payload.get("finding_key")
+            )
+            if finding_key != "experiment_outcome":
+                if reserved_identity is not None:
+                    raise IntegrityError(
+                        "kernel outcome finding ID is occupied by another finding"
+                    )
+                continue
+            evidence = event.payload.get("evidence")
+            if (
+                not isinstance(evidence, Sequence)
+                or isinstance(evidence, (str, bytes, bytearray))
+                or len(evidence) != 1
+                or not isinstance(evidence[0], Mapping)
+            ):
+                raise IntegrityError("kernel outcome finding has invalid evidence")
+            terminal_event_id = evidence[0].get("event_id")
+            terminal = (
+                terminals.get(terminal_event_id)
+                if isinstance(terminal_event_id, str)
+                else None
+            )
+            if terminal is None:
+                raise IntegrityError("kernel outcome finding references no terminal event")
+            if terminal.event_id in covered_terminal_ids:
+                raise IntegrityError(
+                    "terminal event has more than one experiment outcome finding"
+                )
+            expected = self._outcome_finding_payload(terminal)
+            if reserved_identity is not None and reserved_identity[0] != terminal:
+                raise IntegrityError("kernel outcome finding ID targets the wrong terminal")
+            self._validate_outcome_finding(event, terminal, expected)
+            covered_terminal_ids.add(terminal.event_id)
+
+        repaired = 0
+        for event in terminals.values():
+            if event.event_id in covered_terminal_ids:
+                continue
+            payload = self._outcome_finding_payload(event)
+            finding_id = payload.get("finding_id")
+            if not isinstance(finding_id, str):  # pragma: no cover
+                raise IntegrityError("expected outcome finding ID is invalid")
+            if finding_id in seen_finding_ids:
+                raise IntegrityError("kernel outcome finding ID collision")
+            self.event_log.append("FINDING_RECORDED", payload)
+            seen_finding_ids.add(finding_id)
+            covered_terminal_ids.add(event.event_id)
+            repaired += 1
+        if repaired:
+            self._sync()
+        return repaired
+
+    def _load_candidate(self, path: str | Path) -> tuple[dict[str, Any], str]:
+        candidate_path = Path(path).expanduser()
+        flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0)
+        flags |= getattr(os, "O_NOFOLLOW", 0)
+        try:
+            descriptor = os.open(candidate_path, flags)
+        except OSError as exc:
+            raise ConfigurationError(
+                f"candidate file is unavailable: {candidate_path}"
+            ) from exc
+        try:
+            info = os.fstat(descriptor)
+            if not stat.S_ISREG(info.st_mode):
+                raise ConfigurationError(
+                    "candidate must be a regular, non-symlink JSON file"
+                )
+            if info.st_size > self.config.max_output_bytes:
+                raise ConfigurationError(
+                    f"candidate exceeds {self.config.max_output_bytes} byte input limit"
+                )
+            chunks: list[bytes] = []
+            remaining = self.config.max_output_bytes + 1
+            while remaining:
+                chunk = os.read(descriptor, min(65536, remaining))
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                remaining -= len(chunk)
+            encoded = b"".join(chunks)
+            if len(encoded) > self.config.max_output_bytes:
+                raise ConfigurationError(
+                    f"candidate exceeds {self.config.max_output_bytes} byte input limit"
+                )
+            value = decode_json_object(encoded)
+        except (OSError, TypeError, ValueError) as exc:
+            if isinstance(exc, ConfigurationError):
+                raise
+            raise ConfigurationError(
+                f"candidate must be one strict JSON object: {exc}"
+            ) from exc
+        finally:
+            os.close(descriptor)
+        return value, sha256_json(value)
+
+    def _record_stage(
+        self,
+        experiment_id: str,
+        operation: Operation,
+        *,
+        input_value: Mapping[str, Any],
+        response: ProtocolResponse,
+    ) -> Event:
+        payload: dict[str, Any] = {
+            "experiment_id": experiment_id,
+            "stage": operation.value,
+            "status": "completed" if response.ok else "failed",
+            "input_digest": sha256_json(input_value),
+            "output_digest": sha256_json(response.to_dict()),
+            "response": response.to_dict(),
+        }
+        return self.event_log.append("STAGE_COMPLETED", payload)
+
+    def _terminal_event_for(self, experiment_id: str) -> Event | None:
+        """Return the single durable terminal event for an experiment, if any."""
+
+        matches: list[Event] = []
+        for event in self.event_log.read():
+            event_type = _normalized_event_type(event.event_type)
+            if event_type not in _TERMINAL_EVENT_TYPES:
+                continue
+            if event.payload.get("experiment_id", event.payload.get("id")) != (
+                experiment_id
+            ):
+                continue
+            if event_type == "EXPERIMENT_STATUS_CHANGED":
+                status = event.payload.get("status", event.payload.get("state"))
+                try:
+                    if not isinstance(status, str) or not is_terminal(status):
+                        continue
+                except (LifecycleError, TypeError, ValueError) as exc:
+                    raise IntegrityError("terminal status event is invalid") from exc
+            matches.append(event)
+        if len(matches) > 1:
+            raise IntegrityError("experiment has duplicate terminal events")
+        return matches[0] if matches else None
+
+    def _terminate(
+        self,
+        experiment_id: str,
+        status: TerminalStatus,
+        reason_code: str,
+        *,
+        attempt: int,
+        retry_of: str | None,
+        decision: Decision | None = None,
+        result: ResultEnvelope | None = None,
+        error: BaseException | None = None,
+        secondary_errors: Sequence[BaseException] = (),
+        verified: bool = False,
+        preserve_workspace: bool = False,
+        primary_metric: str | None | object = _USE_CURRENT_PRIMARY_METRIC,
+    ) -> dict[str, Any]:
+        error_payload = _safe_error(error) if error is not None else None
+        selected_primary_metric: str | None
+        if primary_metric is _USE_CURRENT_PRIMARY_METRIC:
+            selected_primary_metric = self.config.primary_metric
+        elif primary_metric is None or isinstance(primary_metric, str):
+            selected_primary_metric = primary_metric
+        else:  # pragma: no cover - internal call contract
+            raise TypeError("primary_metric must be a string or null")
+        payload: dict[str, Any] = {
+            "experiment_id": experiment_id,
+            "status": status.value,
+            "reason_code": reason_code,
+            "attempt": attempt,
+            "retry_of": retry_of,
+            "retryable": _terminal_retryable(
+                status, reason_code, error_payload
+            ),
+            "verified": verified,
+            "primary_metric": selected_primary_metric,
+            "authorized_action": None,
+        }
+        if preserve_workspace:
+            payload["preserve_workspace"] = True
+        if decision is not None:
+            payload["decision"] = decision.to_dict()
+        if result is not None:
+            payload["result"] = result.to_dict()
+        if error_payload is not None:
+            payload["error"] = error_payload
+        if secondary_errors:
+            payload["secondary_errors"] = [
+                _safe_error(secondary) for secondary in secondary_errors
+            ]
+        event = self.event_log.append("EXPERIMENT_TERMINATED", payload)
+        self._reconcile_outcome_findings()
+        self._sync()
+        return {
+            **payload,
+            "project_id": self.config.project_id,
+            "event_sequence": event.sequence,
+        }
+
+    def run_once(
+        self,
+        candidate_path: str | Path,
+        *,
+        parent_id: str | None = None,
+        retry_of: str | None = None,
+        context_token: str | None = None,
+    ) -> dict[str, Any]:
+        with self._workflow_lock():
+            return self._run_once(
+                candidate_path,
+                parent_id=parent_id,
+                retry_of=retry_of,
+                context_token=context_token,
+            )
+
+    def _run_once(
+        self,
+        candidate_path: str | Path,
+        *,
+        parent_id: str | None = None,
+        retry_of: str | None = None,
+        context_token: str | None = None,
+    ) -> dict[str, Any]:
+        """Run one candidate as a durable node in the experiment DAG."""
+
+        agent_context_snapshot: dict[str, Any] | None = None
+        if context_token is not None:
+            if not isinstance(context_token, str) or not context_token:
+                raise ValueError("context_token must be a non-empty string")
+            self._assert_config_unchanged()
+            self.event_log.verify()
+            agent_context_snapshot = self._agent_context_snapshot()
+            if agent_context_snapshot["context_token"] != context_token:
+                raise StaleAgentContextError(
+                    "agent context is stale; refresh agent-context before proposing"
+                )
+        report = self._doctor()
+        self._recover_incomplete_experiments()
+        compatibility = str(report.fingerprints["compatibility_digest"])
+        candidate, candidate_digest = self._load_candidate(candidate_path)
+        # SQLite is a disposable query accelerator, never decision authority.
+        # Rebuild it from the verified canonical stream before consulting
+        # attempt/retry lineage so local projection drift cannot authorize a
+        # retry or parent that history does not contain.
+        self.projection.rebuild(self.event_log)
+        parent_id, attempt, retry_of = self._select_attempt(
+            candidate_digest,
+            parent_id,
+            compatibility,
+            retry_of,
+        )
+        if parent_id is not None:
+            try:
+                self.projection.lineage(self.config.project_id, parent_id)
+            except IntegrityError as exc:
+                raise ConfigurationError(
+                    f"unknown parent experiment: {parent_id}"
+                ) from exc
+        self._assert_static_compatibility(report)
+
+        baseline = self._compatible_baseline(compatibility)
+        if baseline is None:
+            created_baseline = self._baseline()
+            # _baseline() runs doctor again; the original candidate request is
+            # valid only if the complete immutable compatibility seal survived.
+            if created_baseline["compatibility_digest"] != compatibility:
+                raise IntegrityError(
+                    "project compatibility changed while establishing baseline"
+                )
+            self._assert_static_compatibility(report)
+            baseline = self._compatible_baseline(compatibility)
+            if baseline is None:  # pragma: no cover - defensive invariant
+                raise IntegrityError("newly recorded baseline cannot be reloaded")
+
+        experiment_id = new_experiment_id(
+            self.config.project_id,
+            candidate_digest,
+            compatibility_digest=compatibility,
+            parent_id=parent_id,
+            attempt=attempt,
+        )
+        manager: WorkspaceManager | None = None
+        handle: Any = None
+        result: ResultEnvelope | None = None
+        captured_records: list[ArtifactRecord] = []
+        decision: Decision | None = None
+        verified = False
+        terminal: tuple[TerminalStatus, str] | None = None
+        failure: BaseException | None = None
+        secondary_errors: list[BaseException] = []
+        cleanup_errors: list[BaseException] = []
+        cancelled = False
+        interrupt_error: KeyboardInterrupt | None = None
+        evidence_pending: BaseException | None = None
+        workspace_detached = False
+        recorded_notes: set[tuple[int, str]] = set()
+        registered = False
+
+        def record_exception_notes(exc: BaseException) -> None:
+            notes = getattr(exc, "__notes__", None)
+            if not isinstance(notes, list):
+                return
+            for note in notes:
+                if not isinstance(note, str):
+                    continue
+                identity = (id(exc), note)
+                if identity in recorded_notes:
+                    continue
+                recorded_notes.add(identity)
+                secondary_errors.append(ProtocolError(note))
+
+        def record_interrupt(exc: KeyboardInterrupt) -> None:
+            nonlocal cancelled, failure, interrupt_error, terminal
+            cancelled = True
+            interrupt_error = exc
+            record_exception_notes(exc)
+            if terminal is not None and terminal[0] is TerminalStatus.UNTRUSTED:
+                secondary_errors.append(exc)
+                return
+            if failure is not None and failure is not exc:
+                secondary_errors.append(failure)
+            failure = exc
+            terminal = (TerminalStatus.CANCELLED, "USER_CANCELLED")
+
+        def publication_is_complete(exc: BaseException) -> bool:
+            try:
+                return self._artifact_records_are_published(
+                    experiment_id, captured_records
+                )
+            except IntegrityError as binding_error:
+                exc.add_note(
+                    "artifact publication could not be proven complete: "
+                    f"{binding_error}"
+                )
+                return False
+
+        try:
+            self._assert_static_compatibility(report)
+            registration = {
+                "experiment_id": experiment_id,
+                "parent_id": parent_id,
+                "candidate_digest": candidate_digest,
+                "candidate": candidate,
+                "compatibility_digest": compatibility,
+                "source_tree_digest": report.fingerprints["source_tree_digest"],
+                "baseline_id": baseline["baseline_id"],
+                "primary_metric": baseline["primary_metric"],
+                "attempt": attempt,
+                "retry_of": retry_of,
+                "status": "registered",
+                "authorized_action": None,
+            }
+            if context_token is not None:
+                registration["agent_context_token"] = context_token
+                registration["agent_context_snapshot"] = agent_context_snapshot
+            self.event_log.append("EXPERIMENT_REGISTERED", registration)
+            registered = True
+            self._sync()
+            self._assert_static_compatibility(report)
+            manager = WorkspaceManager(self.config)
+            self._assert_static_compatibility(report)
+            handle = manager.create(experiment_id)
+            if handle.source_hash != report.fingerprints["source_tree_digest"]:
+                raise IntegrityError(
+                    "workspace source tree differs from the registration seal"
+                )
+            self._assert_static_compatibility(report)
+
+            materialize_input = {
+                "candidate": candidate,
+                "candidate_digest": candidate_digest,
+            }
+            response = self._call_sealed(
+                report,
+                Operation.MATERIALIZE,
+                payload=materialize_input,
+                workspace=handle.path,
+                experiment_id=experiment_id,
+            )
+            self._record_stage(
+                experiment_id,
+                Operation.MATERIALIZE,
+                input_value=materialize_input,
+                response=response,
+            )
+            _response_payload(response, Operation.MATERIALIZE)
+            manager.verify(handle)
+
+            run_input = {
+                "candidate_digest": candidate_digest,
+                "baseline_id": baseline["baseline_id"],
+            }
+            response = self._call_sealed(
+                report,
+                Operation.RUN,
+                payload=run_input,
+                workspace=handle.path,
+                experiment_id=experiment_id,
+            )
+            self._record_stage(
+                experiment_id,
+                Operation.RUN,
+                input_value=run_input,
+                response=response,
+            )
+            _response_payload(response, Operation.RUN)
+            manager.verify_protected(handle)
+            manager.verify_source_unchanged(handle)
+
+            evaluate_input = {"candidate_digest": candidate_digest}
+            response = self._call_sealed(
+                report,
+                Operation.EVALUATE,
+                payload=evaluate_input,
+                workspace=handle.path,
+                experiment_id=experiment_id,
+            )
+            self._record_stage(
+                experiment_id,
+                Operation.EVALUATE,
+                input_value=evaluate_input,
+                response=response,
+            )
+            result = _result(response, Operation.EVALUATE)
+            manager.verify(handle, allowed_outputs=result.artifacts)
+
+            # Capture evaluation evidence before invoking project verify code.
+            # Even a failed verifier must not leave terminal result references
+            # pointing only at a workspace that cleanup will delete.
+            captured_records = self.catalog.capture(
+                handle.path,
+                self.config.project_id,
+                experiment_id,
+                result.artifacts,
+            )
+            self._publish_artifact_records(experiment_id, captured_records)
+
+            verify_input = {"result_digest": sha256_json(result.to_dict())}
+            response = self._call_sealed(
+                report,
+                Operation.VERIFY,
+                payload=verify_input,
+                workspace=handle.path,
+                experiment_id=experiment_id,
+            )
+            self._record_stage(
+                experiment_id,
+                Operation.VERIFY,
+                input_value=verify_input,
+                response=response,
+            )
+            _response_payload(response, Operation.VERIFY)
+            try:
+                verify_result = response.verify_result()
+            except (TypeError, ValueError, KeyError) as exc:
+                raise ProtocolError(
+                    f"verify returned an invalid verdict: {exc}"
+                ) from exc
+            manager.verify(handle, allowed_outputs=result.artifacts)
+            verified = verify_result.valid
+
+            recaptured = self.catalog.capture(
+                handle.path,
+                self.config.project_id,
+                experiment_id,
+                [
+                    {
+                        "path": record.relative_path,
+                        "role": record.role,
+                        "media_type": record.media_type,
+                        "metadata": record.metadata,
+                        "sha256": record.digest,
+                        "size_bytes": record.size,
+                    }
+                    for record in captured_records
+                ],
+            )
+            if [record.to_dict() for record in recaptured] != [
+                record.to_dict() for record in captured_records
+            ]:
+                raise IntegrityError("verified artifact records changed after evaluation")
+
+            if verified:
+                baseline_value = float(baseline["primary_value"])
+                decision = decide(self.config, result, baseline_value, verified=True)
+                terminal = (decision.status, decision.reason_code)
+            else:
+                category = verify_result.category
+                assert isinstance(category, FailureCategory)
+                terminal = (category.terminal_status, verify_result.reason_code)
+        except KeyboardInterrupt as exc:
+            if not registered:
+                registered = any(
+                    event.event_type == "EXPERIMENT_REGISTERED"
+                    and event.payload.get("experiment_id") == experiment_id
+                    for event in self.event_log.read()
+                )
+            if not registered:
+                raise
+            record_interrupt(exc)
+        except Exception as exc:
+            if not registered:
+                registered = any(
+                    event.event_type == "EXPERIMENT_REGISTERED"
+                    and event.payload.get("experiment_id") == experiment_id
+                    for event in self.event_log.read()
+                )
+            if not registered:
+                raise
+            record_exception_notes(exc)
+            failure = exc
+            terminal = _classify_failure(exc)
+        finally:
+            if result is None and handle is not None and manager is not None:
+                try:
+                    # An event append can commit the successful evaluator
+                    # response and then deliver an interrupt/error before the
+                    # local assignment below it executes.  Canonical history,
+                    # not the Python stack position, decides whether output now
+                    # needs sealing.
+                    result = self._evaluation_result_for_recovery(experiment_id)
+                except IntegrityError as exc:
+                    # A protocol-invalid evaluator response is already the
+                    # current run's infrastructure failure.  Recovery wraps
+                    # the same invalid canonical response as integrity drift;
+                    # do not reclassify that one known failure merely because
+                    # result assignment never completed.
+                    if not isinstance(failure, ProtocolError):
+                        if failure is not None and failure is not exc:
+                            secondary_errors.append(failure)
+                        failure = exc
+                        terminal = _classify_failure(exc)
+            if (
+                result is not None
+                and result.artifacts
+                and not captured_records
+                and handle is not None
+                and manager is not None
+            ):
+                try:
+                    # A cancellation or capture failure after EVALUATE must not
+                    # leave dangling artifact references in a terminal event.
+                    # Finish the first local evidence finalization before any
+                    # adapter or workspace cleanup is allowed to run.
+                    manager.verify(handle, allowed_outputs=result.artifacts)
+                    captured_records = self.catalog.capture(
+                        handle.path,
+                        self.config.project_id,
+                        experiment_id,
+                        result.artifacts,
+                    )
+                except KeyboardInterrupt as exc:
+                    record_interrupt(exc)
+                    evidence_pending = exc
+                except Exception as exc:
+                    record_exception_notes(exc)
+                    if failure is not None and failure is not exc:
+                        secondary_errors.append(failure)
+                    failure = exc
+                    terminal = _classify_failure(exc)
+                    evidence_pending = exc
+            if captured_records:
+                try:
+                    self._publish_artifact_records(
+                        experiment_id, captured_records
+                    )
+                except KeyboardInterrupt as exc:
+                    record_interrupt(exc)
+                    if not publication_is_complete(exc):
+                        evidence_pending = exc
+                except IntegrityError as exc:
+                    if not publication_is_complete(exc):
+                        evidence_pending = exc
+                    if terminal is not None and (
+                        terminal[0] is TerminalStatus.UNTRUSTED
+                    ):
+                        secondary_errors.append(exc)
+                    else:
+                        if failure is not None and failure is not exc:
+                            secondary_errors.append(failure)
+                        failure = exc
+                        terminal = _classify_failure(exc)
+                except Exception as exc:
+                    if not publication_is_complete(exc):
+                        evidence_pending = exc
+                    if terminal is not None and terminal[0] in {
+                        TerminalStatus.CANCELLED,
+                        TerminalStatus.UNTRUSTED,
+                    }:
+                        secondary_errors.append(exc)
+                    else:
+                        if failure is not None and failure is not exc:
+                            secondary_errors.append(failure)
+                        failure = exc
+                        terminal = _classify_failure(exc)
+            if (
+                evidence_pending is not None
+                and handle is not None
+                and manager is not None
+            ):
+                try:
+                    manager.detach(handle)
+                    workspace_detached = True
+                except BaseException as detach_error:
+                    evidence_pending.add_note(
+                        "failed to preserve pending evidence workspace: "
+                        f"{type(detach_error).__name__}: {detach_error}"
+                    )
+            if (
+                handle is not None
+                and manager is not None
+                and evidence_pending is None
+            ):
+                adapter_is_sealed = False
+                try:
+                    manager.verify_protected(handle)
+                    manager.verify_source_unchanged(handle)
+                    self._assert_static_compatibility(report)
+                    adapter_is_sealed = True
+                except KeyboardInterrupt as exc:
+                    record_interrupt(exc)
+                except Exception as exc:
+                    if failure is not None:
+                        secondary_errors.append(failure)
+                    failure = exc
+                    terminal = _classify_failure(exc)
+                if adapter_is_sealed:
+                    try:
+                        self._adapter_cleanup(report, handle.path, experiment_id)
+                    except KeyboardInterrupt as exc:
+                        record_interrupt(exc)
+                    except IntegrityError as exc:
+                        if failure is not None:
+                            secondary_errors.append(failure)
+                        failure = exc
+                        terminal = _classify_failure(exc)
+                    except Exception as exc:
+                        cleanup_errors.append(exc)
+                    try:
+                        manager.verify_protected(handle)
+                        manager.verify_source_unchanged(handle)
+                        self._assert_static_compatibility(report)
+                    except KeyboardInterrupt as exc:
+                        record_interrupt(exc)
+                    except Exception as exc:
+                        if failure is not None:
+                            secondary_errors.append(failure)
+                        failure = exc
+                        terminal = _classify_failure(exc)
+                try:
+                    manager.cleanup(handle)
+                except KeyboardInterrupt as exc:
+                    record_interrupt(exc)
+                except IntegrityError as exc:
+                    if failure is not None:
+                        secondary_errors.append(failure)
+                    failure = exc
+                    terminal = _classify_failure(exc)
+                except Exception as exc:
+                    cleanup_errors.append(exc)
+            if manager is not None and (
+                evidence_pending is None or workspace_detached
+            ):
+                try:
+                    manager.close()
+                except KeyboardInterrupt as exc:
+                    record_interrupt(exc)
+                except Exception as exc:
+                    cleanup_errors.append(exc)
+
+        if evidence_pending is not None:
+            if isinstance(failure, IntegrityError):
+                raise failure
+            if interrupt_error is not None:
+                raise interrupt_error
+            if failure is not None:
+                raise failure
+            raise evidence_pending
+
+        assert terminal is not None
+        status, reason_code = terminal
+        secondary_errors.extend(cleanup_errors)
+        try:
+            summary = self._terminate(
+                experiment_id,
+                status,
+                reason_code,
+                attempt=attempt,
+                retry_of=retry_of,
+                decision=decision if failure is None else None,
+                result=result,
+                error=failure,
+                secondary_errors=secondary_errors,
+                verified=verified,
+            )
+        except KeyboardInterrupt as exc:
+            # The append boundary may have committed before an interrupt was
+            # delivered.  Inspect canonical history before deciding whether a
+            # cancellation terminal still needs to be written.
+            record_interrupt(exc)
+            if self._terminal_event_for(experiment_id) is None:
+                assert terminal is not None
+                status, reason_code = terminal
+                self._terminate(
+                    experiment_id,
+                    status,
+                    reason_code,
+                    attempt=attempt,
+                    retry_of=retry_of,
+                    decision=decision if failure is None else None,
+                    result=result,
+                    error=failure,
+                    secondary_errors=secondary_errors,
+                    verified=verified,
+                )
+            else:
+                self._reconcile_outcome_findings()
+                self._sync()
+            raise
+        if cancelled:
+            if interrupt_error is not None:
+                raise interrupt_error
+            raise KeyboardInterrupt  # pragma: no cover - defensive invariant
+        return summary
+
+    def _agent_context_snapshot(
+        self,
+        *,
+        agent_spec: Mapping[str, Any] | None = None,
+        fingerprints: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        events = self.event_log.read()
+        resolved_spec = (
+            load_agent_spec(self.config.root) if agent_spec is None else agent_spec
+        )
+        resolved_fingerprints = (
+            project_fingerprints(self.config)
+            if fingerprints is None
+            else fingerprints
+        )
+        last_event = events[-1] if events else None
+        payload = {
+            "schema_version": 1,
+            "project_id": self.config.project_id,
+            "project_compatibility_digest": resolved_fingerprints[
+                "compatibility_digest"
+            ],
+            "agent_spec_digest": sha256_json(resolved_spec),
+            "last_sequence": last_event.sequence if last_event is not None else 0,
+            "last_hash": last_event.hash if last_event is not None else None,
+        }
+        return {**payload, "context_token": sha256_json(payload)}
+
+    def agent_context(self, *, limit: int = 20) -> dict[str, Any]:
+        """Return one bounded evidence packet for Codex or Claude Code."""
+
+        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 100:
+            raise ValueError("agent context limit must be an integer from 1 to 100")
+        with self._workflow_lock():
+            self._assert_config_unchanged()
+            self.event_log.verify()
+            self._recover_incomplete_experiments()
+            lineage = self.projection.lineage(self.config.project_id)
+            findings = self.projection.findings(project_id=self.config.project_id)
+            artifacts = self.projection.artifacts(self.config.project_id)
+            for record in artifacts:
+                self._verify_projected_artifact(record)
+            agent_spec = load_agent_spec(self.config.root)
+            fingerprints = project_fingerprints(self.config)
+            return build_agent_context(
+                project=self.inspect(),
+                status=self.projection.project_status(self.config.project_id),
+                lineage=lineage,
+                findings=findings,
+                artifacts=artifacts,
+                agent_spec=agent_spec,
+                snapshot=self._agent_context_snapshot(
+                    agent_spec=agent_spec,
+                    fingerprints=fingerprints,
+                ),
+                limit=limit,
+            )
+
+    def status(self) -> dict[str, Any]:
+        with self._workflow_lock():
+            self._assert_config_unchanged()
+            self.event_log.verify()
+            self._recover_incomplete_experiments()
+            return self.projection.project_status(self.config.project_id)
+
+    def lineage(self, experiment_id: str | None = None) -> list[dict[str, Any]]:
+        with self._workflow_lock():
+            self._assert_config_unchanged()
+            self.event_log.verify()
+            self._recover_incomplete_experiments()
+            return self.projection.lineage(self.config.project_id, experiment_id)
+
+    def artifacts(self, experiment_id: str | None = None) -> list[dict[str, Any]]:
+        with self._workflow_lock():
+            self._assert_config_unchanged()
+            self.event_log.verify()
+            self._recover_incomplete_experiments()
+            records = self.projection.artifacts(self.config.project_id, experiment_id)
+            for record in records:
+                self._verify_projected_artifact(record)
+            return records
+
+    def findings(self, experiment_id: str | None = None) -> list[dict[str, Any]]:
+        with self._workflow_lock():
+            self._assert_config_unchanged()
+            self.event_log.verify()
+            self._recover_incomplete_experiments()
+            return self.projection.findings(
+                project_id=self.config.project_id,
+                experiment_id=experiment_id,
+            )
+
+    def replay(self) -> dict[str, Any]:
+        """Strictly verify canonical history and rebuild every SQLite view."""
+
+        with self._workflow_lock():
+            self._assert_config_unchanged()
+            self.event_log.verify()
+            self.projection.rebuild(self.event_log)
+            self._recover_incomplete_experiments()
+            count = self.projection.rebuild(self.event_log)
+            artifact_ids: set[str] = set()
+            projected_records: list[
+                tuple[Mapping[str, Any], ArtifactRecord]
+            ] = []
+            for record in self.projection.artifacts(self.config.project_id):
+                stored = self._verify_projected_artifact(record)
+                artifact_ids.add(stored.artifact_id)
+                projected_records.append((record, stored))
+            self._verify_terminal_artifact_bindings(projected_records)
+            for event in self.event_log.read():
+                if _normalized_event_type(event.event_type) != "BASELINE_RECORDED":
+                    continue
+                compatibility = event.payload.get("compatibility_digest")
+                if not isinstance(compatibility, str) or not compatibility:
+                    raise IntegrityError(
+                        "historical baseline compatibility digest is invalid"
+                    )
+                baseline = self._validate_baseline_payload(
+                    event.payload,
+                    compatibility,
+                    enforce_current_policy=False,
+                )
+                baseline_artifacts = cast(
+                    Sequence[Mapping[str, Any]], baseline["artifacts"]
+                )
+                for record in baseline_artifacts:
+                    expected = ArtifactRecord.from_mapping(
+                        record
+                    )
+                    artifact_ids.add(expected.artifact_id)
+            for artifact_id in sorted(artifact_ids):
+                self.catalog.get(artifact_id)
+            return {
+                "project_id": self.config.project_id,
+                "events_replayed": count,
+                "artifacts_verified": len(artifact_ids),
+                "status": self.projection.project_status(self.config.project_id),
+            }
+
+
+DESIGN_PROVENANCE = {
+    "ResearchService.doctor": ("Immutable evaluation", "Typed provenance"),
+    "ResearchService.baseline": ("Immutable evaluation", "Fixed experiment budget"),
+    "ResearchService.run_once": (
+        "Bounded mutable surface",
+        "Reversible ratchet",
+        "Experiment DAG",
+        "Typed provenance",
+    ),
+    "ResearchService.replay": ("Durable graph memory",),
+}
+
+
+__all__ = ["AdapterOperationError", "DoctorReport", "ResearchService"]
