@@ -46,6 +46,7 @@ _SNAPSHOT_EXCLUDED_PATHS = frozenset(
     {
         Path(".research-os/candidate.inbox.json"),
         Path(".research-os/agent-journal.jsonl"),
+        Path(".research-os/evaluator-certification.json"),
     }
 )
 

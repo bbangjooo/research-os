@@ -20,6 +20,13 @@ from typing import Any, cast
 
 from .agent import build_agent_context, load_agent_spec
 from .artifacts.catalog import ArtifactCatalog, ArtifactRecord
+from .certification import (
+    build_evaluator_review_subject,
+    ensure_certification_gitignore,
+    evaluator_certification_read_lock,
+    inspect_evaluator_certification,
+    record_evaluator_certification,
+)
 from .config import ProjectConfig, ensure_runtime_directory, load_project_config
 from .contracts import (
     FailureCategory,
@@ -33,6 +40,7 @@ from .contracts import (
     validate_failure_category,
 )
 from .errors import (
+    AgentResearchNotReadyError,
     ConfigurationError,
     IntegrityError,
     LifecycleError,
@@ -41,7 +49,14 @@ from .errors import (
 )
 from .execution.adapter import AdapterClient
 from .execution.workspace import WorkspaceManager, hash_tree
-from .kernel.events import Event, EventLog
+from .graph_policy import (
+    GraphMetadata,
+    graph_metadata_from_values,
+    inherit_retry_graph_metadata,
+    validate_graph_candidate_change,
+    validate_graph_relationship,
+)
+from .kernel.events import Event, EventHeadMismatchError, EventLog
 from .kernel.ids import new_experiment_id, new_id, stable_id
 from .kernel.lifecycle import coerce_state, is_terminal
 from .kernel.projection import ProjectionStore
@@ -590,8 +605,51 @@ class ResearchService:
             self._recover_incomplete_experiments()
             return replace(report, event_count=len(self.event_log.read()))
 
+    def certify_evaluator(
+        self,
+        review_path: str | Path,
+        *,
+        replace: bool = False,
+    ) -> dict[str, Any]:
+        """Record an independent review bound to current scientific inputs."""
+
+        with self._workflow_lock():
+            report = self._doctor()
+            self._recover_incomplete_experiments()
+            record_evaluator_certification(
+                self.config,
+                review_path,
+                fingerprints=report.fingerprints,
+                fresh_fingerprints=lambda: self._doctor_snapshot().fingerprints,
+                replace=replace,
+            )
+            current = self._doctor_snapshot()
+            return inspect_evaluator_certification(
+                self.config,
+                fingerprints=current.fingerprints,
+            )
+
+    def evaluator_review_subject(self) -> dict[str, Any]:
+        """Return the exact current subject digest for independent review."""
+
+        with self._workflow_lock():
+            report = self._doctor()
+            self._recover_incomplete_experiments()
+            return build_evaluator_review_subject(
+                self.config,
+                fingerprints=report.fingerprints,
+            )
+
     def _doctor(self) -> DoctorReport:
         """Unlocked implementation for callers already holding the workflow lock."""
+
+        ensure_certification_gitignore(self.config)
+        report = self._doctor_snapshot()
+        self._ensure_initialized(report.fingerprints)
+        return replace(report, event_count=len(self.event_log.read()))
+
+    def _doctor_snapshot(self, *, event_count: int | None = None) -> DoctorReport:
+        """Compute a fresh doctor seal without certification or event mutation."""
 
         self._assert_config_unchanged()
         source_hash = hash_tree(self.config.root)
@@ -651,7 +709,6 @@ class ResearchService:
                 }
             ),
         }
-        self._ensure_initialized(effective_fingerprints)
         return DoctorReport(
             project_id=self.config.project_id,
             project_root=str(self.config.root),
@@ -659,7 +716,9 @@ class ResearchService:
             side_effects=tuple(side_effects_value),
             adapter_fingerprint=adapter_fingerprint,
             fingerprints=effective_fingerprints,
-            event_count=len(self.event_log.read()),
+            event_count=(
+                len(self.event_log.read()) if event_count is None else event_count
+            ),
         )
 
     def _adapter_cleanup(
@@ -1007,8 +1066,12 @@ class ResearchService:
             raise IntegrityError("compatible baseline artifact evidence is incomplete")
         return baseline
 
-    def _compatible_baseline(self, compatibility_digest: str) -> dict[str, Any] | None:
-        for event in reversed(self.event_log.read()):
+    def _compatible_baseline_from_events(
+        self,
+        events: Sequence[Event],
+        compatibility_digest: str,
+    ) -> dict[str, Any] | None:
+        for event in reversed(events):
             if _normalized_event_type(event.event_type) != "BASELINE_RECORDED":
                 continue
             payload = event.payload
@@ -1021,6 +1084,12 @@ class ResearchService:
                 raise IntegrityError("compatible baseline has an invalid primary value")
             return self._validate_baseline_payload(payload, compatibility_digest)
         return None
+
+    def _compatible_baseline(self, compatibility_digest: str) -> dict[str, Any] | None:
+        return self._compatible_baseline_from_events(
+            self.event_log.read(),
+            compatibility_digest,
+        )
 
     def _select_attempt(
         self,
@@ -1635,7 +1704,12 @@ class ResearchService:
             self._sync()
         return repaired
 
-    def _load_candidate(self, path: str | Path) -> tuple[dict[str, Any], str]:
+    def _load_json_object(
+        self,
+        path: str | Path,
+        *,
+        label: str,
+    ) -> dict[str, Any]:
         candidate_path = Path(path).expanduser()
         flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0)
         flags |= getattr(os, "O_NOFOLLOW", 0)
@@ -1643,17 +1717,17 @@ class ResearchService:
             descriptor = os.open(candidate_path, flags)
         except OSError as exc:
             raise ConfigurationError(
-                f"candidate file is unavailable: {candidate_path}"
+                f"{label} file is unavailable: {candidate_path}"
             ) from exc
         try:
             info = os.fstat(descriptor)
             if not stat.S_ISREG(info.st_mode):
                 raise ConfigurationError(
-                    "candidate must be a regular, non-symlink JSON file"
+                    f"{label} must be a regular, non-symlink JSON file"
                 )
             if info.st_size > self.config.max_output_bytes:
                 raise ConfigurationError(
-                    f"candidate exceeds {self.config.max_output_bytes} byte input limit"
+                    f"{label} exceeds {self.config.max_output_bytes} byte input limit"
                 )
             chunks: list[bytes] = []
             remaining = self.config.max_output_bytes + 1
@@ -1666,17 +1740,36 @@ class ResearchService:
             encoded = b"".join(chunks)
             if len(encoded) > self.config.max_output_bytes:
                 raise ConfigurationError(
-                    f"candidate exceeds {self.config.max_output_bytes} byte input limit"
+                    f"{label} exceeds {self.config.max_output_bytes} byte input limit"
                 )
             value = decode_json_object(encoded)
+            after = os.fstat(descriptor)
+            if (
+                after.st_dev,
+                after.st_ino,
+                after.st_size,
+                after.st_mtime_ns,
+                after.st_ctime_ns,
+            ) != (
+                info.st_dev,
+                info.st_ino,
+                info.st_size,
+                info.st_mtime_ns,
+                info.st_ctime_ns,
+            ):
+                raise IntegrityError(f"{label} changed while being read")
         except (OSError, TypeError, ValueError) as exc:
             if isinstance(exc, ConfigurationError):
                 raise
             raise ConfigurationError(
-                f"candidate must be one strict JSON object: {exc}"
+                f"{label} must be one strict JSON object: {exc}"
             ) from exc
         finally:
             os.close(descriptor)
+        return value
+
+    def _load_candidate(self, path: str | Path) -> tuple[dict[str, Any], str]:
+        value = self._load_json_object(path, label="candidate")
         return value, sha256_json(value)
 
     def _record_stage(
@@ -1786,6 +1879,8 @@ class ResearchService:
         parent_id: str | None = None,
         retry_of: str | None = None,
         context_token: str | None = None,
+        graph_action: str | None = None,
+        scientific_change: str | None = None,
     ) -> dict[str, Any]:
         with self._workflow_lock():
             return self._run_once(
@@ -1793,6 +1888,8 @@ class ResearchService:
                 parent_id=parent_id,
                 retry_of=retry_of,
                 context_token=context_token,
+                graph_action=graph_action,
+                scientific_change=scientific_change,
             )
 
     def _run_once(
@@ -1802,6 +1899,8 @@ class ResearchService:
         parent_id: str | None = None,
         retry_of: str | None = None,
         context_token: str | None = None,
+        graph_action: str | None = None,
+        scientific_change: str | None = None,
     ) -> dict[str, Any]:
         """Run one candidate as a durable node in the experiment DAG."""
 
@@ -1809,15 +1908,35 @@ class ResearchService:
         if context_token is not None:
             if not isinstance(context_token, str) or not context_token:
                 raise ValueError("context_token must be a non-empty string")
-            self._assert_config_unchanged()
-            self.event_log.verify()
-            agent_context_snapshot = self._agent_context_snapshot()
-            if agent_context_snapshot["context_token"] != context_token:
-                raise StaleAgentContextError(
-                    "agent context is stale; refresh agent-context before proposing"
-                )
+            agent_context_snapshot, _ = self._validate_agent_context_token(
+                context_token,
+                require_ready=True,
+            )
+
+        graph_metadata: GraphMetadata | None = None
+        if retry_of is None:
+            graph_metadata = graph_metadata_from_values(
+                graph_action,
+                scientific_change,
+                required=context_token is not None,
+            )
+            if graph_metadata is not None:
+                validate_graph_relationship(graph_metadata, parent_id)
+        elif graph_action is not None or scientific_change is not None:
+            # A retry is an execution continuation, never a newly labelled
+            # scientific node. Its metadata is inherited below from history.
+            inherit_retry_graph_metadata(
+                {},
+                graph_action=graph_action,
+                scientific_change=scientific_change,
+            )
         report = self._doctor()
         self._recover_incomplete_experiments()
+        if context_token is not None:
+            agent_context_snapshot, _ = self._validate_agent_context_after_doctor(
+                context_token,
+                report,
+            )
         compatibility = str(report.fingerprints["compatibility_digest"])
         candidate, candidate_digest = self._load_candidate(candidate_path)
         # SQLite is a disposable query accelerator, never decision authority.
@@ -1831,13 +1950,52 @@ class ResearchService:
             compatibility,
             retry_of,
         )
+        if retry_of is not None:
+            prior_attempt = self.projection.experiment(
+                self.config.project_id,
+                retry_of,
+            )
+            prior_payload = prior_attempt.get("payload")
+            if not isinstance(prior_payload, Mapping):
+                raise IntegrityError("projected retry registration is invalid")
+            graph_metadata = inherit_retry_graph_metadata(prior_payload)
+
+        parent_row: Mapping[str, Any] | None = None
         if parent_id is not None:
             try:
-                self.projection.lineage(self.config.project_id, parent_id)
+                parent_row = self.projection.experiment(
+                    self.config.project_id,
+                    parent_id,
+                )
             except IntegrityError as exc:
                 raise ConfigurationError(
                     f"unknown parent experiment: {parent_id}"
                 ) from exc
+        if graph_metadata is not None:
+            validate_graph_relationship(
+                graph_metadata,
+                parent_id,
+                parent_is_terminal=(
+                    None
+                    if parent_row is None
+                    else is_terminal(str(parent_row.get("status", "")))
+                ),
+                compatibility_digest=compatibility,
+                parent_compatibility_digest=(
+                    None
+                    if parent_row is None
+                    else str(parent_row.get("compatibility_digest", ""))
+                ),
+            )
+            validate_graph_candidate_change(
+                graph_metadata,
+                candidate_digest=candidate_digest,
+                parent_candidate_digest=(
+                    None
+                    if parent_row is None
+                    else str(parent_row.get("candidate_digest", ""))
+                ),
+            )
         self._assert_static_compatibility(report)
 
         baseline = self._compatible_baseline(compatibility)
@@ -1853,6 +2011,11 @@ class ResearchService:
             baseline = self._compatible_baseline(compatibility)
             if baseline is None:  # pragma: no cover - defensive invariant
                 raise IntegrityError("newly recorded baseline cannot be reloaded")
+            if context_token is not None:
+                agent_context_snapshot, _ = self._validate_agent_context_after_doctor(
+                    context_token,
+                    report,
+                )
 
         experiment_id = new_experiment_id(
             self.config.project_id,
@@ -1918,6 +2081,11 @@ class ResearchService:
 
         try:
             self._assert_static_compatibility(report)
+            if context_token is not None:
+                agent_context_snapshot, _ = self._validate_agent_context_after_doctor(
+                    context_token,
+                    report,
+                )
             registration = {
                 "experiment_id": experiment_id,
                 "parent_id": parent_id,
@@ -1932,10 +2100,22 @@ class ResearchService:
                 "status": "registered",
                 "authorized_action": None,
             }
+            if graph_metadata is not None:
+                registration.update(graph_metadata.to_payload())
             if context_token is not None:
                 registration["agent_context_token"] = context_token
                 registration["agent_context_snapshot"] = agent_context_snapshot
-            self.event_log.append("EXPERIMENT_REGISTERED", registration)
+                if agent_context_snapshot is None:  # pragma: no cover - guarded above
+                    raise IntegrityError("agent context snapshot is unavailable")
+                self._append_agent_authorized_event(
+                    "EXPERIMENT_REGISTERED",
+                    registration,
+                    context_token=context_token,
+                    snapshot=agent_context_snapshot,
+                    report=report,
+                )
+            else:
+                self.event_log.append("EXPERIMENT_REGISTERED", registration)
             registered = True
             self._sync()
             self._assert_static_compatibility(report)
@@ -2310,28 +2490,232 @@ class ResearchService:
         *,
         agent_spec: Mapping[str, Any] | None = None,
         fingerprints: Mapping[str, Any] | None = None,
+        evaluator_certification: Mapping[str, Any] | None = None,
+        events: Sequence[Event] | None = None,
     ) -> dict[str, Any]:
-        events = self.event_log.read()
+        resolved_events = self.event_log.read() if events is None else list(events)
+        resolved_certification = (
+            self._evaluator_certification_summary()
+            if evaluator_certification is None
+            else evaluator_certification
+        )
         resolved_spec = (
-            load_agent_spec(self.config.root) if agent_spec is None else agent_spec
+            load_agent_spec(
+                self.config.root,
+                evaluator_certification=resolved_certification,
+            )
+            if agent_spec is None
+            else agent_spec
         )
         resolved_fingerprints = (
             project_fingerprints(self.config)
             if fingerprints is None
             else fingerprints
         )
-        last_event = events[-1] if events else None
+        last_event = resolved_events[-1] if resolved_events else None
         payload = {
-            "schema_version": 1,
+            "schema_version": 2,
             "project_id": self.config.project_id,
             "project_compatibility_digest": resolved_fingerprints[
                 "compatibility_digest"
             ],
             "agent_spec_digest": sha256_json(resolved_spec),
+            "evaluator_certification_digest": resolved_certification.get(
+                "digest",
+                resolved_certification.get("certification_digest"),
+            ),
+            "evaluator_certification_state_digest": sha256_json(
+                resolved_certification
+            ),
             "last_sequence": last_event.sequence if last_event is not None else 0,
             "last_hash": last_event.hash if last_event is not None else None,
         }
         return {**payload, "context_token": sha256_json(payload)}
+
+    def _evaluator_certification_summary(
+        self,
+        *,
+        fingerprints: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return inspect_evaluator_certification(
+            self.config,
+            fingerprints=fingerprints,
+        )
+
+    def _agent_research_state(
+        self,
+        *,
+        events: Sequence[Event] | None = None,
+    ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+        fingerprints = project_fingerprints(self.config)
+        certification = self._evaluator_certification_summary(
+            fingerprints=fingerprints
+        )
+        agent_spec = load_agent_spec(
+            self.config.root,
+            evaluator_certification=certification,
+        )
+        snapshot = self._agent_context_snapshot(
+            agent_spec=agent_spec,
+            fingerprints=fingerprints,
+            evaluator_certification=certification,
+            events=events,
+        )
+        return snapshot, agent_spec, certification
+
+    def _validate_agent_context_token(
+        self,
+        context_token: str,
+        *,
+        require_ready: bool,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        self._assert_config_unchanged()
+        self.event_log.verify()
+        snapshot, agent_spec, _ = self._agent_research_state()
+        if snapshot["context_token"] != context_token:
+            raise StaleAgentContextError(
+                "agent context is stale; refresh agent-context before proposing"
+            )
+        if require_ready and agent_spec.get("research_ready") is not True:
+            raw_blockers = agent_spec.get("setup_blockers", [])
+            blockers = (
+                [str(value) for value in raw_blockers]
+                if isinstance(raw_blockers, Sequence)
+                and not isinstance(raw_blockers, (str, bytes, bytearray))
+                else []
+            )
+            raise AgentResearchNotReadyError(
+                "agent research gates are incomplete; configure the project and "
+                "record a current passing evaluator certification",
+                blockers=blockers,
+            )
+        return snapshot, agent_spec
+
+    def _validate_agent_context_after_doctor(
+        self,
+        context_token: str,
+        report: DoctorReport,
+        *,
+        events: Sequence[Event] | None = None,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Recheck a proposal against canonical state and the adapter doctor seal."""
+
+        locked_events = tuple(events) if events is not None else tuple(self.event_log.read())
+        fresh_report = self._doctor_snapshot(event_count=len(locked_events))
+        if (
+            fresh_report.capabilities != report.capabilities
+            or fresh_report.side_effects != report.side_effects
+            or fresh_report.adapter_fingerprint != report.adapter_fingerprint
+            or fresh_report.fingerprints != report.fingerprints
+        ):
+            raise StaleAgentContextError(
+                "agent context is stale; adapter doctor seal changed before commit"
+            )
+        certification = self._evaluator_certification_summary(
+            fingerprints=fresh_report.fingerprints,
+        )
+        agent_spec = load_agent_spec(
+            self.config.root,
+            evaluator_certification=certification,
+        )
+        context_fingerprints = {
+            **fresh_report.fingerprints,
+            # Agent-context schema v2 historically seals the project component
+            # here; the certification state separately seals the effective
+            # project+adapter compatibility digest.
+            "compatibility_digest": fresh_report.fingerprints[
+                "project_compatibility_digest"
+            ],
+        }
+        snapshot = self._agent_context_snapshot(
+            agent_spec=agent_spec,
+            fingerprints=context_fingerprints,
+            evaluator_certification=certification,
+            events=locked_events,
+        )
+        if snapshot["context_token"] != context_token:
+            raise StaleAgentContextError(
+                "agent context is stale; refresh agent-context before proposing"
+            )
+        if agent_spec.get("research_ready") is not True:
+            raw_blockers = agent_spec.get("setup_blockers", [])
+            blockers = (
+                [str(value) for value in raw_blockers]
+                if isinstance(raw_blockers, Sequence)
+                and not isinstance(raw_blockers, (str, bytes, bytearray))
+                else []
+            )
+            raise AgentResearchNotReadyError(
+                "agent research gates are incomplete under the current adapter seal",
+                blockers=blockers,
+            )
+        self._assert_static_compatibility(fresh_report)
+        return snapshot, agent_spec
+
+    @staticmethod
+    def _snapshot_head(snapshot: Mapping[str, Any]) -> tuple[int, str | None]:
+        sequence = snapshot.get("last_sequence")
+        digest = snapshot.get("last_hash")
+        if (
+            isinstance(sequence, bool)
+            or not isinstance(sequence, int)
+            or sequence < 0
+            or (sequence == 0 and digest is not None)
+            or (
+                sequence > 0
+                and (
+                    not isinstance(digest, str)
+                    or len(digest) != 64
+                    or any(character not in "0123456789abcdef" for character in digest)
+                )
+            )
+        ):
+            raise IntegrityError("agent context snapshot has an invalid canonical head")
+        return sequence, digest
+
+    def _append_agent_authorized_event(
+        self,
+        event_type: str,
+        payload: Mapping[str, Any],
+        *,
+        context_token: str,
+        snapshot: Mapping[str, Any],
+        report: DoctorReport,
+    ) -> Event:
+        """Commit only while both the proposal head and certification stay current."""
+
+        expected_head = self._snapshot_head(snapshot)
+
+        def validate_before_append(locked_events: tuple[Event, ...]) -> None:
+            self._validate_agent_context_after_doctor(
+                context_token,
+                report,
+                events=locked_events,
+            )
+
+        def validate_after_durability(locked_events: tuple[Event, ...]) -> None:
+            self._validate_agent_context_after_doctor(
+                context_token,
+                report,
+                events=locked_events,
+            )
+
+        try:
+            # The shared certification lock spans the actual event write, so a
+            # managed replacement cannot enter between the final review check
+            # and the canonical commit.
+            with evaluator_certification_read_lock(self.config):
+                return self.event_log.append(
+                    event_type,
+                    payload,
+                    expected_head=expected_head,
+                    precondition=validate_before_append,
+                    postcondition=validate_after_durability,
+                )
+        except EventHeadMismatchError as exc:
+            raise StaleAgentContextError(
+                "agent context is stale; refresh agent-context before proposing"
+            ) from exc
 
     def agent_context(self, *, limit: int = 20) -> dict[str, Any]:
         """Return one bounded evidence packet for Codex or Claude Code."""
@@ -2342,26 +2726,264 @@ class ResearchService:
             self._assert_config_unchanged()
             self.event_log.verify()
             self._recover_incomplete_experiments()
-            lineage = self.projection.lineage(self.config.project_id)
-            findings = self.projection.findings(project_id=self.config.project_id)
-            artifacts = self.projection.artifacts(self.config.project_id)
-            for record in artifacts:
-                self._verify_projected_artifact(record)
-            agent_spec = load_agent_spec(self.config.root)
-            fingerprints = project_fingerprints(self.config)
-            return build_agent_context(
-                project=self.inspect(),
-                status=self.projection.project_status(self.config.project_id),
-                lineage=lineage,
-                findings=findings,
-                artifacts=artifacts,
-                agent_spec=agent_spec,
-                snapshot=self._agent_context_snapshot(
+            for _ in range(3):
+                events_before = self.event_log.read()
+                head_before = (
+                    (events_before[-1].sequence, events_before[-1].hash)
+                    if events_before
+                    else (0, None)
+                )
+                status = self.projection.project_status(self.config.project_id)
+                lineage = self.projection.lineage(self.config.project_id)
+                findings = self.projection.findings(project_id=self.config.project_id)
+                artifacts = self.projection.artifacts(self.config.project_id)
+                for record in artifacts:
+                    self._verify_projected_artifact(record)
+                events_after = self.event_log.read()
+                head_after = (
+                    (events_after[-1].sequence, events_after[-1].hash)
+                    if events_after
+                    else (0, None)
+                )
+                projected_head = (status.get("last_sequence"), status.get("last_hash"))
+                if head_before != head_after or projected_head != head_after:
+                    self.projection.rebuild(self.event_log)
+                    continue
+                snapshot, agent_spec, certification = self._agent_research_state(
+                    events=events_after
+                )
+                binding_digests = certification.get("bindings")
+                effective_compatibility = (
+                    binding_digests.get("effective_compatibility")
+                    if isinstance(binding_digests, Mapping)
+                    else None
+                )
+                baseline_ready = bool(
+                    isinstance(effective_compatibility, str)
+                    and effective_compatibility
+                    and self._compatible_baseline_from_events(
+                        events_after,
+                        effective_compatibility,
+                    )
+                    is not None
+                )
+                return build_agent_context(
+                    project=self.inspect(),
+                    status=status,
+                    lineage=lineage,
+                    findings=findings,
+                    artifacts=artifacts,
                     agent_spec=agent_spec,
-                    fingerprints=fingerprints,
-                ),
-                limit=limit,
+                    snapshot=snapshot,
+                    limit=limit,
+                    current_compatibility_digest=(
+                        effective_compatibility
+                        if isinstance(effective_compatibility, str)
+                        and effective_compatibility
+                        else None
+                    ),
+                    compatible_baseline_ready=baseline_ready,
+                )
+            raise IntegrityError(
+                "canonical history changed repeatedly while building agent context"
             )
+
+    def conclude_branch(
+        self,
+        conclusion_path: str | Path,
+        *,
+        context_token: str,
+    ) -> dict[str, Any]:
+        """Durably record an agent interpretation bound to terminal evidence."""
+
+        if not isinstance(context_token, str) or not context_token:
+            raise ValueError("context_token must be a non-empty string")
+        with self._workflow_lock():
+            snapshot, _ = self._validate_agent_context_token(
+                context_token,
+                require_ready=True,
+            )
+            report = self._doctor()
+            self._recover_incomplete_experiments()
+            snapshot, _ = self._validate_agent_context_after_doctor(
+                context_token,
+                report,
+            )
+            value = self._load_json_object(
+                conclusion_path,
+                label="branch conclusion",
+            )
+            required = {
+                "branch_experiment_ids",
+                "hypothesis_class",
+                "failure_signature",
+                "conclusion",
+                "confidence",
+                "next_step",
+            }
+            if set(value) != required:
+                missing = sorted(required - set(value))
+                extra = sorted(set(value) - required)
+                raise ConfigurationError(
+                    "branch conclusion must contain exactly the documented fields; "
+                    f"missing={missing}, extra={extra}"
+                )
+            raw_ids = value["branch_experiment_ids"]
+            if (
+                not isinstance(raw_ids, Sequence)
+                or isinstance(raw_ids, (str, bytes, bytearray))
+                or not raw_ids
+                or not all(isinstance(item, str) and item for item in raw_ids)
+            ):
+                raise ConfigurationError(
+                    "branch_experiment_ids must be a non-empty string array"
+                )
+            experiment_ids = [str(item) for item in raw_ids]
+            if len(set(experiment_ids)) != len(experiment_ids):
+                raise ConfigurationError(
+                    "branch_experiment_ids cannot contain duplicates"
+                )
+            for key in ("hypothesis_class", "failure_signature", "conclusion"):
+                item = value[key]
+                if not isinstance(item, str) or not item.strip():
+                    raise ConfigurationError(f"{key} must be a non-empty string")
+                value[key] = item.strip()
+            if value["confidence"] not in {
+                "supported",
+                "falsified",
+                "inconclusive",
+            }:
+                raise ConfigurationError(
+                    "confidence must be supported, falsified, or inconclusive"
+                )
+            if value["next_step"] not in {
+                "stop",
+                "change_control",
+                "explore",
+                "ablate",
+                "exploit",
+                "replicate",
+            }:
+                raise ConfigurationError("branch conclusion next_step is invalid")
+
+            self.projection.rebuild(self.event_log)
+            rows: list[Mapping[str, Any]] = []
+            for experiment_id in experiment_ids:
+                try:
+                    row = self.projection.experiment(
+                        self.config.project_id,
+                        experiment_id,
+                    )
+                except IntegrityError as exc:
+                    raise ConfigurationError(
+                        f"unknown branch experiment: {experiment_id}"
+                    ) from exc
+                try:
+                    terminal = is_terminal(str(row.get("status", "")))
+                except LifecycleError as exc:
+                    raise IntegrityError(
+                        f"projected branch status is invalid: {experiment_id}"
+                    ) from exc
+                if not terminal:
+                    raise ConfigurationError(
+                        f"branch experiment is not terminal: {experiment_id}"
+                    )
+                rows.append(row)
+            compatibility_digests = {
+                str(row.get("compatibility_digest", "")) for row in rows
+            }
+            if len(compatibility_digests) != 1 or "" in compatibility_digests:
+                raise ConfigurationError(
+                    "a branch conclusion requires one compatibility digest"
+                )
+
+            terminal_events: dict[str, Event] = {}
+            for event in self.event_log.read():
+                event_type = _normalized_event_type(event.event_type)
+                if event_type not in _TERMINAL_EVENT_TYPES:
+                    continue
+                if event_type == "EXPERIMENT_STATUS_CHANGED":
+                    raw_status = event.payload.get(
+                        "status",
+                        event.payload.get("state"),
+                    )
+                    if not isinstance(raw_status, str):
+                        raise IntegrityError(
+                            "branch evidence contains a non-string status"
+                        )
+                    try:
+                        if not is_terminal(raw_status):
+                            continue
+                    except (LifecycleError, TypeError, ValueError) as exc:
+                        raise IntegrityError(
+                            "branch evidence contains an invalid status event"
+                        ) from exc
+                experiment_id = event.payload.get(
+                    "experiment_id",
+                    event.payload.get("id"),
+                )
+                if experiment_id in experiment_ids:
+                    if str(experiment_id) in terminal_events:
+                        raise IntegrityError(
+                            "branch experiment has duplicate terminal events"
+                        )
+                    terminal_events[str(experiment_id)] = event
+            if set(terminal_events) != set(experiment_ids):
+                raise IntegrityError(
+                    "branch conclusion is missing canonical terminal evidence"
+                )
+            evidence = [
+                {
+                    "experiment_id": experiment_id,
+                    "event_id": terminal_events[experiment_id].event_id,
+                    "event_hash": terminal_events[experiment_id].hash,
+                }
+                for experiment_id in experiment_ids
+            ]
+            content = {
+                **value,
+                "branch_experiment_ids": experiment_ids,
+                "compatibility_digest": next(iter(compatibility_digests)),
+            }
+            finding_id = stable_id(
+                "finding",
+                self.config.project_id,
+                "branch_conclusion",
+                1,
+                content,
+                evidence,
+            )
+            if any(
+                event.event_type == "FINDING_RECORDED"
+                and event.payload.get("finding_id") == finding_id
+                for event in self.event_log.read()
+            ):
+                raise ConfigurationError(
+                    "this branch conclusion is already recorded"
+                )
+            payload = make_finding_event(
+                self.config.project_id,
+                content,
+                key="branch_conclusion",
+                evidence=evidence,
+                metadata={
+                    "claim_authority": "agent_interpretation",
+                    "authorized_action": None,
+                    "agent_context_token": context_token,
+                    "agent_context_schema_version": snapshot["schema_version"],
+                },
+                finding_id=finding_id,
+            )
+            payload["branch_conclusion_version"] = 1
+            event = self._append_agent_authorized_event(
+                "FINDING_RECORDED",
+                payload,
+                context_token=context_token,
+                snapshot=snapshot,
+                report=report,
+            )
+            self._sync()
+            return {**payload, "event_sequence": event.sequence}
 
     def status(self) -> dict[str, Any]:
         with self._workflow_lock():

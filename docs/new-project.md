@@ -36,16 +36,23 @@ your-project/
 │   ├── adapter.py          # any language is allowed
 │   ├── research-brief.md   # agent-facing goal, budget, and stop conditions
 │   ├── candidate.schema.json
+│   ├── evaluator-certification.json # OS-managed, gitignored/snapshot-excluded
 │   ├── candidate.inbox.json # ignored transient agent input
-│   └── .gitignore          # ignores runtime/
+│   └── .gitignore          # ignores runtime, transient inputs, certification
 ├── evaluator.py            # example only
-├── evidence/                # fixed evaluation inputs
+├── evidence/                # fixed development/replication inputs and manifests
+│   └── universe-manifest.json
+├── tests/golden/            # tiny fixtures with independently derived answers
 ├── experiment.json          # one declared mutable surface
 └── candidates/
 ```
 
-The tree above shows the intended integrated project; `evidence/` and
-`candidates/` are project-owned examples rather than scaffold output. Start
+The tree above shows the intended integrated project; `evidence/`,
+`tests/golden/`, and `candidates/` are project-owned examples rather than
+scaffold output. Research OS creates the managed certification after a review;
+do not hand-edit or classify it as mutable/protected/evidence. Locked-holdout
+content is deliberately not shown: keep it outside the project and iterative
+evaluator environment. Start
 from an existing, non-symlink project directory:
 
 ```bash
@@ -67,22 +74,52 @@ source tree into the project.
 Integrate a brand-new domain from its own semantics, not by cloning an existing
 quantitative, ML, or example project:
 
-1. Write the domain's candidate JSON schema in plain terms: one candidate must
+1. Run `research-os init` in the domain's own repository before creating any of
+   the scaffold-owned paths. It refuses to overwrite collisions, so initialize
+   first and then replace or edit the generated placeholders. Classify project
+   paths as mutable candidate inputs, protected implementation/policy, or fixed
+   evidence.
+2. Write the domain's candidate JSON schema in plain terms: one candidate must
    represent one bounded, falsifiable change.
-2. Build a deterministic evaluator and a fixed evidence set for that domain.
-   Decide which scalar metric drives comparison and which constraints can veto
-   it.
-3. Run `research-os init` in the domain's own repository. Classify its paths as
-   mutable candidate inputs, protected implementation/policy, or fixed evidence.
-4. Set the constitution's metric direction, baseline repetitions and tolerance,
+3. Pre-register the evaluation universe or task population, selection rule and
+   cutoff, development and replication splits, costs, hypothesis classes,
+   repeated-class failure threshold, and locked-holdout boundary. Default the
+   class-failure threshold to three only when the user did not choose one.
+4. Build a deterministic evaluator and a fixed development/replication evidence
+   set for that domain. Decide which scalar metric drives comparison and which
+   constraints can veto it.
+5. Create tiny golden cases with hand-derived or independently computed expected
+   answers. They must cover an unchanged baseline, a positive control, invalid
+   input, repeatability, leakage/split and universe boundaries, and the
+   domain-critical edge cases that could reverse a conclusion.
+6. Set the constitution's metric direction, baseline repetitions and tolerance,
    and minimum improvement. These values are research policy, not adapter
    defaults or CLI tuning knobs.
-5. Implement the eight protocol operations as a thin translation layer around
+7. Implement the eight protocol operations as a thin translation layer around
    that evaluator. Reuse the versioned wire contract, but do not reuse another
    project's candidate schema, evaluator, dataset assumptions, or domain codes.
-6. Exercise each operation against a disposable copy, then run `inspect`,
-   `doctor`, an explicit `baseline`, one deliberately invalid candidate, and one
-   valid candidate before attaching an autonomous proposer.
+8. Run the golden cases, then set `x-research-os-configured=true` once the adapter
+   enforces the final candidate contract. Run `inspect` and `doctor` to establish
+   the project and adapter-reported evaluation seal. Have a separate read-only
+   critic agent audit the evaluator, adapter, evidence boundaries, and independent
+   oracles.
+   Invoke `research-os --project ROOT evaluator-review-subject` and give the
+   complete output to the critic. The critic emits the strict review JSON
+   documented by the packaged skill with that output's exact `digest` in
+   `subject_digest`. Keep both JSON files in a private temporary directory
+   outside the project root. Then invoke
+   `research-os --project ROOT certify-evaluator /ABS/OUTSIDE/REVIEW.json`; Research OS binds
+   the review to current scientific-input fingerprints and manages
+   `.research-os/evaluator-certification.json`. The implementing agent cannot
+   self-certify; `doctor`, baseline repeats, and adapter `verify` are not a
+   substitute.
+9. After certification passes and remains current, exercise each operation
+   against a disposable copy, then run an explicit `baseline`, one deliberately
+   invalid candidate, one approved valid candidate, and `replay` before attaching
+   an autonomous proposer. Issue `agent-context` only after doctor and baseline.
+10. Any reviewed semantic change invalidates the certificate and returns the
+    project to change-control, golden testing, certification, and a new compatible
+    baseline.
 
 This keeps the OS domain-neutral: adding a domain changes only the project
 contract, adapter, evaluator, evidence, and candidate schema—not the Research OS
@@ -129,6 +166,43 @@ checks the source checkout plus protected inputs around adapter calls. `doctor`
 fingerprints the static project, adapter execution environment, and
 adapter-provided semantics; any compatibility change requires a new baseline.
 
+Put universe/selection manifests, split logic, golden fixtures/oracles, evaluator,
+adapter imports, and cost model under protected and/or evidence paths as
+appropriate. Research OS separately binds its canonical agent-spec digest (the
+research brief plus candidate schema) into the managed certification. The
+managed `.research-os/evaluator-certification.json` is gitignored and excluded
+from source snapshots/workspaces; it must not be declared mutable, protected, or
+evidence. The candidate JSON remains the project-owned domain payload. Research
+OS records `graph_action` and `scientific_change` as top-level experiment
+metadata supplied by CLI flags; projects need not duplicate those fields in
+their candidate schema.
+
+## Pre-register universe, splits, and holdout
+
+Universe means the repeated units over which a claim is selected or evaluated:
+assets or pairs, datasets or tasks, prompts, cohorts, environments, seeds, or the
+domain equivalent. Its manifest must state the source identity, selection rule,
+cutoff, eligibility and exclusion rules, missing-data policy, and digest. A bare
+hard-coded list without its derivation is not a reproducible universe.
+
+Use development evidence for candidate discovery and diagnosis. Define separate,
+pre-registered cohorts, regimes, windows, or seeds for controlled replication.
+Changing an evaluation unit, date range, selection rule, or replication axis
+during research is not an ordinary candidate adjustment; it is change-control.
+When universe discovery is itself the research objective, perform selection on
+discovery data, freeze the selected universe at the declared cutoff, and evaluate
+on separate evidence.
+
+A locked holdout is physical separation, not a filter applied after an evaluator
+has loaded a file containing future or final rows. Its bytes must be absent from
+the project root, snapshots, configured research evidence, artifacts, agent
+context, and iterative evaluator environment. Research OS v1 does not sandbox
+arbitrary local reads, so a genuine lock requires actual byte absence or a
+separate account, container/mount, or custodian. If that boundary is unavailable,
+call the split held-out development evidence rather than locked holdout. Unlock
+once only after the candidate and implementation digests are frozen; do not tune
+from the final result.
+
 ## Designing a constitution
 
 Choose one scalar primary metric. It should answer whether a candidate is better than a compatible baseline; secondary metrics and hard constraints can remain multidimensional.
@@ -171,9 +245,13 @@ research-os --project /path/to/your-project findings
 research-os --project /path/to/your-project replay
 ```
 
-`run-once` establishes a compatible repeated baseline when none exists, but
-running `baseline` explicitly is preferable during integration because it
-isolates baseline reproducibility and cleanup failures before candidate work.
+The legacy/manual tokenless `run-once` path establishes a compatible repeated
+baseline when none exists. Codex and Claude Code must use `--context-token` and
+must run `baseline` explicitly before obtaining that context; an implicit
+baseline changes canonical state and correctly makes an older token stale. The
+tokenless path is retained only for direct API/CLI compatibility and does not
+enforce the agent certification gate. Explicit baseline setup also isolates
+reproducibility and cleanup failures before candidate work.
 Baseline artifacts are captured into the same content-addressed catalog as
 candidate artifacts and embedded in `BASELINE_RECORDED`. The `artifacts`
 command lists and verifies projected candidate artifact records; `replay`
@@ -191,24 +269,77 @@ researcher. It runs the following loop:
 
 1. Run `doctor`, `replay`, and `agent-context`; read the bounded graph, brief,
    schema, findings, artifacts, and snapshot token.
-2. Select a parent experiment and one falsifiable change.
-3. Write one bounded candidate to `.research-os/candidate.inbox.json`.
-4. Call `research-os --project PATH run-once PATH/.research-os/candidate.inbox.json --parent exp_<parent-id> --context-token <token>` (omit `--parent` for a root hypothesis).
-5. Use the terminal status and diagnostics to update its hypothesis.
-6. Continue until its explicit experiment/time/cost budget is exhausted.
+2. Explore independent pre-registered hypothesis classes as root nodes.
+3. After every terminal node, diagnose the exact status, constraints, and
+   relevant artifacts without running another experiment.
+4. Select a scientifically defensible parent and one conceptual intervention for
+   an ablation or exploitation, then use a pre-registered controlled variation to
+   replicate a promising mechanism.
+5. Write one bounded domain candidate to `.research-os/candidate.inbox.json`.
+6. Call `run-once` with top-level `--graph-action` and `--scientific-change`
+   metadata. Omit `--parent` only for `explore`; require it for `ablate`,
+   `exploit`, and `replicate`.
+7. Continue until the finite budget, a safety gate, or a pre-registered
+   repeated-class failure threshold stops the loop.
+
+For example:
+
+```text
+research-os --project PATH run-once PATH/.research-os/candidate.inbox.json \
+  --graph-action explore \
+  --scientific-change "CLASS: retrieval weighting; CHANGE: add title weight only" \
+  --context-token TOKEN
+
+research-os --project PATH run-once PATH/.research-os/candidate.inbox.json \
+  --graph-action exploit \
+  --scientific-change "CLASS: retrieval weighting; CHANGE: bound title weight" \
+  --parent exp_<parent-id> --context-token TOKEN
+```
+
+The scientific-change declaration must name the class and cover the complete
+semantic diff from the parent, or from the baseline for a root. Multiple coupled
+fields are one change only when separating them would make the mechanism
+undefined. Candidate schemas may contain richer project-owned hypothesis fields,
+but they do not need to duplicate the top-level orchestration metadata.
+
+Only conclusive `REJECTED` outcomes under the current compatibility count toward
+class closure. The default threshold is three when the brief did not choose one.
+At the threshold the agent submits no further variant from that class. It may
+explore an untouched pre-registered class; otherwise it stops or enters explicit
+change-control. A semantic change requires user approval, new golden evidence,
+independent re-certification, and a new compatible baseline before research
+resumes.
+
+At class closure and after a materially supported replicated branch, the agent
+writes an exact branch conclusion object containing only
+`branch_experiment_ids`, `hypothesis_class`, `failure_signature`, `conclusion`,
+`confidence`, and `next_step` to the transient inbox, then records it with:
+
+```text
+research-os --project PATH conclude-branch \
+  PATH/.research-os/candidate.inbox.json --context-token TOKEN
+```
+
+All named experiments must be terminal and share one compatibility digest.
+`confidence` is `supported`, `falsified`, or `inconclusive`; `next_step` is
+`stop`, `change_control`, `explore`, `ablate`, `exploit`, or `replicate`. The
+result is an evidence-bound agent finding, not authority for production action.
 
 If no finite budget was supplied, the shared skill permits one experiment and
 zero retries. A status-only request starts no experiment. Changes to the
 metric, evaluator, evidence, constitution, protected paths, or candidate schema
 switch the agent out of research mode into explicit change-control and require
-the appropriate compatible baseline before research resumes.
+golden cases, independent certification, and the appropriate compatible baseline
+before research resumes. The same rule applies to universe, selection, split,
+holdout-boundary, cost-model, and immutable-policy changes.
 
 The OS rejects an identical candidate under the same parent and immutable compatibility fingerprint. Changed evaluator/data/config fingerprints force a new baseline, preventing incomparable evidence from sharing a promotion decision.
 
 Do not resubmit a failed candidate as an ordinary `run-once`; duplicate evidence remains refused. If the most recent attempt timed out, was cancelled, was recovered after interruption, or ended with an adapter error that explicitly set `retryable: true`, request one new attempt with:
 
 ```text
-research-os --project PATH run-once candidate.json --retry-of exp_<prior-id>
+research-os --project PATH run-once candidate.json --retry-of exp_<prior-id> \
+  --context-token TOKEN
 ```
 
 The requested retry preserves the prior attempt's DAG parent. If `--parent` is also supplied, it must match. The candidate JSON and immutable compatibility fingerprint must also match the referenced attempt. Each retry is a distinct durable node with `attempt` incremented and `retry_of` pointing to the immediately prior attempt. A stale attempt ID cannot be retried after a newer attempt exists, and invalid, rejected, validated, untrusted, or non-retryable infrastructure outcomes are never retryable. Research OS never starts a retry automatically.

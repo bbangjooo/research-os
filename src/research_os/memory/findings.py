@@ -17,7 +17,9 @@ if TYPE_CHECKING:
 
 
 FINDING_RECORDED = "FINDING_RECORDED"
-KERNEL_RESERVED_FINDING_KEYS = frozenset({"experiment_outcome"})
+KERNEL_RESERVED_FINDING_KEYS = frozenset(
+    {"branch_conclusion", "experiment_outcome"}
+)
 
 
 class FindingScope(StrEnum):

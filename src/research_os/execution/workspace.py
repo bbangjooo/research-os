@@ -32,6 +32,7 @@ _AGENT_TRANSIENT_PATHS = frozenset(
     {
         (_CONTROL_DIR, "candidate.inbox.json"),
         (_CONTROL_DIR, "agent-journal.jsonl"),
+        (_CONTROL_DIR, "evaluator-certification.json"),
     }
 )
 

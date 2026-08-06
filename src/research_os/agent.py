@@ -19,6 +19,24 @@ _CONTROL_DIR: Final = ".research-os"
 _MAX_AGENT_FILE_BYTES: Final = 256 * 1024
 _MAX_CONTEXT_VALUE_BYTES: Final = 32 * 1024
 MAX_AGENT_CONTEXT_BYTES: Final = 2 * 1024 * 1024
+_CANDIDATE_SCHEMA_URI: Final = "https://json-schema.org/draft/2020-12/schema"
+_REQUIRED_BRIEF_HEADINGS: Final = frozenset(
+    {
+        "# Research brief",
+        "## Authority",
+        "## Candidate semantics",
+        "## Evaluation certification",
+        "## Evidence and constraints",
+        "## Golden controls",
+        "## Graph proposal policy",
+        "## Holdout boundary",
+        "## Hypothesis classes and failure threshold",
+        "## Objective",
+        "## Search budget",
+        "## Stop conditions",
+        "## Universe preregistration",
+    }
+)
 
 
 def _stable_stat(info: os.stat_result) -> tuple[int, int, int, int, int]:
@@ -136,8 +154,44 @@ def _read_optional_control_file(root: Path, name: str) -> str | None:
             os.close(root_fd)
 
 
-def load_agent_spec(root: Path) -> dict[str, Any]:
-    """Load the project-owned research brief and candidate schema, if present."""
+def _brief_is_configured(brief: str | None) -> bool:
+    if brief is None or not brief.strip() or "REPLACE_ME" in brief:
+        return False
+    headings = {
+        line.strip()
+        for line in brief.splitlines()
+        if line.startswith("#")
+    }
+    return _REQUIRED_BRIEF_HEADINGS.issubset(headings)
+
+
+def _candidate_schema_is_configured(schema: Mapping[str, Any] | None) -> bool:
+    if schema is None or schema.get("x-research-os-configured") is not True:
+        return False
+    if (
+        schema.get("$schema") != _CANDIDATE_SCHEMA_URI
+        or schema.get("type") != "object"
+        or schema.get("additionalProperties") is not False
+        or b"REPLACE_ME" in canonical_json_bytes(schema)
+    ):
+        return False
+    properties = schema.get("properties")
+    if isinstance(properties, Mapping) and properties:
+        return True
+    return any(
+        isinstance(schema.get(keyword), Sequence)
+        and not isinstance(schema.get(keyword), (str, bytes, bytearray))
+        and bool(schema.get(keyword))
+        for keyword in ("allOf", "anyOf", "oneOf")
+    )
+
+
+def load_agent_spec(
+    root: Path,
+    *,
+    evaluator_certification: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Load project research controls and derive fail-closed agent readiness."""
 
     brief = _read_optional_control_file(root, AGENT_BRIEF_RELATIVE.name)
     schema_text = _read_optional_control_file(root, CANDIDATE_SCHEMA_RELATIVE.name)
@@ -150,20 +204,48 @@ def load_agent_spec(root: Path) -> dict[str, Any]:
                 f"invalid agent candidate schema: {CANDIDATE_SCHEMA_RELATIVE}"
             ) from exc
 
-    configured = bool(
-        brief
-        and "REPLACE_ME" not in brief
-        and schema is not None
-        and schema.get("x-research-os-configured") is True
+    brief_configured = _brief_is_configured(brief)
+    candidate_schema_configured = _candidate_schema_is_configured(schema)
+    setup_configured = brief_configured and candidate_schema_configured
+    certification = (
+        dict(evaluator_certification)
+        if evaluator_certification is not None
+        else {
+            "certified": False,
+            "current": False,
+            "reason": "missing",
+        }
     )
+    evaluator_certified = bool(
+        certification.get("certified") is True
+        and certification.get("current") is True
+    )
+    blockers: list[str] = []
+    if not setup_configured:
+        blockers.append("research_brief_or_candidate_schema_not_configured")
+    if not evaluator_certified:
+        reason = certification.get("reason")
+        if not isinstance(reason, str) or not reason:
+            status = certification.get("status")
+            reason = status.lower() if isinstance(status, str) else "required"
+        blockers.append(
+            "evaluator_certification_"
+            + reason
+        )
     return {
-        "configured": configured,
+        "configured": setup_configured and evaluator_certified,
+        "setup_configured": setup_configured,
+        "brief_configured": brief_configured,
+        "candidate_schema_configured": candidate_schema_configured,
+        "research_ready": setup_configured and evaluator_certified,
+        "setup_blockers": blockers,
         "brief_path": AGENT_BRIEF_RELATIVE.as_posix(),
         "candidate_schema_path": CANDIDATE_SCHEMA_RELATIVE.as_posix(),
         "candidate_inbox_path": CANDIDATE_INBOX_RELATIVE.as_posix(),
         "journal_path": AGENT_JOURNAL_RELATIVE.as_posix(),
         "brief": brief,
         "candidate_schema": schema,
+        "evaluator_certification": certification,
         "journal_is_authoritative": False,
     }
 
@@ -209,6 +291,9 @@ def _compact_experiment(row: Mapping[str, Any]) -> dict[str, Any]:
         "retryable": bool(row.get("retryable", False)),
         "candidate_digest": row.get("candidate_digest"),
         "compatibility_digest": row.get("compatibility_digest"),
+        "graph_metadata_version": payload.get("graph_metadata_version"),
+        "graph_action": payload.get("graph_action"),
+        "scientific_change": _bounded_value(payload.get("scientific_change")),
         "candidate": _bounded_value(payload.get("candidate")),
         "outcome": _bounded_value(outcome_summary),
         "registered_at": row.get("registered_at"),
@@ -218,6 +303,11 @@ def _compact_experiment(row: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _compact_finding(row: Mapping[str, Any]) -> dict[str, Any]:
+    payload = row.get("payload")
+    metadata = payload.get("metadata") if isinstance(payload, Mapping) else None
+    branch_conclusion_version = row.get("branch_conclusion_version")
+    if branch_conclusion_version is None and isinstance(payload, Mapping):
+        branch_conclusion_version = payload.get("branch_conclusion_version")
     return {
         "finding_id": row.get("finding_id"),
         "experiment_id": row.get("experiment_id"),
@@ -225,6 +315,8 @@ def _compact_finding(row: Mapping[str, Any]) -> dict[str, Any]:
         "scope": row.get("scope"),
         "content": _bounded_value(row.get("content")),
         "evidence": _bounded_value(row.get("evidence")),
+        "metadata": _bounded_value(metadata),
+        "branch_conclusion_version": branch_conclusion_version,
         "created_at": row.get("created_at"),
         "event_sequence": row.get("event_sequence"),
     }
@@ -255,8 +347,30 @@ def build_agent_context(
     agent_spec: Mapping[str, Any],
     snapshot: Mapping[str, Any],
     limit: int,
+    current_compatibility_digest: str | None = None,
+    compatible_baseline_ready: bool | None = None,
 ) -> dict[str, Any]:
     """Build one compact, provider-neutral context packet for coding agents."""
+
+    research_ready = agent_spec.get("research_ready") is True
+    if current_compatibility_digest is not None:
+        if not isinstance(current_compatibility_digest, str) or not current_compatibility_digest:
+            raise ValueError("current compatibility digest must be a non-empty string")
+        lineage = [
+            row
+            for row in lineage
+            if row.get("compatibility_digest") == current_compatibility_digest
+        ]
+    if compatible_baseline_ready is None:
+        baseline_ready = (
+            isinstance(status.get("baselines"), int)
+            and not isinstance(status.get("baselines"), bool)
+            and status.get("baselines", 0) > 0
+        )
+    elif isinstance(compatible_baseline_ready, bool):
+        baseline_ready = compatible_baseline_ready
+    else:
+        raise TypeError("compatible_baseline_ready must be a boolean")
 
     parent_ids = {
         row.get("parent_id")
@@ -279,13 +393,14 @@ def build_agent_context(
         and row.get("experiment_id") not in superseded_attempt_ids
     ]
     context = {
-        "schema_version": 1,
+        "schema_version": 2,
         "kind": "research-os-agent-context",
         "snapshot": dict(snapshot),
         "project": dict(project),
         "agent": {**dict(agent_spec), "spec_digest": sha256_json(agent_spec)},
         "state": dict(status),
         "graph": {
+            "compatibility_digest": current_compatibility_digest,
             "recent": [_compact_experiment(row) for row in lineage[-limit:]],
             "frontier": [_compact_experiment(row) for row in frontier[-limit:]],
             "retryable": [_compact_experiment(row) for row in retryable[-limit:]],
@@ -298,6 +413,20 @@ def build_agent_context(
             "retryable_total": len(retryable),
             "retryable_returned": min(limit, len(retryable)),
             "retryable_truncated": len(retryable) > limit,
+        },
+        "proposal_contract": {
+            "graph_metadata_version": 1,
+            "graph_actions": ["explore", "exploit", "ablate", "replicate"],
+            "scientific_change": "one non-empty conceptual intervention",
+            "parent_rules": {
+                "explore": "parent_id must be null",
+                "exploit": "a compatible terminal parent is required",
+                "ablate": "a compatible terminal parent is required",
+                "replicate": "a compatible terminal parent is required",
+            },
+            "retry_rule": (
+                "omit graph metadata; the prior attempt metadata is inherited"
+            ),
         },
         "evidence": {
             "recent_findings": [
@@ -313,16 +442,32 @@ def build_agent_context(
             "artifacts_returned": min(limit, len(artifacts)),
             "artifacts_truncated": len(artifacts) > limit,
         },
-        "allowed_agent_actions": [
-            "CONFIGURE_PROJECT",
-            "RUN_DOCTOR",
-            "SEAL_BASELINE",
-            "PROPOSE_ONE_CANDIDATE",
-            "RUN_ONE_CANDIDATE",
-            "RETRY_ELIGIBLE_ATTEMPT",
-            "INSPECT_EVIDENCE",
-            "STOP_AND_REPORT",
-        ],
+        "allowed_agent_actions": (
+            [
+                "RUN_DOCTOR",
+                "PROPOSE_ONE_CANDIDATE",
+                "RUN_ONE_CANDIDATE",
+                "RETRY_ELIGIBLE_ATTEMPT",
+                "INSPECT_EVIDENCE",
+                "CONCLUDE_BRANCH",
+                "STOP_AND_REPORT",
+            ]
+            if research_ready and baseline_ready
+            else [
+                "RUN_DOCTOR",
+                "SEAL_BASELINE",
+                "INSPECT_EVIDENCE",
+                "STOP_AND_REPORT",
+            ]
+            if research_ready
+            else [
+                "CONFIGURE_PROJECT",
+                "RUN_DOCTOR",
+                "CERTIFY_EVALUATOR",
+                "INSPECT_EVIDENCE",
+                "STOP_AND_REPORT",
+            ]
+        ),
         "authority": {
             "authorized_action": None,
             "deployment": False,

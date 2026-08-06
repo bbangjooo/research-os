@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Never, Sequence
 
@@ -24,6 +25,21 @@ class CLIUsageError(ValueError):
 class _JSONArgumentParser(argparse.ArgumentParser):
     def error(self, message: str) -> Never:
         raise CLIUsageError(message)
+
+
+class _SingleValue(argparse.Action):
+    """Reject repeated scientific metadata instead of silently taking the last."""
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: Any,
+        option_string: str | None = None,
+    ) -> None:
+        if getattr(namespace, self.dest, None) is not None:
+            raise CLIUsageError(f"{option_string or self.dest} may be supplied once")
+        setattr(namespace, self.dest, values)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -59,9 +75,29 @@ def _parser() -> argparse.ArgumentParser:
         default="all",
         help="agent skill host (default: all)",
     )
+    install_skill.add_argument(
+        "--upgrade",
+        action="store_true",
+        help="replace only an exact, recognized prior Research OS skill release",
+    )
 
     subparsers.add_parser("inspect", help="show the resolved project contract")
     subparsers.add_parser("doctor", help="validate adapter and immutable inputs")
+    subparsers.add_parser(
+        "evaluator-review-subject",
+        help="emit the exact current evaluator subject for independent review",
+    )
+
+    certify = subparsers.add_parser(
+        "certify-evaluator",
+        help="bind an independent evaluator review to current scientific inputs",
+    )
+    certify.add_argument("review", type=Path, help="strict evaluator review JSON")
+    certify.add_argument(
+        "--replace",
+        action="store_true",
+        help="explicitly replace the existing managed certification",
+    )
 
     agent_context = subparsers.add_parser(
         "agent-context",
@@ -95,6 +131,29 @@ def _parser() -> argparse.ArgumentParser:
     )
     run_once.add_argument(
         "--context-token",
+        dest="context_token",
+        help="require the canonical agent-context snapshot to still be current",
+    )
+    run_once.add_argument(
+        "--graph-action",
+        choices=("explore", "exploit", "ablate", "replicate"),
+        action=_SingleValue,
+        help="scientific graph operation for a new agent-proposed node",
+    )
+    run_once.add_argument(
+        "--scientific-change",
+        action=_SingleValue,
+        help="the one conceptual intervention made by this candidate",
+    )
+
+    conclude = subparsers.add_parser(
+        "conclude-branch",
+        help="record an evidence-bound interpretation that closes or redirects a branch",
+    )
+    conclude.add_argument("conclusion", type=Path, help="strict conclusion JSON")
+    conclude.add_argument(
+        "--context-token",
+        required=True,
         dest="context_token",
         help="require the canonical agent-context snapshot to still be current",
     )
@@ -143,7 +202,10 @@ def _dispatch(args: argparse.Namespace) -> Any:
     if args.command == "install-agent-skill":
         return {
             "skill": "research-os",
-            "installations": install_agent_skill(args.target),
+            "installations": install_agent_skill(
+                args.target,
+                upgrade=args.upgrade,
+            ),
             "next": "start Codex or Claude Code in a Research OS project and ask it to conduct research",
         }
 
@@ -152,6 +214,10 @@ def _dispatch(args: argparse.Namespace) -> Any:
         return service.inspect()
     if args.command == "doctor":
         return service.doctor().to_dict()
+    if args.command == "evaluator-review-subject":
+        return service.evaluator_review_subject()
+    if args.command == "certify-evaluator":
+        return service.certify_evaluator(args.review, replace=args.replace)
     if args.command == "agent-context":
         return service.agent_context(limit=args.limit)
     if args.command == "baseline":
@@ -170,6 +236,13 @@ def _dispatch(args: argparse.Namespace) -> Any:
             parent_id=args.parent_id,
             retry_of=args.retry_of,
             context_token=args.context_token,
+            graph_action=args.graph_action,
+            scientific_change=args.scientific_change,
+        )
+    if args.command == "conclude-branch":
+        return service.conclude_branch(
+            args.conclusion,
+            context_token=args.context_token,
         )
     if args.command == "status":
         return service.status()
@@ -184,17 +257,60 @@ def _dispatch(args: argparse.Namespace) -> Any:
     raise AssertionError(f"unhandled command: {args.command}")
 
 
+def _validated_recovery_paths(exc: BaseException) -> list[str]:
+    value = getattr(exc, "recovery_paths", ())
+    if not isinstance(value, Sequence) or isinstance(
+        value,
+        (str, bytes, bytearray),
+    ):
+        return []
+    paths: list[str] = []
+    for item in value:
+        if not isinstance(item, str) or not item or "\x00" in item:
+            return []
+        path = Path(item)
+        if not path.is_absolute():
+            return []
+        paths.append(str(path))
+    return list(dict.fromkeys(paths))
+
+
+def _validated_rollback_errors(exc: BaseException) -> list[str]:
+    value = getattr(exc, "rollback_errors", ())
+    if not isinstance(value, Sequence) or isinstance(
+        value,
+        (str, bytes, bytearray),
+    ):
+        return []
+    errors: list[str] = []
+    for item in value:
+        if not isinstance(item, str) or not item or "\x00" in item:
+            return []
+        errors.append(item)
+    return list(dict.fromkeys(errors))
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = _parser()
     try:
         args = parser.parse_args(argv)
         _print(_dispatch(args))
         return 0
-    except KeyboardInterrupt:
+    except KeyboardInterrupt as exc:
+        error: dict[str, Any] = {
+            "type": "KeyboardInterrupt",
+            "message": "cancelled",
+        }
+        recovery_paths = _validated_recovery_paths(exc)
+        if recovery_paths:
+            error["recovery_paths"] = recovery_paths
+        rollback_errors = _validated_rollback_errors(exc)
+        if rollback_errors:
+            error["rollback_errors"] = rollback_errors
         _print(
             {
                 "ok": False,
-                "error": {"type": "KeyboardInterrupt", "message": "cancelled"},
+                "error": error,
             },
             stream=sys.stderr,
         )
@@ -204,6 +320,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         code = getattr(exc, "code", None)
         if isinstance(code, str) and code:
             error["code"] = code
+        details = getattr(exc, "details", None)
+        if isinstance(details, Mapping):
+            error["details"] = dict(details)
+        recovery_paths = _validated_recovery_paths(exc)
+        if recovery_paths:
+            error["recovery_paths"] = recovery_paths
+        rollback_errors = _validated_rollback_errors(exc)
+        if rollback_errors:
+            error["rollback_errors"] = rollback_errors
         _print({"ok": False, "error": error}, stream=sys.stderr)
         return 2
 
