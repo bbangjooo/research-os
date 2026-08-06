@@ -33,6 +33,22 @@ From the Research OS checkout:
 ~/research-os/.venv/bin/research-os install-agent-skill --target all
 ```
 
+Existing exact 0.1.0 installations require the explicit recognized-release
+upgrade:
+
+```bash
+~/research-os/.venv/bin/research-os install-agent-skill --target all --upgrade
+```
+
+A successful legacy upgrade reports `recovery_backup` and retains the original
+0.1.0 inode tree there. The installer never deletes that backup automatically,
+because another process may still hold an open descriptor to an old skill file.
+Before any manual deletion, inspect and diff the retained tree against the new
+installation, preserve or merge every late write, and verify its provenance.
+Writer shutdown and a working 0.2.0 installation are necessary but not
+sufficient: retention exists specifically so edits through an already-open old
+descriptor are not silently discarded.
+
 The command copies one packaged Agent Skills-standard workflow to:
 
 - `~/.agents/skills/research-os` for Codex;
@@ -47,7 +63,17 @@ may invoke it implicitly or through `/research-os`.
 ## Normal conversation
 
 Start Codex or Claude Code at the target project and ask for the scientific
-outcome, not an OS command:
+outcome, not an OS command. A short request is sufficient:
+
+```text
+Improve this strategy with bounded autoresearch. Use at most six experiments.
+```
+
+The agent performs project discovery, scientific setup gates, certification,
+graph metadata, and CLI work behind the conversation. It asks only when the
+scientific contract is materially ambiguous, an expensive run needs approval,
+or the requested action crosses an authority boundary. More detailed requests
+remain useful:
 
 ```text
 Set this repository up to search for a lower validation-loss architecture.
@@ -100,6 +126,108 @@ The shared skill enforces three modes:
 The agent cannot silently revise the evaluator or policy after seeing a result.
 Any such request leaves research mode and goes through a new compatibility and
 baseline gate.
+
+Setup is not complete merely because `doctor` passes. Before the first baseline,
+the agent pre-registers the evaluation universe, selection cutoff, development
+and replication splits, hypothesis classes, repeated-class failure threshold,
+costs, and holdout boundary. It runs hand-derived golden cases, marks the fully
+implemented candidate contract configured, then runs `inspect` and `doctor` to
+establish the project and adapter-reported evaluation seal. A separate read-only
+critic certifies that exact brief/schema, evaluator, adapter, selection/split
+logic, fixtures, and evidence state. Adapter `verify` and baseline repeatability
+remain useful gates, but they are not this independent scientific review.
+
+The critic emits the strict nine-check review JSON documented by the packaged
+skill. The agent first emits the exact bound subject and gives it to the critic:
+
+```text
+research-os --project PATH evaluator-review-subject
+```
+
+Store this output and the review in a private temporary directory outside the
+project root. The critic copies the subject's `digest` into the required
+`subject_digest` field, completes the review, and the agent calls:
+
+```text
+research-os --project PATH certify-evaluator /ABS/OUTSIDE/REVIEW.json
+```
+
+Replacing an existing managed certificate is explicit:
+
+```text
+research-os --project PATH certify-evaluator /ABS/OUTSIDE/REVIEW.json --replace
+```
+
+Research OS manages `.research-os/evaluator-certification.json`, binds it to the
+current constitution, protected/evidence/environment fingerprints, adapter
+doctor seal, and agent-spec digest, and exposes current certification in
+`agent-context`. The managed file is
+gitignored and snapshot/workspace-excluded; it is never hand-edited or declared
+mutable, protected, or evidence.
+
+Locked-holdout bytes remain outside the project, Research OS workspaces and
+research evidence, and the iterative evaluator's readable environment. Because
+Research OS is not an operating-system sandbox, a genuine lock also requires
+actual byte absence or a separate account, container/mount, or custodian. Final
+holdout evaluation occurs once after the candidate and implementation are frozen
+and does not feed another tuning iteration.
+
+## Scientific graph workflow
+
+Research follows a phase machine rather than unconstrained sequential parameter
+search:
+
+1. **Explore:** test independent, pre-registered mechanism classes as root nodes.
+2. **Diagnose:** after every terminal result, inspect the exact reason, constraints,
+   and relevant artifacts without running an experiment.
+3. **Ablate or exploit:** isolate an uncertain mechanism or improve a supported
+   one using a scientifically defensible parent.
+4. **Replicate:** apply a pre-registered controlled variation to a promising
+   mechanism without turning replication into another tuning round.
+
+Each `run-once` records orchestration metadata through top-level CLI flags rather
+than forcing it into every project candidate schema:
+
+```text
+research-os --project PATH run-once PATH/.research-os/candidate.inbox.json \
+  --graph-action explore \
+  --scientific-change "CLASS: momentum; CHANGE: add one volatility regime gate" \
+  --context-token TOKEN
+
+research-os --project PATH run-once PATH/.research-os/candidate.inbox.json \
+  --graph-action ablate \
+  --scientific-change "CLASS: momentum; CHANGE: remove only the volume term" \
+  --parent exp_PARENT --context-token TOKEN
+```
+
+`explore` has no parent; `ablate`, `exploit`, and `replicate` require a compatible
+completed parent. The scientific-change declaration must name the hypothesis
+class and completely cover one conceptual intervention. Several fields may move
+together only when they are scientifically indivisible. Undeclared differences
+and unrelated bundles are refused before registration.
+
+The brief pre-registers how many conclusive rejections close a hypothesis class;
+the default is three. Operational and insufficient-evidence outcomes do not
+count. Once closed, the agent cannot submit another variant from that class. It
+may explore an untouched pre-registered class, or it must enter change-control.
+Changing the evaluator, golden oracle, universe, selection rule, split, holdout
+boundary, costs, evidence, metric, candidate schema, or immutable policy requires
+user approval, new golden results, independent re-certification, and a new
+compatible baseline.
+
+At class closure, or after a materially supported replicated branch, the agent
+records an evidence-bound interpretation with `conclude-branch`. The strict JSON
+contains exactly `branch_experiment_ids`, `hypothesis_class`,
+`failure_signature`, `conclusion`, `confidence`, and `next_step`. The agent writes
+it to the snapshot-excluded transient inbox and calls:
+
+```text
+research-os --project PATH conclude-branch \
+  PATH/.research-os/candidate.inbox.json --context-token TOKEN
+```
+
+The command binds the finding to the named terminal events. It authorizes no
+production action, and the agent refreshes `agent-context` afterward.
 
 ## Authority
 

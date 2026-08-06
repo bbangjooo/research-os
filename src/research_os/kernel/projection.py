@@ -6,12 +6,19 @@ import os
 import secrets
 import sqlite3
 import stat
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from contextlib import closing
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from research_os.errors import IntegrityError, LifecycleError
+from research_os.graph_policy import (
+    GraphPolicyError,
+    graph_metadata_from_payload,
+    validate_graph_candidate_change,
+    validate_graph_relationship,
+    validate_retry_graph_metadata,
+)
 
 from ._canonical import (
     canonical_bytes,
@@ -1468,11 +1475,50 @@ class ProjectionStore:
         compatibility_digest = _text(event.payload, "compatibility_digest") or ""
         attempt = _attempt(event.payload)
         retry_of = _text(event.payload, "retry_of")
+        try:
+            graph_metadata = graph_metadata_from_payload(event.payload)
+            if graph_metadata is not None and not compatibility_digest:
+                raise GraphPolicyError(
+                    "versioned graph metadata requires compatibility_digest"
+                )
+            # Check the action/parent shape before resolving the parent so an
+            # explore declaration cannot disguise itself behind an arbitrary
+            # missing parent identifier.
+            validate_graph_relationship(graph_metadata, parent_id)
+        except GraphPolicyError as exc:
+            raise IntegrityError(
+                f"invalid experiment graph metadata: {exc}"
+            ) from exc
         if parent_id == experiment_id:
             raise IntegrityError("an experiment cannot be its own parent")
+        parent: sqlite3.Row | None = None
         if parent_id is not None:
-            self._require_experiment(connection, event.project_id, parent_id)
+            parent = self._require_experiment(
+                connection, event.project_id, parent_id
+            )
             self._check_no_cycle(connection, event.project_id, experiment_id, parent_id)
+        if graph_metadata is not None and parent is not None:
+            try:
+                parent_state = coerce_state(parent["status"])
+                validate_graph_relationship(
+                    graph_metadata,
+                    parent_id,
+                    parent_is_terminal=(
+                        parent_state in TERMINAL_STATES
+                        and parent["terminated_at"] is not None
+                    ),
+                    compatibility_digest=compatibility_digest,
+                    parent_compatibility_digest=parent["compatibility_digest"],
+                )
+                validate_graph_candidate_change(
+                    graph_metadata,
+                    candidate_digest=digest,
+                    parent_candidate_digest=parent["candidate_digest"],
+                )
+            except (GraphPolicyError, LifecycleError) as exc:
+                raise IntegrityError(
+                    f"invalid experiment graph parent: {exc}"
+                ) from exc
 
         if attempt == 1:
             if retry_of is not None:
@@ -1514,6 +1560,25 @@ class ProjectionStore:
                 raise IntegrityError(
                     "retry_of must reference a terminal retryable attempt"
                 )
+            try:
+                prior_payload = strict_json_loads(prior["payload_json"])
+            except (TypeError, ValueError) as exc:
+                raise IntegrityError(
+                    "retry_of registration payload is corrupt"
+                ) from exc
+            if not isinstance(prior_payload, Mapping):
+                raise IntegrityError("retry_of registration payload is not an object")
+            try:
+                prior_graph_metadata = graph_metadata_from_payload(
+                    cast(Mapping[str, Any], prior_payload)
+                )
+                validate_retry_graph_metadata(
+                    graph_metadata, prior_graph_metadata
+                )
+            except GraphPolicyError as exc:
+                raise IntegrityError(
+                    f"invalid retry graph metadata: {exc}"
+                ) from exc
         state_value = _pick(
             event.payload, "status", "state", default=LifecycleState.REGISTERED.value
         )
@@ -1668,6 +1733,27 @@ class ProjectionStore:
             raise IntegrityError("finding event payload is missing 'content'")
         content = event.payload["content"]
         evidence = _pick(event.payload, "evidence", default=[])
+        finding_key = _text(event.payload, "key", "finding_key")
+        has_branch_version = "branch_conclusion_version" in event.payload
+        if has_branch_version and finding_key != "branch_conclusion":
+            raise IntegrityError(
+                "branch_conclusion_version is reserved for branch conclusions"
+            )
+        if finding_key == "branch_conclusion" and has_branch_version:
+            version = event.payload.get("branch_conclusion_version")
+            if (
+                isinstance(version, bool)
+                or not isinstance(version, int)
+                or version != 1
+            ):
+                raise IntegrityError("branch conclusion version is invalid")
+            self._validate_branch_conclusion(
+                connection,
+                event,
+                finding_id=finding_id,
+                content=content,
+                evidence=evidence,
+            )
         normalized_payload = dict(event.payload)
         normalized_payload.update(
             {
@@ -1690,7 +1776,7 @@ class ProjectionStore:
                 event.project_id,
                 session_id,
                 experiment_id,
-                _text(event.payload, "key", "finding_key"),
+                finding_key,
                 canonical_json(content),
                 canonical_json(evidence),
                 canonical_json(normalized_payload),
@@ -1698,6 +1784,185 @@ class ProjectionStore:
                 event.sequence,
             ),
         )
+
+    def _validate_branch_conclusion(
+        self,
+        connection: sqlite3.Connection,
+        event: Event,
+        *,
+        finding_id: str,
+        content: Any,
+        evidence: Any,
+    ) -> None:
+        """Replay the evidence binding for the managed branch finding."""
+
+        required_envelope = {
+            "finding_id",
+            "scope",
+            "project_id",
+            "session_id",
+            "experiment_id",
+            "key",
+            "content",
+            "evidence",
+            "metadata",
+            "branch_conclusion_version",
+        }
+        if set(event.payload) != required_envelope:
+            raise IntegrityError("branch conclusion envelope has invalid fields")
+        if (
+            event.payload.get("scope") != "project"
+            or event.payload.get("project_id") != event.project_id
+            or event.payload.get("session_id") is not None
+            or event.payload.get("experiment_id") is not None
+            or event.payload.get("key") != "branch_conclusion"
+        ):
+            raise IntegrityError("branch conclusion envelope is invalid")
+
+        required_content = {
+            "branch_experiment_ids",
+            "hypothesis_class",
+            "failure_signature",
+            "conclusion",
+            "confidence",
+            "next_step",
+            "compatibility_digest",
+        }
+        if not isinstance(content, Mapping) or set(content) != required_content:
+            raise IntegrityError("branch conclusion content has invalid fields")
+        for key in (
+            "hypothesis_class",
+            "failure_signature",
+            "conclusion",
+            "compatibility_digest",
+        ):
+            value = content.get(key)
+            if not isinstance(value, str) or not value.strip():
+                raise IntegrityError(f"branch conclusion {key} is invalid")
+        if content.get("confidence") not in {
+            "supported",
+            "falsified",
+            "inconclusive",
+        }:
+            raise IntegrityError("branch conclusion confidence is invalid")
+        if content.get("next_step") not in {
+            "stop",
+            "change_control",
+            "explore",
+            "ablate",
+            "exploit",
+            "replicate",
+        }:
+            raise IntegrityError("branch conclusion next_step is invalid")
+
+        experiment_ids = content.get("branch_experiment_ids")
+        if (
+            not isinstance(experiment_ids, Sequence)
+            or isinstance(experiment_ids, (str, bytes, bytearray))
+            or not experiment_ids
+            or not all(isinstance(value, str) and value for value in experiment_ids)
+            or len(set(experiment_ids)) != len(experiment_ids)
+        ):
+            raise IntegrityError("branch conclusion experiment IDs are invalid")
+        if (
+            not isinstance(evidence, Sequence)
+            or isinstance(evidence, (str, bytes, bytearray))
+            or len(evidence) != len(experiment_ids)
+        ):
+            raise IntegrityError("branch conclusion evidence is incomplete")
+
+        compatibility_digest = cast(str, content["compatibility_digest"])
+        for index, experiment_id in enumerate(experiment_ids):
+            experiment_id = cast(str, experiment_id)
+            item = evidence[index]
+            if not isinstance(item, Mapping) or set(item) != {
+                "experiment_id",
+                "event_id",
+                "event_hash",
+            }:
+                raise IntegrityError("branch conclusion evidence item is invalid")
+            if item.get("experiment_id") != experiment_id:
+                raise IntegrityError(
+                    "branch conclusion evidence order does not match its experiments"
+                )
+            terminal_event_id = item.get("event_id")
+            terminal_event_hash = item.get("event_hash")
+            if (
+                not isinstance(terminal_event_id, str)
+                or not terminal_event_id
+                or not isinstance(terminal_event_hash, str)
+                or not terminal_event_hash
+            ):
+                raise IntegrityError("branch conclusion event evidence is invalid")
+            experiment = self._require_experiment(
+                connection,
+                event.project_id,
+                experiment_id,
+            )
+            try:
+                state = coerce_state(experiment["status"])
+            except LifecycleError as exc:
+                raise IntegrityError(
+                    "branch conclusion references invalid experiment state"
+                ) from exc
+            if (
+                state not in TERMINAL_STATES
+                or experiment["terminated_at"] is None
+                or experiment["compatibility_digest"] != compatibility_digest
+            ):
+                raise IntegrityError(
+                    "branch conclusion requires compatible terminal experiments"
+                )
+            terminal = connection.execute(
+                "SELECT project_id, event_sequence, event_hash FROM projected_events "
+                "WHERE event_id = ?",
+                (terminal_event_id,),
+            ).fetchone()
+            if (
+                terminal is None
+                or terminal["project_id"] != event.project_id
+                or terminal["event_hash"] != terminal_event_hash
+                or int(terminal["event_sequence"]) != int(experiment["updated_sequence"])
+                or int(terminal["event_sequence"]) >= event.sequence
+            ):
+                raise IntegrityError(
+                    "branch conclusion does not reference the terminal event"
+                )
+
+        metadata = event.payload.get("metadata")
+        required_metadata = {
+            "claim_authority",
+            "authorized_action",
+            "agent_context_token",
+            "agent_context_schema_version",
+        }
+        context_schema_version = (
+            metadata.get("agent_context_schema_version")
+            if isinstance(metadata, Mapping)
+            else None
+        )
+        if (
+            not isinstance(metadata, Mapping)
+            or set(metadata) != required_metadata
+            or metadata.get("claim_authority") != "agent_interpretation"
+            or metadata.get("authorized_action") is not None
+            or not isinstance(metadata.get("agent_context_token"), str)
+            or not metadata.get("agent_context_token")
+            or isinstance(context_schema_version, bool)
+            or not isinstance(context_schema_version, int)
+            or context_schema_version != 2
+        ):
+            raise IntegrityError("branch conclusion metadata is invalid")
+        expected_id = stable_id(
+            "finding",
+            event.project_id,
+            "branch_conclusion",
+            1,
+            content,
+            evidence,
+        )
+        if finding_id != expected_id:
+            raise IntegrityError("branch conclusion finding ID is invalid")
 
     def _experiment_terminated(
         self, connection: sqlite3.Connection, event: Event

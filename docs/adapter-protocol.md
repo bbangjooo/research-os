@@ -117,6 +117,21 @@ updated adapters must always emit `category`. The compatibility allowlist is:
 | `INSUFFICIENT_EVIDENCE` | `MISSING_EVIDENCE`, `INSUFFICIENT_EVIDENCE` |
 | `INFRASTRUCTURE` | `EVALUATOR_FAILED`, `ADAPTER_EXCEPTION`, `ADAPTER_FAILED`, `INTERNAL_ERROR`, `INFRASTRUCTURE_FAILURE`, `NOT_CONFIGURED` |
 
+## Orchestration metadata is outside the candidate contract
+
+The agent supplies `graph_action` and `scientific_change` as top-level
+`run-once` CLI metadata. Research OS records them with experiment registration
+and uses them to make ancestry and intervention intent auditable. They are not
+fields in the protocol-v1 adapter envelope or automatically part of the
+project-owned candidate JSON. An adapter continues to interpret only the domain
+candidate supplied to `materialize`; a project may independently include richer
+hypothesis metadata in its schema when useful.
+
+This separation keeps the wire protocol domain-neutral. `explore` registrations
+have no scientific parent; `ablate`, `exploit`, and `replicate` registrations
+have a compatible parent. Diagnosis is deliberately a no-experiment agent phase
+and therefore has no adapter operation or registered node.
+
 ## Operation matrix
 
 The following table is the complete protocol-v1 call sequence. `ResultEnvelope`
@@ -299,8 +314,8 @@ changes to files that existed in the snapshot.
 
 ### `verify`
 
-Purpose: independently state whether the normalized evaluation evidence is
-complete and valid for domain policy.
+Purpose: separately state, within the same project adapter protocol, whether the
+normalized evaluation evidence is complete and valid for domain policy.
 
 Request payload:
 
@@ -315,6 +330,11 @@ Request payload:
 inserts defaults for omitted optional envelope fields before hashing. The
 successful response payload must be a `VerifyResult`, including when its
 domain-evidence verdict is negative.
+
+This operation is independent of the kernel's promotion calculation, but it is
+not an independent audit of the evaluator implementation. Scientific setup
+still requires hand-derived golden cases and a separate read-only critic whose
+certificate is bound to the evaluator and evidence digests.
 
 ### `cleanup`
 

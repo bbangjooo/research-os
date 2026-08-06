@@ -29,15 +29,30 @@ boundary.
 Before proposing, the agent reads one bounded `agent-context` packet. The packet
 binds its research brief and candidate schema to the current canonical event
 cursor and compatibility fingerprint. `run-once --context-token` checks this
-snapshot before doctor, baseline, or registration can mutate canonical state.
+snapshot before and after doctor/recovery, after any baseline creation, and again
+immediately before registration. Agent workflows therefore seal the baseline
+before issuing context; a state-changing implicit baseline makes the token stale.
 The transient candidate inbox is excluded from source snapshots so writing the
 candidate does not invalidate that token or crash recovery.
 
-The canonical graph is an event stream. `EXPERIMENT_REGISTERED` supplies a node and optional parent edge; stage, artifact, finding, and terminal events attach typed evidence. SQLite accelerates queries but can be deleted and rebuilt with `replay`.
+The canonical graph is an event stream. `EXPERIMENT_REGISTERED` supplies a node,
+optional parent edge, and top-level `graph_action` and `scientific_change`
+metadata; stage, artifact, finding, and terminal events attach typed evidence.
+The project-owned candidate remains a domain payload and need not duplicate that
+orchestration metadata. SQLite accelerates queries but can be deleted and rebuilt
+with `replay`.
 
 Every candidate identity is the tuple `(project, compatibility, parent, candidate digest)`. Its first registration has `attempt: 1` and `retry_of: null`. A retry is a new graph node with a deterministic attempt-aware ID, a contiguous attempt number, the same identity tuple, and `retry_of` pointing to the immediately preceding attempt. The scientific DAG parent does not change: `parent_id` represents hypothesis ancestry, while `retry_of` represents execution-attempt lineage. The projection independently validates both relationships during live sync and full replay.
 
 This avoids graph-database and distributed-worker complexity until a measured need appears. The process protocol and canonical events are already versioned seams for those later changes.
+
+The shared skill applies additional graph discipline: `explore` creates roots;
+diagnosis is a read-only, no-experiment phase after every terminal node;
+`ablate`/`exploit` and `replicate` require compatible parents; and one scientific
+change must cover exactly one conceptual intervention. It also closes a
+pre-registered hypothesis class after its configured number of conclusive
+rejections, defaulting to three. These are proposer-policy gates on top of the
+kernel's durable ancestry and duplicate checks.
 
 ## Compatibility seal
 
@@ -56,6 +71,42 @@ that same value. CLI `--repeats` is only an equality assertion and cannot mutate
 policy. A `ResearchService` instance caches its validated `ProjectConfig`; if
 either TOML contract changes, callers must create a new instance. Public methods
 fail closed on a stale cached configuration.
+
+## Scientific correctness boundary
+
+Research OS proves that configured bytes and protocol results are bounded,
+compatible, reproducible, and auditable. It cannot infer whether an evaluator's
+domain equations, execution timing, labels, costs, or split logic are correct.
+Adapter `verify` is a separate protocol operation over a normalized result, but
+it is still implemented by the same project integration. It is not independent
+evaluator certification.
+
+The shared skill therefore blocks initial research until small golden cases with
+independently derived answers pass and a separate read-only critic issues a PASS
+certificate bound to the evaluator, adapter, universe/selection, split, cost,
+fixture, and evidence digests. A reviewed semantic change invalidates that
+certificate and requires change-control, new golden results, re-certification,
+and a new compatible baseline. The critic submits a strict review through
+`certify-evaluator`; Research OS manages
+`.research-os/evaluator-certification.json` and binds it to the full current
+constitution/protected/evidence/environment fingerprints, adapter-reported
+fingerprint and effective compatibility seal, plus the canonical agent-spec
+digest. The managed file is gitignored and excluded from snapshots and
+workspaces; it must not itself be declared mutable, protected, or evidence. Its
+reviewed scientific inputs remain protected/evidence as appropriate.
+Before review, `evaluator-review-subject` emits those complete bindings and one
+canonical digest. Certification accepts only a critic-authored review carrying
+that exact digest, preventing a PASS review from being replayed after drift.
+
+Certification enforcement is the context-token-backed Codex/Claude boundary.
+The tokenless direct service/CLI path remains available for legacy integrations
+and intentionally does not claim agent research readiness.
+
+The evaluation universe, selection cutoff, development/replication splits, and
+holdout boundary are similarly pre-registered before the first baseline. Locked
+holdout bytes stay outside the project, workspaces, configured research evidence,
+artifacts, and iterative evaluator environment until the selected candidate and
+implementation are frozen.
 
 ## Failure semantics
 
@@ -130,7 +181,8 @@ The caller must submit the identical candidate and explicitly name the latest
 eligible attempt:
 
 ```text
-research-os --project PATH run-once candidate.json --retry-of exp_<prior-id>
+research-os --project PATH run-once candidate.json --retry-of exp_<prior-id> \
+  --context-token TOKEN
 ```
 
 Supplying `--parent` on a retry is optional; when supplied it must equal the
@@ -200,6 +252,13 @@ missing outcome-finding append, but it rejects conflicting ownership, duplicate
 coverage, or inconsistent content. Project and agent-authored findings must use
 other keys.
 
+`conclude-branch` records a `branch_conclusion` finding from an exact strict JSON
+object. Every named experiment must be terminal and all must share one
+compatibility digest. The finding binds the agent's hypothesis class, failure
+signature, conclusion, confidence, and next step to the canonical terminal event
+IDs and hashes. This makes class closure and materially supported replicated
+branches durable without promoting agent interpretation to deployment authority.
+
 ## Authority boundary
 
 Research OS is a trusted local-process boundary on POSIX, not an operating
@@ -208,4 +267,7 @@ a shell, applies process/output/time bounds, seals declared inputs, and rejects
 protocol-v1 adapters that declare external side effects. Authority-bearing
 research payloads contain `authorized_action: null`; deployment, source merges,
 model release, capital allocation, and live orders require a separate reviewed
-system.
+system. In particular, protected/evidence declarations prove the identity of
+declared inputs but cannot prevent adapter code from opening some other readable
+local file. A physical locked-holdout claim therefore requires actual byte
+absence or isolation outside this process boundary.

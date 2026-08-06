@@ -14,6 +14,7 @@ from research_os.agent import (
     load_agent_spec,
 )
 from research_os.agent_install import install_agent_skill
+from research_os.certification import REQUIRED_EVALUATOR_CHECK_IDS
 from research_os.cli import main
 from research_os.contracts import canonical_json_bytes
 from research_os.errors import (
@@ -22,7 +23,7 @@ from research_os.errors import (
     StaleAgentContextError,
 )
 from research_os.execution.workspace import hash_tree
-from research_os.scaffold import initialize_project
+from research_os.scaffold import RESEARCH_BRIEF_TEMPLATE, initialize_project
 from research_os.service import ResearchService
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,7 +32,10 @@ ROOT = Path(__file__).resolve().parents[1]
 def _configured_agent_files(project: Path) -> None:
     control = project / ".research-os"
     (control / "research-brief.md").write_text(
-        "# Research brief\n\nConfigured bounded optimization research.\n",
+        RESEARCH_BRIEF_TEMPLATE.replace(
+            "REPLACE_ME",
+            "Configured bounded optimization research",
+        ),
         encoding="utf-8",
     )
     (control / "candidate.schema.json").write_text(
@@ -49,6 +53,38 @@ def _configured_agent_files(project: Path) -> None:
         + "\n",
         encoding="utf-8",
     )
+
+
+def _certify_evaluator(project: Path) -> None:
+    service = ResearchService(project)
+    subject = service.evaluator_review_subject()
+    review = project.parent / "evaluator-review.json"
+    review.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "kind": "research-os-evaluator-review",
+                "subject_digest": subject["digest"],
+                "reviewer": "independent-test-reviewer",
+                "independent_reviewer": True,
+                "verdict": "PASS",
+                "summary": "Independent fixture review passed.",
+                "checks": [
+                    {
+                        "id": check_id,
+                        "status": "PASS",
+                        "evidence": f"golden fixture evidence for {check_id}",
+                    }
+                    for check_id in sorted(REQUIRED_EVALUATOR_CHECK_IDS)
+                ],
+                "blocking_findings": [],
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    service.certify_evaluator(review)
 
 
 class AgentSpecTests(unittest.TestCase):
@@ -87,6 +123,38 @@ class AgentSpecTests(unittest.TestCase):
 
             with self.assertRaises(IntegrityError):
                 load_agent_spec(project)
+
+    def test_agent_setup_requires_complete_brief_schema_and_current_certification(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary) / "project"
+            project.mkdir()
+            initialize_project(project, "agent-project", "Agent project")
+            control = project / ".research-os"
+            (control / "research-brief.md").write_text("   \n", encoding="utf-8")
+            (control / "candidate.schema.json").write_text(
+                '{"x-research-os-configured":true}\n',
+                encoding="utf-8",
+            )
+            minimal = load_agent_spec(
+                project,
+                evaluator_certification={"certified": True, "current": True},
+            )
+            self.assertFalse(minimal["setup_configured"])
+            self.assertFalse(minimal["brief_configured"])
+            self.assertFalse(minimal["candidate_schema_configured"])
+
+            _configured_agent_files(project)
+            missing_current = load_agent_spec(
+                project,
+                evaluator_certification={"certified": True},
+            )
+            self.assertTrue(missing_current["setup_configured"])
+            self.assertFalse(missing_current["research_ready"])
+            ready = load_agent_spec(
+                project,
+                evaluator_certification={"certified": True, "current": True},
+            )
+            self.assertTrue(ready["research_ready"])
 
 
 class AgentInstallerTests(unittest.TestCase):
@@ -159,6 +227,8 @@ class AgentContextTests(unittest.TestCase):
         if runtime.exists():
             shutil.rmtree(runtime)
         _configured_agent_files(project)
+        _certify_evaluator(project)
+        ResearchService(project).baseline()
         return temporary, project
 
     def test_context_token_binds_graph_and_allows_transient_candidate_write(self):
@@ -178,10 +248,17 @@ class AgentContextTests(unittest.TestCase):
         )
         self.assertIn("project_compatibility_digest", context["snapshot"])
         self.assertNotIn("compatibility_digest", context["snapshot"])
+        self.assertIn("RUN_ONE_CANDIDATE", context["allowed_agent_actions"])
+        self.assertNotIn("SEAL_BASELINE", context["allowed_agent_actions"])
 
         inbox = project / ".research-os" / "candidate.inbox.json"
         inbox.write_text('{"x":2.0}\n', encoding="utf-8")
-        outcome = service.run_once(inbox, context_token=token)
+        outcome = service.run_once(
+            inbox,
+            context_token=token,
+            graph_action="explore",
+            scientific_change="toy-objective: set x to the known optimum",
+        )
         self.assertEqual(outcome["status"], "VALIDATED")
         registration = next(
             event
@@ -191,6 +268,11 @@ class AgentContextTests(unittest.TestCase):
         self.assertEqual(registration.payload["agent_context_token"], token)
         self.assertEqual(
             registration.payload["agent_context_snapshot"]["context_token"], token
+        )
+        self.assertEqual(registration.payload["graph_action"], "explore")
+        self.assertEqual(
+            registration.payload["scientific_change"],
+            "toy-objective: set x to the known optimum",
         )
 
         refreshed = service.agent_context(limit=5)
@@ -206,14 +288,19 @@ class AgentContextTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         service = ResearchService(project)
         stale = service.agent_context()["snapshot"]["context_token"]
-        service.doctor()
+        service.baseline()
         inbox = project / ".research-os" / "candidate.inbox.json"
         inbox.write_text('{"x":2.0}\n', encoding="utf-8")
 
         with self.assertRaisesRegex(
             StaleAgentContextError, "agent context is stale"
         ) as caught:
-            service.run_once(inbox, context_token=stale)
+            service.run_once(
+                inbox,
+                context_token=stale,
+                graph_action="explore",
+                scientific_change="toy-objective: set x to the known optimum",
+            )
         self.assertEqual(caught.exception.code, "STALE_AGENT_CONTEXT")
         self.assertEqual(service.status()["experiments"], 0)
 

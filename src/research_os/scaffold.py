@@ -25,7 +25,7 @@ name = {name}
 
 [paths]
 mutable = ["experiment.json"]
-protected = [".research-os/adapter.py", ".research-os/project.toml", ".research-os/constitution.toml", "evaluator.py"]
+protected = [".research-os/adapter.py", ".research-os/project.toml", ".research-os/constitution.toml", ".research-os/research-brief.md", ".research-os/candidate.schema.json", "evaluator.py"]
 evidence = ["evaluator.py"]
 runtime = ".research-os/runtime"
 
@@ -90,6 +90,36 @@ REPLACE_ME: state the bounded research question and what a useful result means.
 ## Candidate semantics
 
 REPLACE_ME: describe one falsifiable candidate and the allowed search surface.
+
+## Evaluation certification
+
+REPLACE_ME: identify the independent reviewer and the evidence needed for every
+required evaluator-certification check before agent-driven research may begin.
+
+## Universe preregistration
+
+REPLACE_ME: define the eligible population, inclusion/exclusion rules, selection
+timestamp, and the evidence that freezes the universe before evaluation.
+
+## Holdout boundary
+
+REPLACE_ME: define the physically or logically isolated holdout, who may access
+it, when it may be opened, and the one-way rule after disclosure.
+
+## Golden controls
+
+REPLACE_ME: list deterministic positive, negative, edge, and failure cases that
+the evaluator must reproduce before certification.
+
+## Hypothesis classes and failure threshold
+
+REPLACE_ME: enumerate materially distinct mechanism classes and state when
+repeated negative evidence closes a branch or triggers versioned change-control.
+
+## Graph proposal policy
+
+REPLACE_ME: require explore/exploit/ablate/replicate action, scientific parent,
+one bounded change set, predicted metric effect, constraint risks, and falsifier.
 
 ## Evidence and constraints
 
@@ -299,7 +329,7 @@ def initialize_project(root: Path, project_id: str, name: str) -> list[Path]:
             (
                 control_fd,
                 ".gitignore",
-                "runtime/\ncandidate.inbox.json\nagent-journal.jsonl\n",
+                "runtime/\ncandidate.inbox.json\nagent-journal.jsonl\nevaluator-certification.json\n",
                 canonical_root / _CONTROL_DIR / ".gitignore",
                 0o600,
             ),

@@ -9,6 +9,11 @@ Act as the sole conversational interface. Invoke Research OS yourself, interpret
 its JSON, and answer in the user's language. Do not ask the user to run CLI
 commands, edit candidate files, or interpret raw OS output.
 
+Accept simple scientific requests without requiring the user to know Research OS
+terminology. Treat setup checks, certification, graph metadata, and CLI calls as
+hidden control-plane work. Ask the user only about a materially ambiguous
+scientific choice, meaningful cost, or authority expansion.
+
 ## Resolve the control plane
 
 1. Resolve the absolute project root. Search upward for
@@ -42,23 +47,75 @@ new compatible baseline after an approved semantic change.
 
 ## Set up or change a project
 
+<!-- EVALUATOR_CERTIFICATION_GATE -->
+<!-- GOLDEN_SETUP_GATE -->
+<!-- UNIVERSE_PREREGISTRATION_GATE -->
+<!-- LOCKED_HOLDOUT_GATE -->
+
 1. Inspect the domain repository and converse with the user to settle only
    choices that cannot be inferred safely: objective, scalar primary metric and
-   direction, hard constraints, fixed evidence/splits/costs, allowed candidate
-   surface, and finite experiment/time/cost budget.
+   direction, hard constraints, fixed evidence/costs, allowed candidate surface,
+   and finite experiment/time/cost budget.
 2. If the project is new, invoke `research-os init ABSOLUTE_PROJECT_ROOT --id ID
    --name NAME`. Never copy another domain integration.
-3. Read `~/research-os/docs/new-project.md` and
-   `~/research-os/docs/adapter-protocol.md` before implementing the adapter.
-4. Fill `.research-os/research-brief.md`. Replace every `REPLACE_ME`.
-5. Define the project-owned JSON Schema in
+3. Read [scientific-protocol.md](references/scientific-protocol.md) before
+   implementing the adapter. If this installation has a discoverable Research OS
+   source checkout, also read its `docs/new-project.md` and
+   `docs/adapter-protocol.md`; those checkout documents are useful implementation
+   guidance, but their absence must not block an installed skill. In that case,
+   use the generated scaffold, installed package interfaces, and fail-closed
+   protocol validation as the executable adapter contract.
+4. Pre-register in `.research-os/research-brief.md` the evaluation universe or
+   task population, its selection rule and cutoff, development and replication
+   splits, locked-holdout boundary, hypothesis classes, class-failure threshold,
+   and finite budget. The default class-failure threshold is three. Replace every
+   `REPLACE_ME`.
+5. Freeze universe manifests, split logic, costs, evaluator code, golden fixtures,
+   and selection code as protected or evidence inputs. Candidate-controlled
+   universe, symbol, pair, task, seed, or date changes require an explicitly
+   different pre-registered study; they are not ordinary parameter changes.
+6. Keep locked-holdout content outside the project root, disposable workspaces,
+   configured research evidence, and the iterative evaluator's readable
+   environment. Only a content-free identity or digest manifest may be visible.
+   If this separation cannot be established, do not describe the data as locked
+   holdout and do not make holdout-backed claims.
+7. Define the project-owned JSON Schema in
    `.research-os/candidate.schema.json` and set
    `x-research-os-configured` to `true` only after the adapter enforces the same
-   candidate contract.
-6. Implement all eight adapter operations and the deterministic evaluator.
-7. Run `inspect`, `doctor`, an explicit `baseline`, a deliberately invalid
-   candidate check, one approved valid smoke experiment, and `replay`.
-8. Ask before expensive baseline/training work or a materially ambiguous
+   domain candidate contract. Do not require `graph_action` or
+   `scientific_change` inside candidate JSON: Research OS records them as
+   top-level experiment metadata. A project schema may carry richer hypothesis
+   metadata when scientifically useful.
+8. Implement all eight adapter operations and the deterministic evaluator. Build
+   small, hand-derived golden cases whose expected answers do not come from that
+   evaluator. Cover the unchanged baseline, a known valid change, an invalid
+   candidate, repeatability, split/leakage boundaries, universe enforcement, and
+   domain-critical timing, cost, or metric edge cases.
+9. After the golden cases pass, run `inspect` and `doctor` so the current project
+   inputs and adapter-reported evaluation seal are known. Then assign a separate
+   read-only critic agent to audit the evaluator, adapter, evidence boundaries,
+   and golden oracles. `doctor`, a
+   reproducible baseline, and adapter `verify` are not independent certification.
+   Before review, confirm the fully implemented candidate schema already has
+   `x-research-os-configured: true`; certification binds that exact schema and
+   brief. The implementing agent must not self-certify. Have the critic emit the
+   exact review JSON defined in the scientific protocol. First invoke
+   `research-os --project ABS evaluator-review-subject` and give that complete
+   subject to the critic. The critic must copy its `digest` into the required
+   `subject_digest` review field. Store subject and review JSON in a private
+   temporary directory outside the project root. Then invoke
+   `research-os --project ABS certify-evaluator /ABS/OUTSIDE/REVIEW.json`. Research OS writes
+   the managed, snapshot-excluded
+   `.research-os/evaluator-certification.json`; never hand-edit or classify that
+   managed file as protected/evidence. Its reviewed inputs must already be
+   protected/evidence. Certification also binds the adapter fingerprint and
+   effective compatibility seal returned by doctor; any bound change makes the
+   certificate non-current.
+10. Only after certification returns `certified: true` and `current: true`, run
+   an explicit `baseline`, a deliberately invalid candidate check, one approved
+   valid smoke experiment, and `replay` in that order. Generate a fresh
+   `agent-context` only after doctor and baseline have finished.
+11. Ask before expensive baseline/training work or a materially ambiguous
    scientific choice. Configuration edits alone do not authorize expensive
    execution.
 
@@ -67,14 +124,17 @@ new compatible baseline after an approved semantic change.
 1. Require a finite experiment/time/cost budget. When the user gives none,
    permit at most one `run-once` and zero retries. Every attempt and retry
    consumes the budget.
-2. Run `doctor`, then `replay`, then `agent-context --limit N`. Use a small `N`
+2. Require a current digest-matching evaluator certificate, passing golden cases,
+   a frozen universe/split manifest, and an absent or inaccessible locked holdout.
+   A missing, failed, or stale gate returns the project to setup/change-control.
+3. Run `doctor`, then `replay`, then `agent-context --limit N`. Use a small `N`
    appropriate to the remaining budget.
-3. Take `snapshot.context_token` from the context packet. Refresh context before
+4. Take `snapshot.context_token` from the context packet. Refresh context before
    proposing if it is missing or stale.
-4. Read the research brief, candidate schema, graph frontier, retryable attempts,
+5. Read the research brief, candidate schema, graph frontier, retryable attempts,
    recent findings, and relevant artifact metadata from the packet. Read an
    artifact body only when needed for the next decision.
-5. Stop if replay, artifact verification, baseline reproducibility, or any
+6. Stop if replay, artifact verification, baseline reproducibility, or any
    integrity gate fails.
 
 When `run-once` returns `error.code: STALE_AGENT_CONTEXT`, refresh
@@ -82,40 +142,81 @@ When `run-once` returns `error.code: STALE_AGENT_CONTEXT`, refresh
 submission only if the same hypothesis remains defensible. This refresh does
 not consume experiment budget because no experiment was registered.
 
-## Run one graph iteration
+## Run the graph phase machine
 
-1. Choose one action:
-   - `explore`: create an independent root hypothesis;
-   - `exploit`: improve a promising parent;
-   - `ablate`: isolate a parent's proposed mechanism;
-   - `replicate`: create a scientifically controlled variant, never a duplicate.
-2. Select a defensible parent rather than blindly chaining the newest node.
-   Keep the active frontier at most three branches or the remaining budget,
-   whichever is smaller.
-3. Form one bounded, falsifiable change. Record its hypothesis, predicted
-   primary-metric effect, constraint risks, and falsifier in fields allowed by
-   the project schema. Do not perturb JSON cosmetically to bypass duplicate
-   detection.
-4. Write exactly one strict JSON object to
+<!-- GRAPH_PHASE_GATE -->
+<!-- SINGLE_INTERVENTION_GATE -->
+<!-- CLASS_FAILURE_GATE -->
+<!-- CHANGE_CONTROL_GATE -->
+
+1. **Explore:** create independent mechanism-class roots. Pass top-level
+   `--graph-action explore`, declare the pre-registered class and one conceptual
+   intervention with `--scientific-change`, and omit `--parent`. When budget
+   permits, examine more than one pre-registered class before concentrating.
+2. **Diagnose:** after every terminal result, run no experiment. Inspect the
+   reason code, metrics, constraints, and relevant artifacts; state whether the
+   mechanism, implementation, evidence, or constraint failed. Use that diagnosis
+   to select the next parent and action.
+3. **Ablate or exploit:** use `--graph-action ablate` to isolate an uncertain
+   mechanism or `--graph-action exploit` to improve a supported one. Both require
+   a defensible compatible `--parent`; never blindly chain the newest node.
+4. **Replicate:** only after a promising mechanism, use `--graph-action replicate`
+   with a compatible parent and one pre-registered replication axis. A replication
+   is a controlled variant, never a duplicate or a new tuning round. Treat one
+   `VALIDATED` node as provisional until controlled replication supports it.
+5. Before writing the inbox, compare the full domain candidate with its parent,
+   or with the baseline for a root. `--scientific-change` must name the
+   hypothesis class and completely describe exactly one conceptual intervention.
+   Multiple coupled fields are allowed only when scientifically indivisible and
+   explained as one mechanism. Refuse undeclared differences, unrelated bundles,
+   or cosmetic changes intended to evade duplicate detection.
+6. Keep the active frontier at most three branches or the remaining budget,
+   whichever is smaller. Select a parent for scientific relevance rather than
+   recency.
+7. Write exactly one strict JSON object to
    `.research-os/candidate.inbox.json`. In research mode, do not edit other
    project files.
-5. Invoke one of:
+8. Invoke one of:
 
    ```text
    research-os --project ABS run-once ABS/.research-os/candidate.inbox.json \
+     --graph-action explore --scientific-change "CLASS: one change" \
      --context-token TOKEN
 
    research-os --project ABS run-once ABS/.research-os/candidate.inbox.json \
+     --graph-action exploit --scientific-change "CLASS: one change" \
      --parent exp_PARENT --context-token TOKEN
    ```
 
-6. Use `--retry-of exp_PRIOR` only when the latest exact attempt reports
+9. Use `--retry-of exp_PRIOR` only when the latest exact attempt reports
    `retryable: true`, the candidate is identical, and retry budget remains.
    `parent_id` is scientific ancestry; `retry_of` is execution-attempt lineage.
-7. Interpret the terminal result using
+   Omit `--graph-action` and `--scientific-change` on a retry: Research OS
+   inherits the original metadata and parent. A retry is not a new intervention.
+10. Interpret the terminal result using
    [status-actions.md](references/status-actions.md). Inspect relevant artifacts,
-   report a concise checkpoint to the user, and continue only while budget and
+   report a concise diagnostic checkpoint, and continue only while budget and
    every safety gate remain satisfied.
+11. Count scientifically conclusive `REJECTED` nodes by pre-registered hypothesis
+   class under the current compatibility. Operational, invalid, cancelled,
+   untrusted, timed-out, or insufficient-evidence outcomes do not count. At the
+   pre-registered threshold, default three, close that class and submit no further
+   variant from it. Explore an untouched pre-registered class or stop.
+12. At class closure and after a materially supported replicated branch, write
+    the exact branch-conclusion JSON from the scientific protocol to the transient
+    `.research-os/candidate.inbox.json` and invoke
+    `research-os --project ABS conclude-branch ABS/.research-os/candidate.inbox.json --context-token TOKEN`.
+    This records an evidence-bound interpretation, not a production authorization;
+    refresh `agent-context` after it succeeds.
+13. If diagnosis reveals an evaluator defect, or the next defensible work would
+   alter the evaluator, golden oracle, universe, selection rule, split, holdout
+   boundary, evidence, costs, metric, candidate schema, or immutable policy,
+   leave research mode. Obtain user approval for change-control, invalidate the
+   old certificate, repeat golden cases, emit a new `evaluator-review-subject`,
+   run `certify-evaluator /ABS/OUTSIDE/REVIEW.json --replace` with a new independent review,
+   and seal a new compatible baseline
+   before resuming. Never
+   mix the resulting evidence graph with the old compatibility generation.
 
 ## Preserve authority boundaries
 
