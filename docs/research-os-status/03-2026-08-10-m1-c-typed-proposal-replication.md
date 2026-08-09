@@ -156,6 +156,8 @@ corrected checkpoint 뒤 재측정 결과 E1~E15는 전부 exact 일치했다. F
 
 corrected oracle 아래 통합 중에도 두 concurrency 결함을 별도 최소 재현으로 발견했다. 첫째, 여러 process가 빈 SQLite projection을 동시에 초기화하면 additive migration과 forensic recovery가 겹칠 수 있었다. disposable cache의 모든 initialize/recover/sync/rebuild를 sidecar `flock`으로 직렬화하고 migration/index 교체를 `BEGIN IMMEDIATE`로 묶었으며, 8-worker cold initializer와 반복 stress를 회귀로 추가했다. 둘째, 동일 typed Proposal의 deterministic experiment ID가 충돌할 때 registration loser가 winner의 같은 experiment ID event를 자기 commit으로 오인해 winner를 terminalize/cleanup할 수 있었다. 호출자별 고유 registration event ID를 append 전에 생성해 exact event ID로만 durable commit ownership을 복구하게 했고, append-return 직후 `KeyboardInterrupt`와 실제 `_run_once` two-worker scope race를 모두 고정했다. 전자는 registration 1 + `CANCELLED` terminal 1, 후자는 winner lifecycle 1 + loser adapter call 0을 요구한다. 두 결함 아래의 부분 측정은 결과에서 제외하고 수정 뒤 전량 재측정한다.
 
+Post-implementation critic은 제품 결함이 아닌 두 evidence wiring 결함도 발견했다. 고정 projection race가 setUp에서 이미 연 DB를 재사용해 “cold initializer” claim을 직접 재현하지 않았고, E3 legacy parity observer가 fixed service의 `study_status`/`replay` digest와 M1-B/public shape expected 값을 실제 호출 없이 frozen oracle에서 되돌리고 있었다. 전자는 미생성 `concurrent-cold-state.db`를 8 worker가 동시에 여는 회귀로 바꾸고 20회 반복했으며 checkpoint `6bc3905`에 고정했다. 후자는 fixed 8-event corpus의 실제 `ResearchService.study_status/replay/findings`, replay 전후 bytes/head, 실제 v1 registration keyset, M1-B 29 operation, 별도 certified service↔CLI lifecycle의 10개 canonical surface shape와 frozen keyset `9/9`·shape digest `7/7` 비교로 교체해 checkpoints `6a35790`, `2e14096`에 고정했다. Frozen fixture/expected digest는 변경하지 않았다. 보강 E3는 `33.10s` PASS, latest manifest operation은 `20 passed in 311.19s`다. 보강 전 self-echo 결과는 `RESULT-INVALID`로 제외한다.
+
 ## 03.6 시스템 영향 분석 ★
 
 - 이전: free-text graph action은 연구 의도를 완전하게 증명하지 못하고, replication은 candidate-change 규칙에 걸리며, scope는 실행 identity가 아니다.
@@ -194,6 +196,8 @@ corrected oracle 아래 통합 중에도 두 concurrency 결함을 별도 최소
 사전 규칙대로 M1-C 전체를 confirmatory에서 exploratory로 강등한다. corrected transition raw는 `1e9e8e60a18dfe0d610a4928ecb90933204d43c53796e00d253343093ed96dd0`, corrected manifest raw/sorted-compact는 `4b9c216ea7a6bcbd8aec00a2224e4c41c349c038ea4b1d7c7fafcc8721e31b1d` / `75d7e1e568f3d42463184544e4b396c6f68cd1ae91fc3d5026dffda8454dca67`이다. 정정 시점까지 product/result-bearing commit은 없었지만 구현이 이미 시작됐으므로 chronology를 이용해 confirmatory 자격을 복원하지 않는다. correction checkpoint 뒤 oracle digest를 다시 바꾸면 해당 결과도 폐기하고 별도 재명세한다.
 
 독립 correction re-review PASS 뒤 정정 사양만 commit `575711fa7d11303340fd695ffcaa19e0a9270644` (`2026-08-10T05:43:02+09:00`, tree `709dc93db23ce42f2f265f78f57016ed6e4c27ca`, parent `5ab51f10ffcbb8f6e79d92b0935f977f03094305`)에 고정했다. 이 commit은 phase/critic과 transition/manifest fixture 네 파일만 포함하며 product source나 result-bearing test implementation은 포함하지 않는다.
+
+Product/test/docs implementation은 commit `a783a88c08f6bc2b543325e9dfb6094e617f940a` (`2026-08-10T06:30:15+09:00`, tree `e3851bfc84b012c0bb82dc2e1b19bdcf4d9e6425`, parent `f278e8c28aa8e4e447254c027a263e942073d6cc`)에 고정했다. Critic이 요구한 evidence-only 보강은 `6bc390529e015db782faabd3292e27c694c83564`(cold projection), `6a357907a3b47d654608b9a0df94862ffd170e5d`(actual fixed-v1 service/M1-B), `2e1409668ec5e1320278d31913f81d9017f2cd2e`(service↔CLI shapes) 순서다. 어느 checkpoint도 corrected fixture/expected를 변경하지 않았다.
 
 ## 03.6.8 Requirement-Result Divergence ★
 
