@@ -1,6 +1,6 @@
 # §03 — M1-C Typed Proposal and Scientific Replication (2026-08-10)
 
-> Status: **IMPLEMENTATION PAUSED — oracle correction critic PASS, correction checkpoint ready, claim mode EXPLORATORY**
+> Status: **IMPLEMENTATION RESUMED — corrected oracle checkpoint `575711f`, claim mode EXPLORATORY**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §02
 > 직전 phase: [`§02 M1-B`](02-2026-08-10-m1-b-study-generation-budget.md)
 > Pipeline 영향: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §3, §8.4 Scientific state, §9.4 M1-C
@@ -187,6 +187,8 @@ Manifest의 20 unique case node 전체 observed dict가 expected dict와 exact e
 
 사전 규칙대로 M1-C 전체를 confirmatory에서 exploratory로 강등한다. corrected transition raw는 `1e9e8e60a18dfe0d610a4928ecb90933204d43c53796e00d253343093ed96dd0`, corrected manifest raw/sorted-compact는 `4b9c216ea7a6bcbd8aec00a2224e4c41c349c038ea4b1d7c7fafcc8721e31b1d` / `75d7e1e568f3d42463184544e4b396c6f68cd1ae91fc3d5026dffda8454dca67`이다. 정정 시점까지 product/result-bearing commit은 없었지만 구현이 이미 시작됐으므로 chronology를 이용해 confirmatory 자격을 복원하지 않는다. correction checkpoint 뒤 oracle digest를 다시 바꾸면 해당 결과도 폐기하고 별도 재명세한다.
 
+독립 correction re-review PASS 뒤 정정 사양만 commit `575711fa7d11303340fd695ffcaa19e0a9270644` (`2026-08-10T05:43:02+09:00`, tree `709dc93db23ce42f2f265f78f57016ed6e4c27ca`, parent `5ab51f10ffcbb8f6e79d92b0935f977f03094305`)에 고정했다. 이 commit은 phase/critic과 transition/manifest fixture 네 파일만 포함하며 product source나 result-bearing test implementation은 포함하지 않는다.
+
 ## 03.6.8 Requirement-Result Divergence ★
 
 - `REQUIREMENT-WRONG`: scope capability나 frozen-candidate replication criterion이 사용자 목표의 연구 의미를 잘못 대리하거나 M1-C criterion이 end-state delta를 측정하지 못함 → correction/필요시 Rule 9.
@@ -217,5 +219,5 @@ Manifest의 20 unique case node 전체 observed dict가 expected dict와 exact e
 
 ## 03.10 다음 1행동
 
-- corrected fixture·manifest·production-observer control과 이 chronology를 독립 critic에게 재검토받고 correction-only checkpoint로 커밋한다.
-- 그 checkpoint 뒤 corrected oracle을 고정한 채 남은 구현 통합과 E1~E15 전량 재측정을 진행한다.
+- corrected oracle checkpoint `575711f`를 유지한 채 남은 positive lifecycle manifest binding과 projection race regression을 통합한다.
+- 그 뒤 E1~E15를 전량 재측정하고 progress critic·독립 7-pass audit로 M1-C CLOSE 여부를 판정한다.
