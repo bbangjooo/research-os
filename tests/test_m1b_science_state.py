@@ -154,7 +154,7 @@ def test_generation_planner_revalidates_instances_and_closes_under_replay() -> N
     )
     assert replayed.contract == contract
 
-    invalid = replace(contract, schema_version=2)
+    invalid = replace(contract, schema_version=3)
     _assert_code(
         "STUDY_CONTRACT_INVALID",
         lambda: plan_generation_open(

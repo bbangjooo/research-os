@@ -279,7 +279,18 @@ research-os --project /path/to/your-project findings
 research-os --project /path/to/your-project replay
 ```
 
-`StudyContract` version 1 is exact-key and contains:
+For StudyContract v2, the adapter first advertises
+`evaluation_scope_v1`, and the execution portion becomes:
+
+```bash
+research-os --project /path/to/your-project baseline \
+  --evaluation-scope-id development
+research-os --project /path/to/your-project run-once \
+  /path/to/your-project/candidates/first.json \
+  --proposal /absolute/path/to/proposal.json
+```
+
+`StudyContract` versions 1 and 2 have the same exact-key shape and contain:
 
 - `schema_version` and a stable `study_id`;
 - unique `hypothesis_classes` with conclusive-rejection limits;
@@ -291,6 +302,37 @@ research-os --project /path/to/your-project replay
   new-generation `change_control`;
 - a `budget` for attempts, retries, elapsed reservation per attempt, and either a
   complete cost-unit/limit/reservation triple or three nulls.
+
+Version 2 additionally rejects two scope IDs that alias the same
+`manifest_digest`, requires the adapter capability `evaluation_scope_v1`, and
+requires the contract candidate-schema digest to match the current certified
+project schema. It activates the exact 12-field Proposal contract:
+
+```json
+{
+  "proposal_schema_version": 1,
+  "generation_id": "generation_...",
+  "candidate_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+  "hypothesis_class_id": "class-a",
+  "action": "explore",
+  "mechanism": "Why this intervention could affect the metric.",
+  "predicted_effect": "A falsifiable directional prediction.",
+  "falsifier": "The observation that would reject the mechanism.",
+  "parent_experiment_id": null,
+  "evaluation_scope_id": "development",
+  "intervention_json_pointers": ["/x"],
+  "authorized_action": null
+}
+```
+
+`explore` has no parent. `exploit` and `ablate` require a terminal parent, a
+changed candidate, and declared pointers exactly equal to the canonical
+parent-to-candidate diff. `replicate` requires the parent's exact frozen
+candidate and hypothesis class, an empty pointer list, and a different unused
+preregistered replication scope. A retry supplies only `--retry-of` and the
+same candidate; it inherits the persisted Proposal and scope and is not counted
+as a new scientific replication. Proposal fields remain sibling evidence on
+the registration event and never become candidate fields.
 
 The opened generation binds this normalized contract to a separate evaluation
 seal. Each later registration receives the contract-fixed debit inside the

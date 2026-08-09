@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import re
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from research_os.contracts.common import MAX_SAFE_JSON_INTEGER, sha256_json
@@ -13,6 +13,7 @@ from research_os.errors import ScientificStateError
 from research_os.kernel.ids import stable_id, validate_namespaced_id
 
 SCIENCE_STATE_VERSION = 1
+_STUDY_CONTRACT_SCHEMA_VERSION_V2 = 2
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _SCOPE_ROLES = frozenset({"development", "diagnostic", "replication", "holdout"})
 
@@ -213,6 +214,48 @@ class StudyContract:
 
     @classmethod
     def from_mapping(cls, raw: Mapping[str, Any]) -> "StudyContract":
+        """Parse one supported contract version without changing v1 semantics."""
+
+        if isinstance(raw, Mapping):
+            schema_version = raw.get("schema_version")
+            if (
+                not isinstance(schema_version, bool)
+                and isinstance(schema_version, int)
+                and schema_version == _STUDY_CONTRACT_SCHEMA_VERSION_V2
+            ):
+                return cls._from_v2_mapping(raw)
+        return cls._from_v1_mapping(raw)
+
+    @classmethod
+    def _from_v2_mapping(cls, raw: Mapping[str, Any]) -> "StudyContract":
+        """Parse v2 through the frozen v1 shape, then apply its one invariant."""
+
+        version_one_raw = dict(raw)
+        version_one_raw["schema_version"] = SCIENCE_STATE_VERSION
+        version_one = cls._from_v1_mapping(version_one_raw)
+        manifests = tuple(scope.manifest_digest for scope in version_one.evaluation_scopes)
+        if len(set(manifests)) != len(manifests):
+            raise _fail(
+                "STUDY_CONTRACT_INVALID",
+                "evaluation scope manifest digests must be unique in version 2",
+                path="$.evaluation_scopes",
+            )
+        contract = replace(
+            version_one,
+            schema_version=_STUDY_CONTRACT_SCHEMA_VERSION_V2,
+        )
+        try:
+            sha256_json(contract.to_dict())
+        except (TypeError, ValueError) as exc:  # pragma: no cover - v1 validated
+            raise _fail(
+                "STUDY_CONTRACT_INVALID",
+                f"contract is not canonical JSON: {exc}",
+                path="$",
+            ) from exc
+        return contract
+
+    @classmethod
+    def _from_v1_mapping(cls, raw: Mapping[str, Any]) -> "StudyContract":
         code = "STUDY_CONTRACT_INVALID"
         root = _object(
             raw,

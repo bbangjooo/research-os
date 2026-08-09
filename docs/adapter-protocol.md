@@ -148,6 +148,12 @@ and `VerifyResult` are defined below.
 | `verify` | Workspace, after every `baseline` or `evaluate` result | `result_digest` | `VerifyResult` |
 | `cleanup` | Workspace | `{}` | `{}` |
 
+The table above is the unscoped protocol-v1 shape. A StudyContract v2 run uses
+the compatible `evaluation_scope_v1` extension described below: the full
+`evaluation_scope` object is added to `baseline`, the corresponding baseline
+`verify`, and candidate `materialize`, `run`, `evaluate`, and `verify` payloads.
+Protocol version remains integer `1`.
+
 ### `describe`
 
 Purpose: declare protocol capabilities without changing the source project.
@@ -182,6 +188,42 @@ duplicates or unknown capability names. `side_effects` must be an array and,
 for v1, must be exactly empty. Any declared external side effect is rejected;
 live actions are outside Research OS. The source checkout is hashed before and
 after this operation, so any modification fails the integrity check.
+
+### `evaluation_scope_v1` compatible extension
+
+An adapter that can execute a preregistered StudyContract v2 scope must add the
+literal capability `evaluation_scope_v1` alongside the eight operation names.
+Without it, v2 generation opening fails before a canonical generation event is
+written. The extension does not add an operation or change `protocol_version`.
+
+The added request member is the complete contract object, not only its label:
+
+```json
+{
+  "evaluation_scope": {
+    "id": "development",
+    "role": "development",
+    "manifest_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  }
+}
+```
+
+Research OS supplies that exact object to each scoped baseline `baseline` and
+`verify` request and to candidate `materialize`, `run`, `evaluate`, and
+`verify`. The adapter must use it to select the declared immutable evaluation
+universe, split, seed family, or other domain evaluation identity and must fail
+closed if it cannot do so. It must not reinterpret an ID as a different scope.
+External dataset/evaluator releases that affect the meaning of the manifest
+must also remain in `fingerprint` so compatibility changes are visible.
+
+At generation opening, Research OS additionally requires the contract's
+`candidate_schema_digest` to equal the current certified project candidate
+schema. That gate does not replace candidate validation in `materialize`.
+Scoped baseline events and experiment IDs retain the generation, compatibility,
+and scope identity during replay. This proves which declared scope was
+delivered; it does not by itself prove dataset independence, statistical power,
+or replication success. Holdout scopes are not consumed by this iterative
+extension.
 
 ### `fingerprint`
 

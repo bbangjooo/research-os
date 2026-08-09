@@ -69,8 +69,10 @@ from .provenance import environment_fingerprint, project_fingerprints
 from .science import (
     GENERATION_EVENT_TYPE,
     EvaluationSeal,
+    Proposal,
     StudyContract,
     plan_generation_open,
+    proposal_id,
     reduce_scientific_state,
     registration_payload_fields,
     reserve_registration,
@@ -78,6 +80,7 @@ from .science import (
 )
 
 REQUIRED_OPERATIONS = frozenset(operation.value for operation in Operation)
+EVALUATION_SCOPE_CAPABILITY = "evaluation_scope_v1"
 _TERMINAL_EVENT_TYPES = frozenset(
     {"EXPERIMENT_TERMINATED", "EXPERIMENT_STATUS_CHANGED"}
 )
@@ -769,6 +772,10 @@ class ResearchService:
             with evaluator_certification_read_lock(self.config):
                 report = self._doctor_snapshot(event_count=len(events))
                 evaluation_seal = self._evaluation_seal_from_report(report)
+                self._validate_typed_generation_environment(
+                    study_contract,
+                    report,
+                )
                 events = self._ensure_initialized_for_generation(
                     report.fingerprints,
                     events=events,
@@ -791,6 +798,10 @@ class ResearchService:
                             event_count=len(locked_events)
                         )
                         fresh_seal = self._evaluation_seal_from_report(fresh_report)
+                        self._validate_typed_generation_environment(
+                            study_contract,
+                            fresh_report,
+                        )
                         if (
                             fresh_report.capabilities != report.capabilities
                             or fresh_report.side_effects != report.side_effects
@@ -848,6 +859,182 @@ class ResearchService:
         if event is not None:
             result["event_sequence"] = event.sequence
         return normalize_json_object(result, field_name="generation open result")
+
+    def _require_evaluation_scope_capability(
+        self,
+        report: DoctorReport,
+    ) -> None:
+        """Require the explicit adapter promise used by scoped studies."""
+
+        if EVALUATION_SCOPE_CAPABILITY in report.capabilities:
+            return
+        raise ScientificStateError(
+            "STUDY_SCOPE_CAPABILITY_REQUIRED",
+            "StudyContract v2 requires adapter evaluation-scope support",
+            details={"required_capability": EVALUATION_SCOPE_CAPABILITY},
+        )
+
+    def _validate_typed_generation_environment(
+        self,
+        contract: StudyContract,
+        report: DoctorReport,
+    ) -> None:
+        """Bind a v2 generation to the advertised scope and candidate schema."""
+
+        if contract.schema_version != 2:
+            return
+        self._require_evaluation_scope_capability(report)
+        agent_spec = load_agent_spec(self.config.root)
+        candidate_schema = agent_spec.get("candidate_schema")
+        observed_digest = (
+            sha256_json(candidate_schema)
+            if isinstance(candidate_schema, Mapping)
+            else None
+        )
+        expected_digest = contract.intervention_surface.candidate_schema_digest
+        if observed_digest == expected_digest:
+            return
+        raise ScientificStateError(
+            "STUDY_CANDIDATE_SCHEMA_MISMATCH",
+            "StudyContract v2 candidate schema does not match the certified project schema",
+            details={
+                "expected_candidate_schema_digest": expected_digest,
+                "observed_candidate_schema_digest": observed_digest,
+            },
+        )
+
+    def _require_active_evaluation_seal(
+        self,
+        science_state: Any,
+        report: DoctorReport,
+    ) -> EvaluationSeal:
+        """Require a fresh report to match the active generation seal."""
+
+        live_seal = self._evaluation_seal_from_report(report)
+        if live_seal.digest == science_state.evaluation_seal_digest:
+            return live_seal
+        raise ScientificStateError(
+            "STUDY_EVALUATION_SEAL_MISMATCH",
+            "the active generation is not bound to the current evaluator seal",
+            details={
+                "active_evaluation_seal_digest": (
+                    science_state.evaluation_seal_digest
+                ),
+                "current_evaluation_seal_digest": live_seal.digest,
+            },
+        )
+
+    def _resolve_baseline_evaluation_scope(
+        self,
+        science_state: Any,
+        evaluation_scope_id: str | None,
+    ) -> Any | None:
+        """Resolve the full preregistered scope for a prospective baseline."""
+
+        if science_state.active_generation_id is None:
+            if evaluation_scope_id is not None:
+                raise ScientificStateError(
+                    "STUDY_GENERATION_REQUIRED",
+                    "a scoped baseline requires an active study generation",
+                )
+            return None
+        contract = science_state.contract
+        if contract is None:  # pragma: no cover - reducer invariant
+            raise IntegrityError("active generation omitted its study contract")
+        if contract.schema_version != 2:
+            if evaluation_scope_id is not None:
+                raise ScientificStateError(
+                    "STUDY_SCOPE_CONTRACT_VERSION_REQUIRED",
+                    "evaluation_scope_id requires StudyContract v2",
+                )
+            return None
+        if evaluation_scope_id is None:
+            raise ScientificStateError(
+                "STUDY_EVALUATION_SCOPE_REQUIRED",
+                "StudyContract v2 baseline requires evaluation_scope_id",
+            )
+        evaluation_scope = next(
+            (
+                scope
+                for scope in contract.evaluation_scopes
+                if scope.id == evaluation_scope_id
+            ),
+            None,
+        )
+        if evaluation_scope is None:
+            raise ScientificStateError(
+                "STUDY_EVALUATION_SCOPE_UNKNOWN",
+                "evaluation_scope_id is not declared by the active StudyContract",
+                details={"evaluation_scope_id": evaluation_scope_id},
+            )
+        if evaluation_scope.role == "holdout":
+            raise ScientificStateError(
+                "STUDY_SCOPE_BASELINE_FORBIDDEN",
+                "locked holdout scopes cannot be consumed by iterative baselines",
+                details={"evaluation_scope_id": evaluation_scope.id},
+            )
+        return evaluation_scope
+
+    def _append_scoped_baseline_event(
+        self,
+        payload: Mapping[str, Any],
+    ) -> Event:
+        """Commit a typed baseline only while its generation and seal are current."""
+
+        scope_id = payload.get("evaluation_scope_id")
+        if not isinstance(scope_id, str):  # pragma: no cover - caller invariant
+            raise IntegrityError("typed baseline evaluation scope ID is invalid")
+
+        def validate_locked_baseline(locked_events: tuple[Event, ...]) -> None:
+            locked_state = reduce_scientific_state(
+                locked_events,
+                project_id=self.config.project_id,
+            )
+            scope = self._resolve_baseline_evaluation_scope(locked_state, scope_id)
+            if scope is None:  # pragma: no cover - resolver invariant
+                raise IntegrityError("typed baseline evaluation scope is unavailable")
+            contract = locked_state.contract
+            if contract is None:  # pragma: no cover - reducer invariant
+                raise IntegrityError("typed baseline study contract is unavailable")
+            if payload.get("generation_id") != locked_state.active_generation_id:
+                raise ScientificStateError(
+                    "STUDY_GENERATION_MISMATCH",
+                    "baseline generation no longer matches the active generation",
+                )
+            if payload.get("study_contract_digest") != contract.digest:
+                raise ScientificStateError(
+                    "STUDY_CONTRACT_MISMATCH",
+                    "baseline contract no longer matches the active generation",
+                )
+            if payload.get("evaluation_seal_digest") != (
+                locked_state.evaluation_seal_digest
+            ):
+                raise ScientificStateError(
+                    "STUDY_EVALUATION_SEAL_MISMATCH",
+                    "baseline evaluator seal no longer matches the active generation",
+                )
+            if payload.get("evaluation_scope") != scope.to_dict():
+                raise ScientificStateError(
+                    "STUDY_EVALUATION_SCOPE_MISMATCH",
+                    "baseline scope body disagrees with the active StudyContract",
+                )
+            fresh_report = self._doctor_snapshot(event_count=len(locked_events))
+            self._validate_typed_generation_environment(contract, fresh_report)
+            self._require_active_evaluation_seal(locked_state, fresh_report)
+            if payload.get("compatibility_digest") != fresh_report.fingerprints.get(
+                "compatibility_digest"
+            ):
+                raise IntegrityError(
+                    "baseline compatibility changed before canonical append"
+                )
+
+        with evaluator_certification_read_lock(self.config):
+            return self.event_log.append(
+                "BASELINE_RECORDED",
+                payload,
+                precondition=validate_locked_baseline,
+                postcondition=validate_locked_baseline,
+            )
 
     def study_status(self) -> dict[str, Any]:
         """Return the replay-derived generation and reserved-budget state."""
@@ -959,15 +1146,56 @@ class ResearchService:
         )
         _response_payload(response, Operation.CLEANUP)
 
-    def baseline(self) -> dict[str, Any]:
+    def baseline(
+        self,
+        *,
+        evaluation_scope_id: str | None = None,
+    ) -> dict[str, Any]:
         with self._workflow_lock():
-            return self._baseline()
+            return self._baseline(evaluation_scope_id=evaluation_scope_id)
 
-    def _baseline(self) -> dict[str, Any]:
+    def _baseline(
+        self,
+        *,
+        evaluation_scope_id: str | None = None,
+    ) -> dict[str, Any]:
         """Measure a stable baseline in isolated snapshots and seal it."""
 
+        science_state = reduce_scientific_state(
+            self.event_log.read(),
+            project_id=self.config.project_id,
+        )
+        evaluation_scope = self._resolve_baseline_evaluation_scope(
+            science_state,
+            evaluation_scope_id,
+        )
         report = self._doctor()
+        if evaluation_scope is not None:
+            self._validate_typed_generation_environment(
+                cast(StudyContract, science_state.contract),
+                report,
+            )
+            self._require_active_evaluation_seal(science_state, report)
         self._recover_incomplete_experiments()
+        if evaluation_scope is not None:
+            # Recovery can append terminal evidence, and generation change-control
+            # intentionally does not share the workflow lock. Rebind the complete
+            # typed baseline identity before any evaluator work begins.
+            science_state = reduce_scientific_state(
+                self.event_log.read(),
+                project_id=self.config.project_id,
+            )
+            evaluation_scope = self._resolve_baseline_evaluation_scope(
+                science_state,
+                evaluation_scope_id,
+            )
+            if evaluation_scope is None:  # pragma: no cover - guarded by v2 path
+                raise IntegrityError("typed baseline evaluation scope is unavailable")
+            self._validate_typed_generation_environment(
+                cast(StudyContract, science_state.contract),
+                report,
+            )
+            self._require_active_evaluation_seal(science_state, report)
         count = self.config.baseline_repeats
 
         manager = WorkspaceManager(self.config)
@@ -976,21 +1204,37 @@ class ResearchService:
         verifications: list[dict[str, Any]] = []
         try:
             for index in range(count):
-                workspace_id = stable_id(
-                    "baseline",
-                    self.config.project_id,
-                    report.fingerprints["compatibility_digest"],
-                    index,
-                )
+                if evaluation_scope is None:
+                    workspace_id = stable_id(
+                        "baseline",
+                        self.config.project_id,
+                        report.fingerprints["compatibility_digest"],
+                        index,
+                    )
+                else:
+                    workspace_id = stable_id(
+                        "baseline",
+                        self.config.project_id,
+                        report.fingerprints["compatibility_digest"],
+                        science_state.active_generation_id,
+                        evaluation_scope.id,
+                        index,
+                    )
                 self._assert_static_compatibility(report)
                 handle = manager.create(workspace_id)
                 operation_error: BaseException | None = None
                 try:
                     self._assert_static_compatibility(report)
+                    baseline_input: dict[str, Any] = {
+                        "repetition": index,
+                        "repetitions": count,
+                    }
+                    if evaluation_scope is not None:
+                        baseline_input["evaluation_scope"] = evaluation_scope.to_dict()
                     response = self._call_sealed(
                         report,
                         Operation.BASELINE,
-                        payload={"repetition": index, "repetitions": count},
+                        payload=baseline_input,
                         workspace=handle.path,
                         experiment_id=workspace_id,
                     )
@@ -1010,10 +1254,17 @@ class ResearchService:
                     result_digest = sha256_json(baseline_result.to_dict())
                     verify_result: VerifyResult | None = None
                     try:
+                        verify_input: dict[str, Any] = {
+                            "result_digest": result_digest
+                        }
+                        if evaluation_scope is not None:
+                            verify_input["evaluation_scope"] = (
+                                evaluation_scope.to_dict()
+                            )
                         verify_response = self._call_sealed(
                             report,
                             Operation.VERIFY,
-                            payload={"result_digest": result_digest},
+                            payload=verify_input,
                             workspace=handle.path,
                             experiment_id=workspace_id,
                         )
@@ -1168,8 +1419,25 @@ class ResearchService:
             "fingerprints": dict(report.fingerprints),
             "authorized_action": None,
         }
+        if evaluation_scope is not None:
+            contract = science_state.contract
+            if contract is None:  # pragma: no cover - guarded by resolver
+                raise IntegrityError("typed baseline study contract is unavailable")
+            payload.update(
+                {
+                    "science_state_version": 1,
+                    "generation_id": science_state.active_generation_id,
+                    "study_contract_digest": contract.digest,
+                    "evaluation_seal_digest": science_state.evaluation_seal_digest,
+                    "evaluation_scope_id": evaluation_scope.id,
+                    "evaluation_scope": evaluation_scope.to_dict(),
+                }
+            )
         payload["digest"] = sha256_json(payload)
-        event = self.event_log.append("BASELINE_RECORDED", payload)
+        if evaluation_scope is None:
+            event = self.event_log.append("BASELINE_RECORDED", payload)
+        else:
+            event = self._append_scoped_baseline_event(payload)
         self._sync()
         return {**payload, "event_sequence": event.sequence}
 
@@ -1179,6 +1447,10 @@ class ResearchService:
         compatibility_digest: str,
         *,
         enforce_current_policy: bool = True,
+        generation_id: str | None = None,
+        study_contract_digest: str | None = None,
+        evaluation_seal_digest: str | None = None,
+        evaluation_scope: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Revalidate a sealed baseline before it can authorize comparison."""
 
@@ -1197,6 +1469,41 @@ class ResearchService:
         baseline["baseline_id"] = baseline_id
         if baseline.get("compatibility_digest") != compatibility_digest:
             raise IntegrityError("compatible baseline fingerprint is inconsistent")
+
+        has_scope_id = "evaluation_scope_id" in baseline
+        has_scope_body = "evaluation_scope" in baseline
+        if has_scope_id is not has_scope_body:
+            raise IntegrityError("compatible baseline scope binding is incomplete")
+        stored_scope_id: str | None = None
+        if has_scope_id:
+            stored_scope_id_value = baseline.get("evaluation_scope_id")
+            stored_scope_value = baseline.get("evaluation_scope")
+            if (
+                not isinstance(stored_scope_id_value, str)
+                or not stored_scope_id_value
+                or not isinstance(stored_scope_value, Mapping)
+                or set(stored_scope_value) != {"id", "role", "manifest_digest"}
+                or stored_scope_value.get("id") != stored_scope_id_value
+            ):
+                raise IntegrityError("compatible baseline scope binding is invalid")
+            stored_scope_id = stored_scope_id_value
+            stored_generation = baseline.get("generation_id")
+            if not isinstance(stored_generation, str) or not stored_generation:
+                raise IntegrityError("compatible baseline generation binding is invalid")
+
+        if evaluation_scope is not None:
+            expected_scope = dict(evaluation_scope)
+            expected_scope_id = expected_scope.get("id")
+            expected_bindings = {
+                "science_state_version": 1,
+                "generation_id": generation_id,
+                "study_contract_digest": study_contract_digest,
+                "evaluation_seal_digest": evaluation_seal_digest,
+                "evaluation_scope_id": expected_scope_id,
+                "evaluation_scope": expected_scope,
+            }
+            if any(baseline.get(key) != value for key, value in expected_bindings.items()):
+                raise IntegrityError("compatible baseline scope binding is inconsistent")
         fingerprints = baseline.get("fingerprints")
         adapter_fingerprint = baseline.get("adapter_fingerprint")
         if not isinstance(fingerprints, Mapping) or not isinstance(
@@ -1372,12 +1679,22 @@ class ResearchService:
             record = ArtifactRecord.from_mapping(value)
             if record.project_id != self.config.project_id:
                 raise IntegrityError("compatible baseline artifact belongs to another project")
-            expected_workspace = stable_id(
-                "baseline",
-                self.config.project_id,
-                compatibility_digest,
-                repetition,
-            )
+            if stored_scope_id is None:
+                expected_workspace = stable_id(
+                    "baseline",
+                    self.config.project_id,
+                    compatibility_digest,
+                    repetition,
+                )
+            else:
+                expected_workspace = stable_id(
+                    "baseline",
+                    self.config.project_id,
+                    compatibility_digest,
+                    baseline["generation_id"],
+                    stored_scope_id,
+                    repetition,
+                )
             if record.experiment_id != expected_workspace:
                 raise IntegrityError("compatible baseline artifact workspace is inconsistent")
             key = (repetition, record.relative_path)
@@ -1416,6 +1733,11 @@ class ResearchService:
         self,
         events: Sequence[Event],
         compatibility_digest: str,
+        *,
+        generation_id: str | None = None,
+        study_contract_digest: str | None = None,
+        evaluation_seal_digest: str | None = None,
+        evaluation_scope: Mapping[str, Any] | None = None,
     ) -> dict[str, Any] | None:
         for event in reversed(events):
             if _normalized_event_type(event.event_type) != "BASELINE_RECORDED":
@@ -1425,6 +1747,24 @@ class ResearchService:
                 continue
             if payload.get("primary_metric") != self.config.primary_metric:
                 continue
+            if evaluation_scope is None:
+                if "evaluation_scope_id" in payload or "evaluation_scope" in payload:
+                    continue
+            else:
+                expected_scope = dict(evaluation_scope)
+                expected_bindings = {
+                    "science_state_version": 1,
+                    "generation_id": generation_id,
+                    "study_contract_digest": study_contract_digest,
+                    "evaluation_seal_digest": evaluation_seal_digest,
+                    "evaluation_scope_id": expected_scope.get("id"),
+                    "evaluation_scope": expected_scope,
+                }
+                if any(
+                    payload.get(key) != value
+                    for key, value in expected_bindings.items()
+                ):
+                    continue
             # Verification-less baselines remain valid historical replay input,
             # but they cannot authorize a current-policy candidate comparison.
             if "verifications" not in payload:
@@ -1432,18 +1772,41 @@ class ResearchService:
                     payload,
                     compatibility_digest,
                     enforce_current_policy=False,
+                    generation_id=generation_id,
+                    study_contract_digest=study_contract_digest,
+                    evaluation_seal_digest=evaluation_seal_digest,
+                    evaluation_scope=evaluation_scope,
                 )
                 continue
             value = payload.get("primary_value")
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 raise IntegrityError("compatible baseline has an invalid primary value")
-            return self._validate_baseline_payload(payload, compatibility_digest)
+            return self._validate_baseline_payload(
+                payload,
+                compatibility_digest,
+                generation_id=generation_id,
+                study_contract_digest=study_contract_digest,
+                evaluation_seal_digest=evaluation_seal_digest,
+                evaluation_scope=evaluation_scope,
+            )
         return None
 
-    def _compatible_baseline(self, compatibility_digest: str) -> dict[str, Any] | None:
+    def _compatible_baseline(
+        self,
+        compatibility_digest: str,
+        *,
+        generation_id: str | None = None,
+        study_contract_digest: str | None = None,
+        evaluation_seal_digest: str | None = None,
+        evaluation_scope: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         return self._compatible_baseline_from_events(
             self.event_log.read(),
             compatibility_digest,
+            generation_id=generation_id,
+            study_contract_digest=study_contract_digest,
+            evaluation_seal_digest=evaluation_seal_digest,
+            evaluation_scope=evaluation_scope,
         )
 
     def _select_attempt(
@@ -2132,6 +2495,17 @@ class ResearchService:
         value = self._load_json_object(path, label="candidate")
         return value, sha256_json(value)
 
+    def _load_proposal(
+        self,
+        value: str | Path | Mapping[str, Any],
+    ) -> Proposal:
+        raw = (
+            value
+            if isinstance(value, Mapping)
+            else self._load_json_object(value, label="proposal")
+        )
+        return Proposal.from_mapping(raw)
+
     def _record_stage(
         self,
         experiment_id: str,
@@ -2232,6 +2606,55 @@ class ResearchService:
             "event_sequence": event.sequence,
         }
 
+    def _validate_proposal_mode(
+        self,
+        science_state: Any,
+        *,
+        proposal: str | Path | Mapping[str, Any] | None,
+        parent_id: str | None,
+        retry_of: str | None,
+        graph_action: str | None,
+        scientific_change: str | None,
+    ) -> bool:
+        """Select the v1 or v2 registration contract without mutating state."""
+
+        contract = science_state.contract
+        typed_path = contract is not None and contract.schema_version == 2
+        if not typed_path:
+            if proposal is not None:
+                raise ScientificStateError(
+                    "PROPOSAL_CONTRACT_VERSION_REQUIRED",
+                    "typed Proposal input requires an active StudyContract v2 generation",
+                )
+            return False
+
+        if retry_of is not None and proposal is not None:
+            raise ScientificStateError(
+                "PROPOSAL_RETRY_FORBIDDEN",
+                "a retry must inherit its persisted Proposal and evaluation scope",
+                details={"retry_of": retry_of},
+            )
+        if retry_of is None and proposal is None:
+            raise ScientificStateError(
+                "PROPOSAL_REQUIRED",
+                "StudyContract v2 registrations require a typed Proposal",
+            )
+        legacy_options = [
+            option
+            for option, value in (
+                ("parent_id", parent_id if proposal is not None else None),
+                ("graph_action", graph_action),
+                ("scientific_change", scientific_change),
+            )
+            if value is not None
+        ]
+        if legacy_options:
+            raise ConfigurationError(
+                "typed Proposal registration cannot use legacy graph options: "
+                + ", ".join(legacy_options)
+            )
+        return True
+
     def run_once(
         self,
         candidate_path: str | Path,
@@ -2241,6 +2664,7 @@ class ResearchService:
         context_token: str | None = None,
         graph_action: str | None = None,
         scientific_change: str | None = None,
+        proposal: str | Path | Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         with self._workflow_lock():
             return self._run_once(
@@ -2250,6 +2674,7 @@ class ResearchService:
                 context_token=context_token,
                 graph_action=graph_action,
                 scientific_change=scientific_change,
+                proposal=proposal,
             )
 
     def _run_once(
@@ -2261,8 +2686,22 @@ class ResearchService:
         context_token: str | None = None,
         graph_action: str | None = None,
         scientific_change: str | None = None,
+        proposal: str | Path | Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Run one candidate as a durable node in the experiment DAG."""
+
+        preview_state = reduce_scientific_state(
+            self.event_log.read(),
+            project_id=self.config.project_id,
+        )
+        typed_path = self._validate_proposal_mode(
+            preview_state,
+            proposal=proposal,
+            parent_id=parent_id,
+            retry_of=retry_of,
+            graph_action=graph_action,
+            scientific_change=scientific_change,
+        )
 
         agent_context_snapshot: dict[str, Any] | None = None
         if context_token is not None:
@@ -2274,7 +2713,7 @@ class ResearchService:
             )
 
         graph_metadata: GraphMetadata | None = None
-        if retry_of is None:
+        if not typed_path and retry_of is None:
             graph_metadata = graph_metadata_from_values(
                 graph_action,
                 scientific_change,
@@ -2282,7 +2721,9 @@ class ResearchService:
             )
             if graph_metadata is not None:
                 validate_graph_relationship(graph_metadata, parent_id)
-        elif graph_action is not None or scientific_change is not None:
+        elif not typed_path and (
+            graph_action is not None or scientific_change is not None
+        ):
             # A retry is an execution continuation, never a newly labelled
             # scientific node. Its metadata is inherited below from history.
             inherit_retry_graph_metadata(
@@ -2295,6 +2736,14 @@ class ResearchService:
         science_state = reduce_scientific_state(
             self.event_log.read(),
             project_id=self.config.project_id,
+        )
+        typed_path = self._validate_proposal_mode(
+            science_state,
+            proposal=proposal,
+            parent_id=parent_id,
+            retry_of=retry_of,
+            graph_action=graph_action,
+            scientific_change=scientific_change,
         )
         generation_id = science_state.active_generation_id
         if generation_id is not None:
@@ -2317,97 +2766,208 @@ class ResearchService:
             )
         compatibility = str(report.fingerprints["compatibility_digest"])
         candidate, candidate_digest = self._load_candidate(candidate_path)
-        # SQLite is a disposable query accelerator, never decision authority.
-        # Rebuild it from the verified canonical stream before consulting
-        # attempt/retry lineage so local projection drift cannot authorize a
-        # retry or parent that history does not contain.
-        self.projection.rebuild(self.event_log)
-        parent_id, attempt, retry_of = self._select_attempt(
-            candidate_digest,
-            parent_id,
-            compatibility,
-            retry_of,
-            generation_id=generation_id,
-        )
-        if retry_of is not None:
-            prior_attempt = self.projection.experiment(
+        typed_proposal: Proposal | None = None
+        evaluation_scope: Any | None = None
+        registration: dict[str, Any] | None = None
+        if typed_path:
+            contract = science_state.contract
+            if contract is None or generation_id is None:  # pragma: no cover
+                raise IntegrityError("typed registration generation is unavailable")
+            self._validate_typed_generation_environment(contract, report)
+            if retry_of is None:
+                if proposal is None:  # pragma: no cover - mode gate above
+                    raise IntegrityError("typed Proposal input is unavailable")
+                typed_proposal = self._load_proposal(proposal)
+                parent_id = typed_proposal.parent_experiment_id
+                attempt = 1
+            else:
+                prior_registration = science_state.registration(retry_of)
+                if prior_registration is None:
+                    raise ScientificStateError(
+                        "PROPOSAL_RETRY_MISMATCH",
+                        "retry_of does not identify a typed registration in the active generation",
+                        details={"retry_of": retry_of},
+                    )
+                if parent_id is not None and parent_id != prior_registration.parent_id:
+                    raise ScientificStateError(
+                        "PROPOSAL_RETRY_MISMATCH",
+                        "a retry must inherit the persisted Proposal parent",
+                        details={"retry_of": retry_of},
+                    )
+                typed_proposal = prior_registration.proposal
+                parent_id = prior_registration.parent_id
+                attempt = prior_registration.attempt + 1
+
+            evaluation_scope_id = typed_proposal.evaluation_scope_id
+            experiment_id = new_experiment_id(
                 self.config.project_id,
-                retry_of,
-            )
-            prior_payload = prior_attempt.get("payload")
-            if not isinstance(prior_payload, Mapping):
-                raise IntegrityError("projected retry registration is invalid")
-            graph_metadata = inherit_retry_graph_metadata(prior_payload)
-
-        parent_row: Mapping[str, Any] | None = None
-        if parent_id is not None:
-            try:
-                parent_row = self.projection.experiment(
-                    self.config.project_id,
-                    parent_id,
-                )
-            except IntegrityError as exc:
-                raise ConfigurationError(
-                    f"unknown parent experiment: {parent_id}"
-                ) from exc
-            if parent_row.get("generation_id") != generation_id:
-                raise ConfigurationError(
-                    "parent_id must reference an experiment in the active generation"
-                )
-        if graph_metadata is not None:
-            validate_graph_relationship(
-                graph_metadata,
-                parent_id,
-                parent_is_terminal=(
-                    None
-                    if parent_row is None
-                    else is_terminal(str(parent_row.get("status", "")))
-                ),
+                candidate_digest,
                 compatibility_digest=compatibility,
-                parent_compatibility_digest=(
-                    None
-                    if parent_row is None
-                    else str(parent_row.get("compatibility_digest", ""))
-                ),
+                parent_id=parent_id,
+                generation_id=generation_id,
+                evaluation_scope_id=evaluation_scope_id,
+                attempt=attempt,
             )
-            validate_graph_candidate_change(
-                graph_metadata,
-                candidate_digest=candidate_digest,
-                parent_candidate_digest=(
-                    None
-                    if parent_row is None
-                    else str(parent_row.get("candidate_digest", ""))
-                ),
+            scope_baseline = science_state.baseline_for_scope(evaluation_scope_id)
+            prospective_baseline_id = (
+                scope_baseline.baseline_id
+                if scope_baseline is not None
+                else stable_id(
+                    "baseline",
+                    self.config.project_id,
+                    generation_id,
+                    evaluation_scope_id,
+                    "missing",
+                )
             )
-        self._assert_static_compatibility(report)
+            registration = {
+                "experiment_id": experiment_id,
+                "parent_id": parent_id,
+                "candidate_digest": candidate_digest,
+                "candidate": candidate,
+                "compatibility_digest": compatibility,
+                "source_tree_digest": report.fingerprints["source_tree_digest"],
+                "baseline_id": prospective_baseline_id,
+                "primary_metric": self.config.primary_metric,
+                "attempt": attempt,
+                "retry_of": retry_of,
+                "status": "registered",
+                "authorized_action": None,
+                **registration_payload_fields(
+                    science_state,
+                    retry_of=retry_of,
+                ),
+                "proposal": typed_proposal.to_dict(),
+                "proposal_digest": typed_proposal.digest,
+                "proposal_id": proposal_id(
+                    self.config.project_id,
+                    typed_proposal.digest,
+                ),
+                "evaluation_scope_id": evaluation_scope_id,
+            }
+            # The same pure authority runs again under EventLog's exclusive
+            # append lock. This early call preserves zero-delta semantic errors.
+            reserve_registration(science_state, registration)
+            evaluation_scope = next(
+                (
+                    scope
+                    for scope in contract.evaluation_scopes
+                    if scope.id == evaluation_scope_id
+                ),
+                None,
+            )
+            if evaluation_scope is None:  # pragma: no cover - validator authority
+                raise IntegrityError("typed Proposal scope is unavailable")
+            baseline = self._compatible_baseline(
+                compatibility,
+                generation_id=generation_id,
+                study_contract_digest=contract.digest,
+                evaluation_seal_digest=science_state.evaluation_seal_digest,
+                evaluation_scope=evaluation_scope.to_dict(),
+            )
+            if (
+                baseline is None
+                or baseline.get("baseline_id") != prospective_baseline_id
+            ):
+                raise ScientificStateError(
+                    "STUDY_SCOPE_BASELINE_REQUIRED",
+                    "typed registration requires a trusted baseline for its exact evaluation scope",
+                    details={"evaluation_scope_id": evaluation_scope_id},
+                )
+        else:
+            # SQLite is a disposable query accelerator, never decision authority.
+            # Rebuild it from the verified canonical stream before consulting
+            # attempt/retry lineage so local projection drift cannot authorize a
+            # retry or parent that history does not contain.
+            self.projection.rebuild(self.event_log)
+            parent_id, attempt, retry_of = self._select_attempt(
+                candidate_digest,
+                parent_id,
+                compatibility,
+                retry_of,
+                generation_id=generation_id,
+            )
+            if retry_of is not None:
+                prior_attempt = self.projection.experiment(
+                    self.config.project_id,
+                    retry_of,
+                )
+                prior_payload = prior_attempt.get("payload")
+                if not isinstance(prior_payload, Mapping):
+                    raise IntegrityError("projected retry registration is invalid")
+                graph_metadata = inherit_retry_graph_metadata(prior_payload)
 
-        baseline = self._compatible_baseline(compatibility)
-        if baseline is None:
-            created_baseline = self._baseline()
-            # _baseline() runs doctor again; the original candidate request is
-            # valid only if the complete immutable compatibility seal survived.
-            if created_baseline["compatibility_digest"] != compatibility:
-                raise IntegrityError(
-                    "project compatibility changed while establishing baseline"
+            parent_row: Mapping[str, Any] | None = None
+            if parent_id is not None:
+                try:
+                    parent_row = self.projection.experiment(
+                        self.config.project_id,
+                        parent_id,
+                    )
+                except IntegrityError as exc:
+                    raise ConfigurationError(
+                        f"unknown parent experiment: {parent_id}"
+                    ) from exc
+                if parent_row.get("generation_id") != generation_id:
+                    raise ConfigurationError(
+                        "parent_id must reference an experiment in the active generation"
+                    )
+            if graph_metadata is not None:
+                validate_graph_relationship(
+                    graph_metadata,
+                    parent_id,
+                    parent_is_terminal=(
+                        None
+                        if parent_row is None
+                        else is_terminal(str(parent_row.get("status", "")))
+                    ),
+                    compatibility_digest=compatibility,
+                    parent_compatibility_digest=(
+                        None
+                        if parent_row is None
+                        else str(parent_row.get("compatibility_digest", ""))
+                    ),
+                )
+                validate_graph_candidate_change(
+                    graph_metadata,
+                    candidate_digest=candidate_digest,
+                    parent_candidate_digest=(
+                        None
+                        if parent_row is None
+                        else str(parent_row.get("candidate_digest", ""))
+                    ),
                 )
             self._assert_static_compatibility(report)
-            baseline = self._compatible_baseline(compatibility)
-            if baseline is None:  # pragma: no cover - defensive invariant
-                raise IntegrityError("newly recorded baseline cannot be reloaded")
-            if context_token is not None:
-                agent_context_snapshot, _ = self._validate_agent_context_after_doctor(
-                    context_token,
-                    report,
-                )
 
-        experiment_id = new_experiment_id(
-            self.config.project_id,
-            candidate_digest,
-            compatibility_digest=compatibility,
-            parent_id=parent_id,
-            generation_id=generation_id,
-            attempt=attempt,
-        )
+            baseline = self._compatible_baseline(compatibility)
+            if baseline is None:
+                created_baseline = self._baseline()
+                # _baseline() runs doctor again; the original candidate request is
+                # valid only if the complete immutable compatibility seal survived.
+                if created_baseline["compatibility_digest"] != compatibility:
+                    raise IntegrityError(
+                        "project compatibility changed while establishing baseline"
+                    )
+                self._assert_static_compatibility(report)
+                baseline = self._compatible_baseline(compatibility)
+                if baseline is None:  # pragma: no cover - defensive invariant
+                    raise IntegrityError("newly recorded baseline cannot be reloaded")
+                if context_token is not None:
+                    agent_context_snapshot, _ = (
+                        self._validate_agent_context_after_doctor(
+                            context_token,
+                            report,
+                        )
+                    )
+
+            experiment_id = new_experiment_id(
+                self.config.project_id,
+                candidate_digest,
+                compatibility_digest=compatibility,
+                parent_id=parent_id,
+                generation_id=generation_id,
+                attempt=attempt,
+            )
         manager: WorkspaceManager | None = None
         handle: Any = None
         result: ResultEnvelope | None = None
@@ -2424,6 +2984,7 @@ class ResearchService:
         workspace_detached = False
         recorded_notes: set[tuple[int, str]] = set()
         registered = False
+        registration_event_id: str | None = None
 
         def record_exception_notes(exc: BaseException) -> None:
             notes = getattr(exc, "__notes__", None)
@@ -2463,6 +3024,19 @@ class ResearchService:
                 )
                 return False
 
+        def registration_commit_is_owned() -> bool:
+            """Prove that this invocation, not an ID-identical rival, committed."""
+
+            if registration_event_id is None:
+                return False
+            return any(
+                event.event_id == registration_event_id
+                and _normalized_event_type(event.event_type)
+                == "EXPERIMENT_REGISTERED"
+                and event.payload.get("experiment_id") == experiment_id
+                for event in self.event_log.read()
+            )
+
         try:
             self._assert_static_compatibility(report)
             if context_token is not None:
@@ -2470,29 +3044,32 @@ class ResearchService:
                     context_token,
                     report,
                 )
-            registration = {
-                "experiment_id": experiment_id,
-                "parent_id": parent_id,
-                "candidate_digest": candidate_digest,
-                "candidate": candidate,
-                "compatibility_digest": compatibility,
-                "source_tree_digest": report.fingerprints["source_tree_digest"],
-                "baseline_id": baseline["baseline_id"],
-                "primary_metric": baseline["primary_metric"],
-                "attempt": attempt,
-                "retry_of": retry_of,
-                "status": "registered",
-                "authorized_action": None,
-            }
-            if generation_id is not None:
-                registration.update(
-                    registration_payload_fields(
-                        science_state,
-                        retry_of=retry_of,
+            if registration is None:
+                registration = {
+                    "experiment_id": experiment_id,
+                    "parent_id": parent_id,
+                    "candidate_digest": candidate_digest,
+                    "candidate": candidate,
+                    "compatibility_digest": compatibility,
+                    "source_tree_digest": report.fingerprints[
+                        "source_tree_digest"
+                    ],
+                    "baseline_id": baseline["baseline_id"],
+                    "primary_metric": baseline["primary_metric"],
+                    "attempt": attempt,
+                    "retry_of": retry_of,
+                    "status": "registered",
+                    "authorized_action": None,
+                }
+                if generation_id is not None:
+                    registration.update(
+                        registration_payload_fields(
+                            science_state,
+                            retry_of=retry_of,
+                        )
                     )
-                )
-            if graph_metadata is not None:
-                registration.update(graph_metadata.to_payload())
+                if graph_metadata is not None:
+                    registration.update(graph_metadata.to_payload())
             if context_token is not None:
                 registration["agent_context_token"] = context_token
                 registration["agent_context_snapshot"] = agent_context_snapshot
@@ -2500,11 +3077,13 @@ class ResearchService:
                     raise IntegrityError("agent context snapshot is unavailable")
             if generation_id is not None:
                 reserve_registration(science_state, registration)
+            registration_event_id = new_id("event")
             self._append_registration_event(
                 registration,
                 report=report,
                 context_token=context_token,
                 snapshot=agent_context_snapshot,
+                event_id=registration_event_id,
             )
             registered = True
             self._sync()
@@ -2522,6 +3101,10 @@ class ResearchService:
                 "candidate": candidate,
                 "candidate_digest": candidate_digest,
             }
+            if evaluation_scope is not None:
+                materialize_input["evaluation_scope"] = (
+                    evaluation_scope.to_dict()
+                )
             response = self._call_sealed(
                 report,
                 Operation.MATERIALIZE,
@@ -2542,6 +3125,8 @@ class ResearchService:
                 "candidate_digest": candidate_digest,
                 "baseline_id": baseline["baseline_id"],
             }
+            if evaluation_scope is not None:
+                run_input["evaluation_scope"] = evaluation_scope.to_dict()
             response = self._call_sealed(
                 report,
                 Operation.RUN,
@@ -2560,6 +3145,10 @@ class ResearchService:
             manager.verify_source_unchanged(handle)
 
             evaluate_input = {"candidate_digest": candidate_digest}
+            if evaluation_scope is not None:
+                evaluate_input["evaluation_scope"] = (
+                    evaluation_scope.to_dict()
+                )
             response = self._call_sealed(
                 report,
                 Operation.EVALUATE,
@@ -2588,6 +3177,8 @@ class ResearchService:
             self._publish_artifact_records(experiment_id, captured_records)
 
             verify_input = {"result_digest": sha256_json(result.to_dict())}
+            if evaluation_scope is not None:
+                verify_input["evaluation_scope"] = evaluation_scope.to_dict()
             response = self._call_sealed(
                 report,
                 Operation.VERIFY,
@@ -2636,23 +3227,22 @@ class ResearchService:
                 terminal = (category.terminal_status, verify_result.reason_code)
         except KeyboardInterrupt as exc:
             if not registered:
-                registered = any(
-                    event.event_type == "EXPERIMENT_REGISTERED"
-                    and event.payload.get("experiment_id") == experiment_id
-                    for event in self.event_log.read()
-                )
-            if not registered:
-                raise
+                # An interrupt may land after the durable append returns but
+                # before the local assignment above.  A caller-owned event ID
+                # proves that exact commit without mistaking an identical
+                # contender's deterministic experiment ID for our own work.
+                registered = registration_commit_is_owned()
+                if not registered:
+                    raise
             record_interrupt(exc)
         except Exception as exc:
             if not registered:
-                registered = any(
-                    event.event_type == "EXPERIMENT_REGISTERED"
-                    and event.payload.get("experiment_id") == experiment_id
-                    for event in self.event_log.read()
-                )
-            if not registered:
-                raise
+                registered = registration_commit_is_owned()
+                if not registered:
+                    # A raised append did not publish this caller's exact
+                    # registration event.  In particular, do not terminalize
+                    # an ID-identical concurrent winner.
+                    raise
             record_exception_notes(exc)
             failure = exc
             terminal = _classify_failure(exc)
@@ -3101,6 +3691,7 @@ class ResearchService:
         report: DoctorReport,
         context_token: str | None,
         snapshot: Mapping[str, Any] | None,
+        event_id: str | None = None,
     ) -> Event:
         """Commit one registration through the common locked science gate."""
 
@@ -3131,6 +3722,15 @@ class ResearchService:
                 fresh_report = self._doctor_snapshot(
                     event_count=len(locked_events)
                 )
+                locked_contract = locked_state.contract
+                if locked_contract is None:  # pragma: no cover - reducer invariant
+                    raise IntegrityError(
+                        "active generation omitted its study contract"
+                    )
+                self._validate_typed_generation_environment(
+                    locked_contract,
+                    fresh_report,
+                )
                 live_seal = self._evaluation_seal_from_report(fresh_report)
                 if live_seal.digest != locked_state.evaluation_seal_digest:
                     raise ScientificStateError(
@@ -3150,6 +3750,7 @@ class ResearchService:
                 return self.event_log.append(
                     "EXPERIMENT_REGISTERED",
                     payload,
+                    event_id=event_id,
                     expected_head=expected_head,
                     precondition=validate_locked_registration,
                     postcondition=validate_locked_registration,

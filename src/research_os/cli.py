@@ -118,11 +118,23 @@ def _parser() -> argparse.ArgumentParser:
         type=int,
         help="must equal the immutable constitution repetition count",
     )
+    baseline.add_argument(
+        "--evaluation-scope-id",
+        dest="evaluation_scope_id",
+        action=_SingleValue,
+        help="preregistered StudyContract v2 evaluation scope",
+    )
 
     run_once = subparsers.add_parser(
         "run-once", help="evaluate one candidate JSON object"
     )
     run_once.add_argument("candidate", type=Path)
+    run_once.add_argument(
+        "--proposal",
+        type=Path,
+        action=_SingleValue,
+        help="strict StudyContract v2 Proposal JSON",
+    )
     run_once.add_argument("--parent", dest="parent_id")
     run_once.add_argument(
         "--retry-of",
@@ -217,6 +229,20 @@ def _print(value: Any, *, stream: Any | None = None) -> None:
 
 
 def _dispatch(args: argparse.Namespace) -> Any:
+    if args.command == "run-once" and args.proposal is not None:
+        conflicts = [
+            option
+            for option, value in (
+                ("--parent", args.parent_id),
+                ("--graph-action", args.graph_action),
+                ("--scientific-change", args.scientific_change),
+            )
+            if value is not None
+        ]
+        if conflicts:
+            raise CLIUsageError(
+                "--proposal cannot be combined with " + ", ".join(conflicts)
+            )
     if args.command == "init":
         created = initialize_project(args.path, args.project_id, args.name)
         return {
@@ -258,16 +284,20 @@ def _dispatch(args: argparse.Namespace) -> Any:
                 "--repeats must equal the immutable constitution repetition count "
                 f"({service.config.baseline_repeats})"
             )
-        return service.baseline()
+        if args.evaluation_scope_id is None:
+            return service.baseline()
+        return service.baseline(evaluation_scope_id=args.evaluation_scope_id)
     if args.command == "run-once":
-        return service.run_once(
-            args.candidate,
-            parent_id=args.parent_id,
-            retry_of=args.retry_of,
-            context_token=args.context_token,
-            graph_action=args.graph_action,
-            scientific_change=args.scientific_change,
-        )
+        run_arguments: dict[str, Any] = {
+            "parent_id": args.parent_id,
+            "retry_of": args.retry_of,
+            "context_token": args.context_token,
+            "graph_action": args.graph_action,
+            "scientific_change": args.scientific_change,
+        }
+        if args.proposal is not None:
+            run_arguments["proposal"] = args.proposal
+        return service.run_once(args.candidate, **run_arguments)
     if args.command == "conclude-branch":
         return service.conclude_branch(
             args.conclusion,

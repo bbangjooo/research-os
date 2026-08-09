@@ -1,6 +1,6 @@
 # §03 — M1-C Typed Proposal and Scientific Replication (2026-08-10)
 
-> Status: **IMPLEMENTATION RESUMED — corrected oracle checkpoint `575711f`, claim mode EXPLORATORY**
+> Status: **IMPLEMENTATION GATE PASS — E1~E15 exact, close critic/auditor pending, claim mode EXPLORATORY**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §02
 > 직전 phase: [`§02 M1-B`](02-2026-08-10-m1-b-study-generation-budget.md)
 > Pipeline 영향: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §3, §8.4 Scientific state, §9.4 M1-C
@@ -144,11 +144,17 @@ Manifest의 20 unique case node 전체 observed dict가 expected dict와 exact e
 
 정정은 선언된 범용 해석 규칙을 약화하지 않는다. `expected_state`를 replacement/부분 assertion으로 바꾸지 않고 5개 scenario에 실제 generation ID, baseline scope list, registration IDs, terminal IDs를 명시해 deep-merge 뒤에도 full state가 exact하도록 했다. 동시에 fixture가 이미 요구한 두 `control_assertions`가 named production observer를 실제 호출하도록 harness gate를 강화한다. 정정 뒤 E1~E15 전체를 처음부터 재측정하며, 결과는 exploratory evidence로만 기록한다.
 
+corrected checkpoint 뒤 재측정 결과 E1~E15는 전부 exact 일치했다. Frozen manifest operation은 `20/20`, skip 0이며 Proposal structural negative는 `25/25`, transition negative는 `53/53`, direct locked-append/cold-reducer/projection-rebuild/service-replay path는 `72/72`다. supporting DSL/control/case-ID 독립성 검사는 `6/6`이고, v1 8-event bytes/head와 science/projection/status/replay digest 및 M1-B `29/29` parity도 그대로다. Positive lifecycle observer는 실제 `ResearchService`, reducer, projection, CLI와 toy adapter를 사용했으며 합성 success payload로 결과를 만들지 않았다.
+
+최종 Python 3.12 전체 suite는 `442 passed, 111 subtests passed`, skip 0이다. `ruff check src tests`, `ty check src`, `git diff --check`도 모두 PASS했다. 같은-scope forced race는 두 실제 private `_run_once` lifecycle을 append 경계에서 동기화해 winner 1, stable rejection 1, registration/budget delta 1을 얻었고 내부적으로 terminal 1, winner stage 4, cleanup 1, residual workspace 0을 확인했다. append 직후 `KeyboardInterrupt` 회귀는 registration 1과 `CANCELLED` terminal 1을 확인했다. corrected oracle 이후의 두 concurrency 수정 전 부분 결과는 최종 수치에 포함하지 않았다.
+
 ## 03.5 발견된 부수 이슈
 
 구현 전 탐색에서 scope가 contract digest 밖에서는 전혀 소비되지 않고, 기존 `replicate`가 candidate 변경을 요구하며, projection이 persisted candidate hash/experiment ID를 재계산하지 않는 seam을 발견했다. 이는 M1-C 요구 자체이며 결과로 선점하지 않는다.
 
 구현 중 독립 oracle 감사가 두 가지 harness/oracle 결함을 발견했다. (1) 5개 scenario의 partial-looking `expected_state`가 선언상 deep-merge되어 stale parent leaf를 유지했고, (2) `DocumentResolver`가 frozen fixture의 `control_assertions`를 실행하지 않았으며 baseline derive도 실제 service observer가 아닌 합성 payload builder였다. 둘 다 `RESULT-INVALID`로 분류한다. 제품 코드를 fixture에 맞춰 우회하지 않고 원 결과를 폐기했으며, corrected oracle과 실제 production-observer control을 새 checkpoint로 고정한 뒤 전량 재측정한다.
+
+corrected oracle 아래 통합 중에도 두 concurrency 결함을 별도 최소 재현으로 발견했다. 첫째, 여러 process가 빈 SQLite projection을 동시에 초기화하면 additive migration과 forensic recovery가 겹칠 수 있었다. disposable cache의 모든 initialize/recover/sync/rebuild를 sidecar `flock`으로 직렬화하고 migration/index 교체를 `BEGIN IMMEDIATE`로 묶었으며, 8-worker cold initializer와 반복 stress를 회귀로 추가했다. 둘째, 동일 typed Proposal의 deterministic experiment ID가 충돌할 때 registration loser가 winner의 같은 experiment ID event를 자기 commit으로 오인해 winner를 terminalize/cleanup할 수 있었다. 호출자별 고유 registration event ID를 append 전에 생성해 exact event ID로만 durable commit ownership을 복구하게 했고, append-return 직후 `KeyboardInterrupt`와 실제 `_run_once` two-worker scope race를 모두 고정했다. 전자는 registration 1 + `CANCELLED` terminal 1, 후자는 winner lifecycle 1 + loser adapter call 0을 요구한다. 두 결함 아래의 부분 측정은 결과에서 제외하고 수정 뒤 전량 재측정한다.
 
 ## 03.6 시스템 영향 분석 ★
 
@@ -160,16 +166,16 @@ Manifest의 20 unique case node 전체 observed dict가 expected dict와 exact e
 
 ## 03.6.4 마일스톤 진척 청구 ★
 
-**영향 받은 M_i.j**: `M1-C` · **계획 라벨**: _CLOSE CANDIDATE_
+**영향 받은 M_i.j**: `M1-C` · **계획 라벨**: _IMPLEMENTATION GATE PASS / CLOSE PENDING_
 
 | conjunct | 현재 | close gate |
 |---|---|---|
-| Proposal schema/preflight tests PASS | ❌ | E4/E5 + actual service preflight |
-| candidate payload와 orchestration metadata 분리 | ❌ | E11 candidate exact + adapter request capture |
-| `evaluation_scope_id` identity/replay tests PASS | ❌ | E3/E6/E7/E10/E12 + projection migration |
-| frozen candidate + new preregistered scope만 replication; retry/reuse/change 거절 | ❌ | E5/E8/E9/E13 |
+| Proposal schema/preflight tests PASS | ✅ | E4/E5 + actual service preflight; `25/25`, `53/53`, `72/72` |
+| candidate payload와 orchestration metadata 분리 | ✅ | E11 candidate exact + four-operation adapter request capture |
+| `evaluation_scope_id` identity/replay tests PASS | ✅ | E3/E6/E7/E10/E12 + additive projection migration |
+| frozen candidate + new preregistered scope만 replication; retry/reuse/change 거절 | ✅ | E5/E8/E9/E13; forced `_run_once` race winner/reject `1/1` |
 
-모든 conjunct가 ✅이고 progress critic·독립 7-pass auditor가 PASS하기 전 M1-C를 닫지 않는다. parent M1은 M1-D/E가 남으므로 계속 open이다.
+네 conjunct와 implementation evidence gate는 모두 ✅다. progress critic·독립 7-pass auditor가 PASS하기 전에는 M1-C를 닫지 않는다. parent M1은 M1-D/E가 남으므로 계속 open이다.
 
 ## 03.6.5 종착지 비전 갱신 ★
 
@@ -200,13 +206,13 @@ Manifest의 20 unique case node 전체 observed dict가 expected dict와 exact e
 
 ## 03.7 §북극성 갱신 계획
 
-- NS1: v1 bytes/ID/projection/API exact와 v2 forged/replay/race fail-closed를 보강하되 전체 release protocol-attack gate는 open이다.
+- NS1: v1 bytes/ID/projection/API exact와 v2 forged/replay/race fail-closed를 보강했다. 전체 release protocol-attack gate는 open이다.
 - NS2: 정의된 여섯 capability에는 Proposal/replication이 없으므로 `2/6` 그대로다. Diagnosis gate/class closure/semantic frontier/complete legacy isolation은 M1-D/E까지 open이다.
-- NS3: typed Proposal이 executable oracle과 함께 canonical replay될 때 `0/4 → 1/4`; Diagnosis·ClassState·Claim 세 객체는 M1-D/M2까지 open이다.
+- NS3: typed Proposal이 executable oracle과 함께 canonical replay되어 `0/4 → 1/4`다. Diagnosis·ClassState·Claim 세 객체는 M1-D/M2까지 open이다.
 
 ## 03.8 §pipeline 매핑 영향
 
-- 계획: pipeline Stage 3 Study inference를 `✗ → △`로만 올린다. Proposal/replication identity는 생기지만 Diagnosis/ClassState/frontier가 없으므로 `○`를 청구하지 않는다. endpoint와 milestone chain 의미 변경은 없다.
+- pipeline Stage 3 Study inference를 `✗ → △`로만 올릴 근거가 생겼다. Proposal/replication identity는 생겼지만 Diagnosis/ClassState/frontier가 없으므로 `○`를 청구하지 않는다. endpoint와 milestone chain 의미 변경은 없다.
 
 ## 03.9 비관 재채점 — 이 phase 자체
 
@@ -219,5 +225,5 @@ Manifest의 20 unique case node 전체 observed dict가 expected dict와 exact e
 
 ## 03.10 다음 1행동
 
-- corrected oracle checkpoint `575711f`를 유지한 채 남은 positive lifecycle manifest binding과 projection race regression을 통합한다.
-- 그 뒤 E1~E15를 전량 재측정하고 progress critic·독립 7-pass audit로 M1-C CLOSE 여부를 판정한다.
+- 구현 checkpoint를 고정하고 Q1~Q8 progress critic response를 `DIRECT`/`LIMITATION`으로 판정한다.
+- status core/pipeline을 evidence와 동기화한 뒤 독립 7-pass audit로 M1-C CLOSE 여부를 판정한다.

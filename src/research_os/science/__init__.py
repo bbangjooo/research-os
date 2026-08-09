@@ -10,6 +10,13 @@ from .contracts import (
     generation_id,
     new_generation_id,
 )
+from .proposals import (
+    PROPOSAL_ACTIONS,
+    PROPOSAL_SCHEMA_VERSION,
+    Proposal,
+    canonical_json_diff_pointers,
+    proposal_id,
+)
 from .state import (
     GENERATION_EVENT_TYPE,
     GenerationPlan,
@@ -26,13 +33,18 @@ __all__ = [
     "EvaluationSeal",
     "GENERATION_EVENT_TYPE",
     "GenerationPlan",
+    "PROPOSAL_ACTIONS",
+    "PROPOSAL_SCHEMA_VERSION",
+    "Proposal",
     "ScientificState",
     "ScientificStateError",
     "StudyBudget",
     "StudyContract",
+    "canonical_json_diff_pointers",
     "generation_id",
     "new_generation_id",
     "plan_generation_open",
+    "proposal_id",
     "reduce_scientific_state",
     "registration_payload_fields",
     "reserve_registration",

@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import fcntl
 import os
 import secrets
 import sqlite3
 import stat
 from collections.abc import Callable, Mapping, Sequence
-from contextlib import closing
+from contextlib import closing, contextmanager
 from pathlib import Path
 from typing import Any, TypeVar, cast
 
@@ -68,6 +69,7 @@ _REQUIRED_SCHEMA_COLUMNS = {
             "experiment_id",
             "project_id",
             "generation_id",
+            "evaluation_scope_id",
             "parent_id",
             "candidate_digest",
             "compatibility_digest",
@@ -299,7 +301,18 @@ _REQUIRED_NAMED_INDEXES: dict[str, tuple[str, bool, tuple[str | None, ...]]] = {
     "experiments_candidate_idx": (
         "experiments",
         False,
-        ("project_id", "generation_id", "candidate_digest", "parent_id"),
+        (
+            "project_id",
+            "generation_id",
+            "evaluation_scope_id",
+            "candidate_digest",
+            "parent_id",
+        ),
+    ),
+    "experiments_scope_idx": (
+        "experiments",
+        False,
+        ("project_id", "evaluation_scope_id", "created_sequence"),
     ),
     "experiments_parent_idx": (
         "experiments",
@@ -319,6 +332,7 @@ _REQUIRED_NAMED_INDEXES: dict[str, tuple[str, bool, tuple[str | None, ...]]] = {
             "candidate_digest",
             None,
             "compatibility_digest",
+            None,
             None,
             "attempt",
         ),
@@ -403,6 +417,20 @@ _SCHEMA_ERROR_MARKERS = (
     "no such table",
 )
 
+_TYPED_REGISTRATION_KEYS = frozenset(
+    {"proposal", "proposal_digest", "proposal_id", "evaluation_scope_id"}
+)
+_TYPED_BASELINE_KEYS = frozenset(
+    {
+        "science_state_version",
+        "generation_id",
+        "study_contract_digest",
+        "evaluation_seal_digest",
+        "evaluation_scope_id",
+        "evaluation_scope",
+    }
+)
+
 _T = TypeVar("_T")
 
 
@@ -412,6 +440,27 @@ class _ProjectionCacheInvalid(IntegrityError):
 
 def _normalized_event_type(value: str) -> str:
     return value.strip().upper().replace(".", "_").replace("-", "_")
+
+
+def _requires_scientific_history(event: Event) -> bool:
+    event_type = _normalized_event_type(event.event_type)
+    payload_keys = set(event.payload)
+    if event_type == "EXPERIMENT_REGISTERED":
+        return bool(payload_keys.intersection(_TYPED_REGISTRATION_KEYS))
+    if event_type == "BASELINE_RECORDED":
+        return bool(payload_keys.intersection(_TYPED_BASELINE_KEYS))
+    return False
+
+
+def _validate_scientific_history(
+    events: Sequence[Event], *, project_id: str
+) -> None:
+    # Lazy import keeps the lowest-level event/projection package acyclic while
+    # still making the canonical reducer the authority for every history-aware
+    # projection write.
+    from research_os.science.state import reduce_scientific_state
+
+    reduce_scientific_state(events, project_id=project_id)
 
 
 def _pick(payload: Mapping[str, Any], *keys: str, default: Any = None) -> Any:
@@ -515,11 +564,56 @@ class ProjectionStore:
             raise IntegrityError(
                 f"projection database must not be a symbolic link: {self.path}"
             )
-        self._secure_database_file()
+        with self._cache_maintenance_lock():
+            self._secure_database_file()
+            try:
+                self._initialize()
+            except (_ProjectionCacheInvalid, sqlite3.DatabaseError) as exc:
+                self._recover_after_failure(
+                    "initialize", exc, maintenance_lock_held=True
+                )
+
+    @contextmanager
+    def _cache_maintenance_lock(self):
+        """Serialize schema migration and quarantine across processes."""
+
+        path = self.path.with_name(f".{self.path.name}.maintenance.lock")
+        flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_CLOEXEC", 0)
+        flags |= getattr(os, "O_NOFOLLOW", 0)
+        descriptor = -1
         try:
-            self._initialize()
-        except (_ProjectionCacheInvalid, sqlite3.DatabaseError) as exc:
-            self._recover_after_failure("initialize", exc)
+            descriptor = os.open(path, flags, 0o600)
+            opened = os.fstat(descriptor)
+            if not stat.S_ISREG(opened.st_mode) or opened.st_nlink != 1:
+                raise IntegrityError(
+                    "projection maintenance lock must be a private regular file"
+                )
+            os.fchmod(descriptor, 0o600)
+            fcntl.flock(descriptor, fcntl.LOCK_EX)
+            current = os.fstat(descriptor)
+            linked = path.lstat()
+            if (
+                not stat.S_ISREG(linked.st_mode)
+                or linked.st_nlink != 1
+                or (linked.st_dev, linked.st_ino) != (current.st_dev, current.st_ino)
+                or (opened.st_dev, opened.st_ino) != (current.st_dev, current.st_ino)
+            ):
+                raise IntegrityError(
+                    "projection maintenance lock changed while acquiring"
+                )
+            yield
+        except IntegrityError:
+            raise
+        except OSError as exc:
+            raise IntegrityError(
+                f"cannot safely lock projection maintenance: {exc}"
+            ) from exc
+        finally:
+            if descriptor >= 0:
+                try:
+                    fcntl.flock(descriptor, fcntl.LOCK_UN)
+                finally:
+                    os.close(descriptor)
 
     @staticmethod
     def _is_recoverable_cache_failure(exc: BaseException) -> bool:
@@ -534,7 +628,11 @@ class ProjectionStore:
         return any(marker in message for marker in _SCHEMA_ERROR_MARKERS)
 
     def _recover_after_failure(
-        self, operation: str, exc: _ProjectionCacheInvalid | sqlite3.DatabaseError
+        self,
+        operation: str,
+        exc: _ProjectionCacheInvalid | sqlite3.DatabaseError,
+        *,
+        maintenance_lock_held: bool = False,
     ) -> None:
         """Replace a broken derived cache, or normalize a non-cache failure."""
 
@@ -542,6 +640,14 @@ class ProjectionStore:
             raise IntegrityError(
                 f"cannot {operation} projection database: {exc}"
             ) from exc
+        if not maintenance_lock_held:
+            with self._cache_maintenance_lock():
+                self._recover_after_failure(
+                    operation,
+                    exc,
+                    maintenance_lock_held=True,
+                )
+            return
         self._quarantine_corrupt_database()
         try:
             self._initialize()
@@ -555,20 +661,25 @@ class ProjectionStore:
     ) -> _T:
         """Run a projection write, replacing and retrying its cache at most once."""
 
-        try:
-            return action()
-        except (_ProjectionCacheInvalid, sqlite3.DatabaseError) as exc:
-            self._recover_after_failure(operation, exc)
-        try:
-            return action()
-        except _ProjectionCacheInvalid as retry_exc:
-            raise IntegrityError(
-                f"cannot {operation} projection database after recovery: {retry_exc}"
-            ) from retry_exc
-        except sqlite3.DatabaseError as retry_exc:
-            raise IntegrityError(
-                f"cannot {operation} projection database after recovery: {retry_exc}"
-            ) from retry_exc
+        with self._cache_maintenance_lock():
+            try:
+                return action()
+            except (_ProjectionCacheInvalid, sqlite3.DatabaseError) as exc:
+                self._recover_after_failure(
+                    operation,
+                    exc,
+                    maintenance_lock_held=True,
+                )
+            try:
+                return action()
+            except _ProjectionCacheInvalid as retry_exc:
+                raise IntegrityError(
+                    f"cannot {operation} projection database after recovery: {retry_exc}"
+                ) from retry_exc
+            except sqlite3.DatabaseError as retry_exc:
+                raise IntegrityError(
+                    f"cannot {operation} projection database after recovery: {retry_exc}"
+                ) from retry_exc
 
     def _quarantine_corrupt_database(self) -> tuple[Path, ...]:
         """Move corrupt derived SQLite files aside before creating a clean cache."""
@@ -680,6 +791,7 @@ class ProjectionStore:
                     experiment_id TEXT PRIMARY KEY,
                     project_id TEXT NOT NULL,
                     generation_id TEXT,
+                    evaluation_scope_id TEXT,
                     parent_id TEXT,
                     candidate_digest TEXT NOT NULL,
                     compatibility_digest TEXT NOT NULL,
@@ -699,8 +811,6 @@ class ProjectionStore:
 
                 CREATE INDEX IF NOT EXISTS experiments_project_status_idx
                     ON experiments(project_id, status, created_sequence);
-                CREATE INDEX IF NOT EXISTS experiments_candidate_idx
-                    ON experiments(project_id, candidate_digest, parent_id);
                 CREATE INDEX IF NOT EXISTS experiments_parent_idx
                     ON experiments(project_id, parent_id);
 
@@ -799,6 +909,10 @@ class ProjectionStore:
                     ON projected_events(project_id, event_sequence);
                 """
             )
+            # ``executescript`` commits its bootstrap statements independently.
+            # Hold one writer transaction across every additive migration and
+            # index replacement so readers never observe a half-migrated cache.
+            connection.execute("BEGIN IMMEDIATE")
             columns = {
                 row["name"]
                 for row in connection.execute(
@@ -878,6 +992,50 @@ class ProjectionStore:
                     "PRAGMA table_info(experiments)"
                 ).fetchall()
             }
+            if "evaluation_scope_id" not in columns:
+                connection.execute(
+                    "ALTER TABLE experiments ADD COLUMN evaluation_scope_id TEXT"
+                )
+                rows = connection.execute(
+                    "SELECT experiment_id, payload_json FROM experiments"
+                ).fetchall()
+                for row in rows:
+                    try:
+                        payload = strict_json_loads(row["payload_json"])
+                    except (TypeError, ValueError) as exc:
+                        raise _ProjectionCacheInvalid(
+                            f"cannot migrate experiment {row['experiment_id']!r}: {exc}"
+                        ) from exc
+                    evaluation_scope_id = (
+                        payload.get("evaluation_scope_id")
+                        if isinstance(payload, dict)
+                        else None
+                    )
+                    if evaluation_scope_id is None:
+                        continue
+                    try:
+                        normalized_scope_id = require_text(
+                            evaluation_scope_id, "evaluation_scope_id"
+                        )
+                        if normalized_scope_id != evaluation_scope_id:
+                            raise ValueError(
+                                "evaluation_scope_id must already be trimmed"
+                            )
+                    except (TypeError, ValueError) as exc:
+                        raise _ProjectionCacheInvalid(
+                            f"cannot migrate experiment {row['experiment_id']!r}: {exc}"
+                        ) from exc
+                    connection.execute(
+                        "UPDATE experiments SET evaluation_scope_id = ? "
+                        "WHERE experiment_id = ?",
+                        (normalized_scope_id, row["experiment_id"]),
+                    )
+            columns = {
+                row["name"]
+                for row in connection.execute(
+                    "PRAGMA table_info(experiments)"
+                ).fetchall()
+            }
             legacy_retry_schema = not {"attempt", "retry_of", "retryable"}.issubset(
                 columns
             )
@@ -899,10 +1057,15 @@ class ProjectionStore:
                 "CREATE INDEX IF NOT EXISTS experiments_retry_idx "
                 "ON experiments(project_id, retry_of)"
             )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS experiments_scope_idx "
+                "ON experiments(project_id, evaluation_scope_id, created_sequence)"
+            )
             connection.execute("DROP INDEX IF EXISTS experiments_candidate_idx")
             connection.execute(
                 "CREATE INDEX experiments_candidate_idx "
-                "ON experiments(project_id, generation_id, candidate_digest, parent_id)"
+                "ON experiments(project_id, generation_id, evaluation_scope_id, "
+                "candidate_digest, parent_id)"
             )
 
             # A pre-retry projection could only contain the first attempt because
@@ -953,10 +1116,15 @@ class ProjectionStore:
                 "experiments_candidate_parent_compatibility_attempt_unique_idx"
             )
             connection.execute(
-                "CREATE UNIQUE INDEX IF NOT EXISTS "
+                "DROP INDEX IF EXISTS "
+                "experiments_candidate_parent_compatibility_generation_attempt_unique_idx"
+            )
+            connection.execute(
+                "CREATE UNIQUE INDEX "
                 "experiments_candidate_parent_compatibility_generation_attempt_unique_idx "
                 "ON experiments(project_id, candidate_digest, COALESCE(parent_id, ''), "
-                "compatibility_digest, COALESCE(generation_id, ''), attempt)"
+                "compatibility_digest, COALESCE(generation_id, ''), "
+                "COALESCE(evaluation_scope_id, ''), attempt)"
             )
             self._validate_schema(
                 connection,
@@ -1214,7 +1382,7 @@ class ProjectionStore:
             "ATTEMPT_"
             "UNIQUE_IDXONEXPERIMENTS(PROJECT_ID,CANDIDATE_DIGEST,"
             "COALESCE(PARENT_ID,''),COMPATIBILITY_DIGEST,"
-            "COALESCE(GENERATION_ID,''),ATTEMPT)"
+            "COALESCE(GENERATION_ID,''),COALESCE(EVALUATION_SCOPE_ID,''),ATTEMPT)"
         )
         if candidate_sql != expected_candidate_sql:
             raise _ProjectionCacheInvalid(
@@ -1332,6 +1500,9 @@ class ProjectionStore:
             try:
                 self._validate_schema(connection)
                 with event_log.locked_read() as events:
+                    _validate_scientific_history(
+                        events, project_id=event_log.project_id
+                    )
                     self._reset(connection)
                     for event in events:
                         self._apply_one(connection, event)
@@ -1350,6 +1521,9 @@ class ProjectionStore:
             try:
                 self._validate_schema(connection)
                 with event_log.locked_read() as events:
+                    _validate_scientific_history(
+                        events, project_id=event_log.project_id
+                    )
                     cursor = self._cursor(connection)
                     position = int(cursor["last_sequence"])
                     if position > len(events):
@@ -1381,6 +1555,10 @@ class ProjectionStore:
         # Re-hash Event instances too; frozen attributes are not a trust boundary for
         # mutable payload values.
         normalized = Event.from_mapping(normalized.to_dict())
+        if _requires_scientific_history(normalized):
+            raise IntegrityError(
+                "typed scientific events require canonical history; use sync or rebuild"
+            )
         with closing(self._connect()) as connection, connection:
             connection.execute("BEGIN IMMEDIATE")
             cursor = self._cursor(connection)
@@ -1532,6 +1710,7 @@ class ProjectionStore:
         experiment_id = _text(event.payload, "experiment_id", "id", required=True)
         assert experiment_id is not None
         generation_id = _text(event.payload, "generation_id")
+        evaluation_scope_id = _text(event.payload, "evaluation_scope_id")
         parent_id = _text(event.payload, "parent_id", "parent_experiment_id")
         digest = _text(event.payload, "candidate_digest", "digest", required=True)
         assert digest is not None
@@ -1590,6 +1769,26 @@ class ProjectionStore:
         if attempt == 1:
             if retry_of is not None:
                 raise IntegrityError("the first attempt cannot declare retry_of")
+            if evaluation_scope_id is not None:
+                reused_scope = connection.execute(
+                    "SELECT experiment_id FROM experiments "
+                    "WHERE project_id = ? AND candidate_digest = ? "
+                    "AND ((generation_id = ?) OR "
+                    "(generation_id IS NULL AND ? IS NULL)) "
+                    "AND evaluation_scope_id = ? AND attempt = 1 LIMIT 1",
+                    (
+                        event.project_id,
+                        digest,
+                        generation_id,
+                        generation_id,
+                        evaluation_scope_id,
+                    ),
+                ).fetchone()
+                if reused_scope is not None:
+                    raise IntegrityError(
+                        "candidate and evaluation scope were already used "
+                        "in this generation"
+                    )
         else:
             if retry_of is None:
                 raise IntegrityError("a retry attempt must declare retry_of")
@@ -1603,10 +1802,11 @@ class ProjectionStore:
                 or prior["parent_id"] != parent_id
                 or prior["compatibility_digest"] != compatibility_digest
                 or prior["generation_id"] != generation_id
+                or prior["evaluation_scope_id"] != evaluation_scope_id
             ):
                 raise IntegrityError(
                     "retry_of must reference the same candidate, parent, compatibility, "
-                    "and generation"
+                    "generation, and evaluation scope"
                 )
             if int(prior["attempt"]) != attempt - 1:
                 raise IntegrityError("retry attempts must be contiguous")
@@ -1616,6 +1816,8 @@ class ProjectionStore:
                 "AND ((parent_id = ?) OR (parent_id IS NULL AND ? IS NULL)) "
                 "AND compatibility_digest = ? "
                 "AND ((generation_id = ?) OR (generation_id IS NULL AND ? IS NULL)) "
+                "AND ((evaluation_scope_id = ?) OR "
+                "(evaluation_scope_id IS NULL AND ? IS NULL)) "
                 "ORDER BY attempt DESC LIMIT 1",
                 (
                     event.project_id,
@@ -1625,6 +1827,8 @@ class ProjectionStore:
                     compatibility_digest,
                     generation_id,
                     generation_id,
+                    evaluation_scope_id,
+                    evaluation_scope_id,
                 ),
             ).fetchone()
             if latest is None or latest["experiment_id"] != retry_of:
@@ -1670,14 +1874,16 @@ class ProjectionStore:
         try:
             connection.execute(
                 "INSERT INTO experiments "
-                "(experiment_id, project_id, generation_id, parent_id, candidate_digest, "
-                "compatibility_digest, attempt, retry_of, retryable, status, payload_json, "
-                "registered_at, terminated_at, created_sequence, updated_sequence) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, NULL, ?, ?)",
+                "(experiment_id, project_id, generation_id, evaluation_scope_id, "
+                "parent_id, candidate_digest, compatibility_digest, attempt, retry_of, "
+                "retryable, status, payload_json, registered_at, terminated_at, "
+                "created_sequence, updated_sequence) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, NULL, ?, ?)",
                 (
                     experiment_id,
                     event.project_id,
                     generation_id,
+                    evaluation_scope_id,
                     parent_id,
                     digest,
                     compatibility_digest,
@@ -2265,6 +2471,8 @@ class ProjectionStore:
         # decoded legacy rows; versioned experiments expose the concrete axis.
         if result.get("generation_id") is None:
             result.pop("generation_id", None)
+        if result.get("evaluation_scope_id") is None:
+            result.pop("evaluation_scope_id", None)
         if "retryable" in result:
             result["retryable"] = bool(result["retryable"])
         for key in tuple(result):
@@ -2361,6 +2569,7 @@ class ProjectionStore:
         parent_id: str | None,
         compatibility_digest: str | None = None,
         generation_id: str | None = None,
+        evaluation_scope_id: str | None = None,
     ) -> bool:
         project_id = require_text(project_id, "project_id")
         digest = require_text(digest, "digest")
@@ -2381,6 +2590,13 @@ class ProjectionStore:
         else:
             clauses.append("generation_id = ?")
             parameters.append(require_text(generation_id, "generation_id"))
+        if evaluation_scope_id is None:
+            clauses.append("evaluation_scope_id IS NULL")
+        else:
+            clauses.append("evaluation_scope_id = ?")
+            parameters.append(
+                require_text(evaluation_scope_id, "evaluation_scope_id")
+            )
         query = "SELECT 1 FROM experiments WHERE " + " AND ".join(clauses) + " LIMIT 1"
         with closing(self._connect()) as connection, connection:
             row = connection.execute(query, parameters).fetchone()
@@ -2402,6 +2618,7 @@ class ProjectionStore:
         parent_id: str | None,
         compatibility_digest: str,
         generation_id: str | None = None,
+        evaluation_scope_id: str | None = None,
     ) -> list[dict[str, Any]]:
         """Return every attempt for one candidate identity in attempt order."""
 
@@ -2426,6 +2643,13 @@ class ProjectionStore:
         else:
             clauses.append("generation_id = ?")
             parameters.append(require_text(generation_id, "generation_id"))
+        if evaluation_scope_id is None:
+            clauses.append("evaluation_scope_id IS NULL")
+        else:
+            clauses.append("evaluation_scope_id = ?")
+            parameters.append(
+                require_text(evaluation_scope_id, "evaluation_scope_id")
+            )
         query = (
             "SELECT * FROM experiments WHERE "
             + " AND ".join(clauses)

@@ -156,6 +156,25 @@ research-os --project /path/to/project findings
 research-os --project /path/to/project replay
 ```
 
+StudyContract v2 uses a typed Proposal and a preregistered evaluation scope
+instead of the legacy graph flags:
+
+```bash
+research-os --project /path/to/project baseline \
+  --evaluation-scope-id development
+research-os --project /path/to/project run-once candidate.json \
+  --proposal proposal.json
+# A retry inherits the persisted candidate, Proposal, parent, and scope.
+research-os --project /path/to/project run-once candidate.json \
+  --retry-of exp_PRIOR
+```
+
+The adapter must advertise `evaluation_scope_v1` before a v2 generation can
+open. Research OS binds the full declared scope to the baseline, all four
+candidate operations, experiment identity, and replay; it does not infer that
+two datasets are scientifically independent merely because their scope IDs
+differ.
+
 Codex and Claude Code use `agent-context` plus `--context-token`; that guarded
 path requires a current independent evaluator certificate and an already sealed
 baseline. Tokenless `run-once` remains only as a legacy/manual compatibility path
