@@ -10,12 +10,14 @@
 
 ### 0.1 마지막 갱신
 
-- 날짜: 2026-08-09
+- 날짜: 2026-08-10
 - 요약:
   - 사용자가 v0.3 Scientific State → v0.4 Program Memory → v0.5 Autonomous Single-Agent Loop 순서를 승인했다.
   - 구현 전 기준선은 제품 v0.2.0, Python 3.12에서 262 tests + 57 subtests PASS다.
+  - 당시 dirty-working-tree 기준선은 tag `research-os-m1a-working-tree-baseline` / commit `50c4957`로 복구·보존되어 별도 checkout에서 `262/57`이 재현된다.
   - Bootstrap critic과 Rule 9 사용자 회고가 PASS했고 checkpoint `e728df9`로 고정됐다.
-  - M1-A는 exact evidence semantics·baseline VERIFY·certification lifecycle 사전 명세와 critic 단계다.
+  - M1-A의 typed evidence semantics·baseline VERIFY 대칭·certification lifecycle이 checkpoint `ed76067`에 구현됐다.
+  - 최종 전체 회귀는 `290 passed, 67 subtests`; 두 독립 구현 재검토, progress critic, 7-pass progress auditor는 PASS다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 
@@ -26,29 +28,29 @@ uv run --python 3.12 --with pytest --no-project env PYTHONPATH=src pytest -q
 rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 ```
 
-- 기준선 명령 결과: `262 passed, 57 subtests passed in 55.31s`.
+- 현재 명령 결과: `290 passed, 67 subtests passed in 64.34s`.
 - 제품 버전: `0.2.0`.
-- 사용자 소유·포함 승인된 기존 수정: `src/research_os/certification.py`, `tests/test_evaluator_certification_unit.py`.
+- 승인된 기존 certification 수정은 M1-A checkpoint `ed76067`에 포함됐다.
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** M1-A 사전 critic을 생성·응답하고 pre-spec checkpoint를 commit한다.
+- [ ] **단일 최우선 행동:** M1-B StudyContract·generation·누적 budget의 exact schema/산술/TOCTOU oracle을 구현 전에 phase plan과 critic으로 고정한다.
 - 그 다음:
-  - pre-spec checkpoint가 성공하면 → M1-A 구현과 집중 검증을 시작한다.
-  - critic이 범위/판정 공백을 지적하면 → 구현 전에 phase plan을 먼저 보강한다.
+  - M1-B pre-spec checkpoint가 성공하면 → canonical state/reducer와 locked budget registration을 구현한다.
+  - critic이 범위/판정 공백을 지적하면 → 구현 전에 M1-B phase plan을 먼저 보강한다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
 | 항목 | 위치 | 상태 | 근거 |
 |---|---|---|---|
-| v0.2 제품 코드 | `src/research_os/` | 동작 | 위 §0.2 pytest 명령 PASS |
-| 기존 전체 테스트 | `tests/` | 동작 | 262 tests + 57 subtests PASS |
-| 진행 상태 core | `docs/research-os-status.md` | active | bootstrap `e728df9`, M1-A phase plan |
-| 방법론 pipeline core | `docs/research-os-pipeline.md` | active | bootstrap `e728df9` |
+| v0.2 제품 + M1-A 코드 | `src/research_os/` | 동작 | checkpoint `ed76067`; 위 §0.2 PASS |
+| 기존+M1-A 테스트 | `tests/` | 동작 | 290 tests + 67 subtests PASS |
+| 진행 상태 core | `docs/research-os-status.md` | active | M1-A close evidence; M1-B next action |
+| 방법론 pipeline core | `docs/research-os-pipeline.md` | active | Cycle 01 evidence/current-state delta |
 
 ### 0.5 알려진 잔여 이슈
 
-- 기존 certification patch는 frozen nested adapter fingerprint를 정규화하지만 `doctor`와 `evaluator-review-subject` CLI lifecycle 회귀가 아직 없다.
+- candidate-only `VERIFY`를 구현한 외부 adapter는 baseline VERIFY 추가에 change-control이 필요하며, 실제 호환성은 v0.5 이후 pilot 전 별도 판정한다.
 - `.venv`/기본 `uv run`이 Python 3.10을 선택할 수 있어 프로젝트 요구사항 Python ≥3.11을 만족하는 명시적 검증 명령이 필요하다.
 - v0.2 managed agent skill을 이후 release로 안전하게 upgrade하는 known-release 경로가 없다.
 - v0.5 성능 청구는 bootstrap 시점에는 사전 데이터 노출 commit이 없으므로 기본적으로 `EXPLORATORY`이며, 고정 benchmark 결과 후 별도 confirmatory validation이 필요하다.
@@ -79,7 +81,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 - 저장소: `/Users/bbangjo/research-os`, 제품 버전 `0.2.0`, commit `6f36a1b` 기반.
 - 구현 크기: `src/research_os`와 `tests` Python 합계 26,822 LOC.
-- 검증 기준선: Python 3.12에서 262 tests + 57 subtests PASS.
+- 검증 기준선: 보존 tag `research-os-m1a-working-tree-baseline`에서 Python 3.12 `262 tests + 57 subtests` PASS.
 - 강점: append-only hash-chained event log, disposable projection, artifact CAS, evaluator certification, stale-context와 compatibility gate, fail-closed recovery, `authorized_action=null`.
 - 핵심 갭: graph metadata는 `graph_action`과 자유문자열 `scientific_change` 중심이고, terminal 실패를 기계 판독 가능한 diagnosis/class/claim으로 축적해 다음 proposal에 재사용하는 상태가 없다.
 - `crypto-new`, `manager`, `BinancePredictionStrategy`가 Research OS를 사용하지만 v0.5까지는 해당 프로젝트를 live migration하지 않고 read-only 호환성만 점검한다.
@@ -136,16 +138,17 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 #### 2.3.2 현재 active checkpoint
 
-- **Active M_i.j**: `M1-A`
-- **이 M.j가 닫혀야 다음에 가능해지는 작업**: typed scientific state가 신뢰할 수 있는 delta·gate evidence를 소비할 수 있다.
-- **M1 parent close까지 남은 sub**: `M1-A`, `M1-B`, `M1-C`, `M1-D`, `M1-E`.
+- **Active M_i.j**: `M1-B`
+- **직전 close가 가능하게 한 작업**: typed scientific state가 신뢰할 수 있는 delta·gate·baseline verification evidence를 소비할 수 있다.
+- **이 M.j가 닫혀야 다음에 가능해지는 작업**: Proposal과 replication이 canonical generation identity와 누적 budget을 bind할 수 있다.
+- **M1 parent close까지 남은 sub**: `M1-B`, `M1-C`, `M1-D`, `M1-E`.
 
 #### 2.3.3 M 진척 표
 
 | M_i.j | 정의 (요약) | exit conjunct progress | 상태 | closed-by phase | 근거 |
 |---|---|---|---|---|---|
-| M1-A | Decision/evidence correctness | 0/4 ✅ | active | — | pipeline §9.4 |
-| M1-B | Study generation과 누적 budget | 0/4 ✅ | open | — | pipeline §9.4 |
+| M1-A | Decision/evidence correctness | 4/4 ✅ | closed | 01 | phase §01.3~§01.6.4 |
+| M1-B | Study generation과 누적 budget | 0/4 ✅ | active | — | pipeline §9.4 |
 | M1-C | Typed Proposal과 replication identity | 0/4 ✅ | open | — | pipeline §9.4 |
 | M1-D | Diagnosis·ClassState·semantic frontier | 0/5 ✅ | open | — | pipeline §9.4 |
 | M1-E | Context v3·legacy compatibility·v0.3 release | 0/5 ✅ | open | — | pipeline §9.4 |
@@ -163,6 +166,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | Phase § | 일자 | 영향 받은 M_i.j | conjunct | advance / close | 비고 |
 |---|---|---|---|---|---|
 | 00 | 2026-08-09 | M1~M3 정의 | bootstrap | advance | 사용자 마일스톤 승인; 구현 전 |
+| 01 | 2026-08-10 | M1-A | 4/4 | close | E1~E9 exact; `290+67`; critic + auditor PASS |
 
 #### 2.3.5 Gate-bypass 기록
 
@@ -181,15 +185,15 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | § | 일자 / 단계 | 디테일 파일 | 한 줄 요약 |
 |---|---|---|---|
 | 00 | 2026-08-09 / Bootstrap | [`research-os-status/00-bootstrap-retro.md`](research-os-status/00-bootstrap-retro.md) | critic PASS + 사용자 회고로 목표·북극성·종착지·M chain 고정 |
-| 01 | 2026-08-09 / M1-A | [`research-os-status/01-2026-08-09-m1-a-evidence-correctness.md`](research-os-status/01-2026-08-09-m1-a-evidence-correctness.md) | 구현 전 evidence correctness 판정·예상 결과 고정 |
+| 01 | 2026-08-09~10 / M1-A | [`research-os-status/01-2026-08-09-m1-a-evidence-correctness.md`](research-os-status/01-2026-08-09-m1-a-evidence-correctness.md) | typed gate·baseline VERIFY·certification lifecycle 4/4 close |
 
 ---
 
 ## 11. 한 페이지 요약 (TL;DR)
 
-- 현재 상태: v0.2.0, 기존 262 tests + 57 subtests PASS, v0.3~v0.5 learning-state surface는 미구현.
-- 마지막 phase: Cycle 00 bootstrap closed; Cycle 01 M1-A pre-spec 진행 중.
-- 다음 1행동: M1-A 사전 critic과 pre-spec checkpoint를 고정한다.
+- 현재 상태: 제품 version은 아직 v0.2.0; M1-A 구현 checkpoint `ed76067`, 전체 290 tests + 67 subtests PASS.
+- 마지막 phase: Cycle 01 M1-A 4/4 close; progress critic PASS, 1차 audit의 baseline 재현성 지적 수리 후 7-pass 재감사 PASS.
+- 다음 1행동: M1-B StudyContract·generation·누적 budget 사전 명세와 critic을 고정한다.
 - 가장 큰 갭: terminal 실패가 evidence-bound diagnosis/class/claim으로 변환되어 다음 proposal을 제한·개선하지 않는다.
 
 ---
@@ -207,10 +211,10 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 12.2 북극성 — 지표 / 현재 / 갭 / 근거 / 시스템 영향 ★
 
-| 지표 | 북극성 | 현재 (2026-08-09) | 갭 | 근거 | 시스템 영향 |
+| 지표 | 북극성 | 현재 (2026-08-10) | 갭 | 근거 | 시스템 영향 |
 |---|---|---|---|---|---|
-| NS1. 무결성·권한 하위호환 | 기존 262 tests와 모든 신규 suite 100% PASS ∧ versioned `tests/fixtures/protocol_attacks/v1/manifest.json`의 전체 위반 행 차단률 100% ∧ `authorized_action` non-null 0건 ∧ v1 event replay 100% | 기존 262 tests + 57 subtests PASS; versioned attack manifest와 신규 schema/loop attack 행 0개 | manifest·digest·공격 행·replay evidence 필요 | §0.2 pytest 명령; pipeline §7.2 attack manifest 규칙; `README.md` authority contract | 학습 기능이 기존 fail-closed·no-deployment 보장을 약화하지 않는다 |
-| NS2. 기계 강제 scientific state | generation/contract·누적 budget·diagnosis gate·class closure·semantic frontier·legacy isolation 6/6 동작 ∧ `tests/fixtures/scientific_state/v1/manifest.json`의 모든 입력 상태/transition/거절 code/closure threshold 판정 일치 | 0/6; 일부는 shared skill 자유문서 규율; transition oracle 없음 | 6 capability + versioned transition oracle | pipeline §2.2의 manifest schema와 향후 fixture digest; `agent.py`, `graph_policy.py` | 실패 후 같은 class를 반복하지 않고 허용된 다음 행동만 실행한다 |
+| NS1. 무결성·권한 하위호환 | 기존 262 tests와 모든 신규 suite 100% PASS ∧ versioned `tests/fixtures/protocol_attacks/v1/manifest.json`의 전체 위반 행 차단률 100% ∧ `authorized_action` non-null 0건 ∧ v1 event replay 100% | 기존+M1-A `290 tests + 67 subtests` PASS; changed authority surface non-null 0; baseline/certification focused attacks PASS | versioned attack manifest·전체 v1 replay·release evidence 필요 | §0.2; phase §01.3~§01.4; `README.md` authority contract | 학습 기능이 기존 fail-closed·no-deployment 보장을 약화하지 않는다 |
+| NS2. 기계 강제 scientific state | generation/contract·누적 budget·diagnosis gate·class closure·semantic frontier·legacy isolation 6/6 동작 ∧ `tests/fixtures/scientific_state/v1/manifest.json`의 모든 입력 상태/transition/거절 code/closure threshold 판정 일치 | 0/6; typed delta/gate/verification prerequisite는 구현, canonical transition oracle은 없음 | 6 capability + versioned transition oracle | phase §01.4; pipeline §2.2; `agent.py`, `graph_policy.py` | 실패 후 같은 class를 반복하지 않고 허용된 다음 행동만 실행한다 |
 | NS3. Durable learning 객체 | typed Proposal·Diagnosis·ClassState·Claim 4/4가 exact event/artifact evidence와 digest로 replay | 0/4; 범용 Finding만 존재 | 4 typed objects | `src/research_os/memory/findings.py`, `src/research_os/kernel/projection.py` | 실패가 검색 가능한 지식과 class 상태로 남는다 |
 | NS4. Program memory 정확도 | versioned `tests/fixtures/program_memory/retrieval-v1.json`의 exact ordered oracle에서 relevant claim recall 100% ∧ contradiction recall 100% ∧ superseded exclusion 100% ∧ shuffled/irrelevant contamination 0% | 0/4; program log/retrieval/oracle 없음 | 4 retrieval criteria + oracle manifest | pipeline §5.2의 분모·empty/tie/scope 규칙과 향후 fixture digest | 다음 proposal이 관련 지식만 근거로 사용하고 오염된 memory를 배제한다 |
 | NS5. 단일 자율 루프 완결성 | context→proposal→preflight→run→diagnosis→synthesis→next/stop 7 transition 모두 canonical state로 재개 가능 ∧ closed-class registration 0건 | 0/7; 사람이 외부 agent 대화를 수동 연결 | 7 transitions + resume | `docs/agent-usage.md`; 신규 loop integration suite | 유한 예산 안에서 중단·재개 가능한 provider-neutral 연구 episode를 수행한다 |
@@ -227,16 +231,16 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 | # | 작업 | 추정 LOC | 어떤 §북극성 행을 움직이나 | 시스템 영향 (예상) |
 |---|---|---|---|---|
-| 1 | M1-A evidence correctness + certification patch 완결 | 250~500 | NS1, NS2 | 진단이 소비할 구조화 delta/gate evidence 생성 |
-| 2 | M1-B~E Scientific State | 1,500~3,000 | NS1, NS2, NS3, NS5, NS7 | 과학 상태를 문서가 아닌 kernel이 강제 |
-| 3 | M2 Program Memory | 1,200~2,500 | NS1, NS3, NS4, NS7 | 실패·조건부 claim을 다음 연구에 재사용 |
-| 4 | M3 Autonomous Loop | 1,000~2,200 | NS1, NS5, NS6, NS7 | 단일 agent가 유한 연구 episode를 자동 완결 |
+| 1 | M1-B~E Scientific State | 1,500~3,000 | NS1, NS2, NS3, NS5, NS7 | 과학 상태를 문서가 아닌 kernel이 강제 |
+| 2 | M2 Program Memory | 1,200~2,500 | NS1, NS3, NS4, NS7 | 실패·조건부 claim을 다음 연구에 재사용 |
+| 3 | M3 Autonomous Loop | 1,000~2,200 | NS1, NS5, NS6, NS7 | 단일 agent가 유한 연구 episode를 자동 완결 |
 
 ### 12.4 비관 재채점 (latest) ★
 
 | 단계 | 이전 | 현재 (비관) | 사유 | 반례/근거 |
 |---|---|---|---|---|
-| Integrity kernel | 평가상 우수 | ○ | tokenless legacy path와 unstructured gate가 새 scientific state 보장을 우회할 수 있음 | README의 tokenless compatibility 경계 |
+| Integrity kernel | 평가상 우수 | ○ | typed gates와 baseline verify 대칭은 닫혔으나 tokenless legacy/write attack manifest는 후속 gate | phase §01; README compatibility 경계 |
+| Evidence semantics | arbitrary constraint 중심 | ○ | directional delta·typed slack·verify symmetry 구현; 외부 metric 의미는 아직 contract 밖 | phase §01 E1~E9 |
 | Scientific State | 문서상 일부 존재 | ✗ | diagnosis/class closure/frontier가 canonical machine state가 아님 | NS2 = 0/6 |
 | Program Memory | Finding 존재 | ✗ | project-bound free-form finding은 conditional claim graph가 아님 | NS3 = 0/4, NS4 = 0/4 |
 | Autonomous Loop | agent workflow 존재 | ✗ | 외부 대화가 수동으로 각 단계를 이어주며 resume 가능한 loop state가 없음 | NS5 = 0/7 |
@@ -249,13 +253,13 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | Phase | 누적 LOC | 비고 | 검증 산출물 |
 |---|---|---|---|
 | 00 Bootstrap | 911 doc LOC | 코드 변경 0; status 266 + pipeline 490 + critic 51 + retro 104 lines | pytest 기준선, bootstrap critic PASS, 사용자 retro 승인, commit `e728df9` |
-| 01 M1-A | 구현 전 산정 대기 | phase plan/critic 사전 고정 단계 | E1~E9 exact expected outcomes; 실측 전 |
+| 01 M1-A | implementation `+2429/-64` + phase close docs | 18 implementation files; Python 총 LOC `29,037` | baseline `262+57`, focused `65+16`, full `290+67`, critic + auditor PASS |
 
 ---
 
 ## 14. pipeline §매핑 / §종착지 동기화 체크
 
-마지막 동기화 일자: 2026-08-09
+마지막 동기화 일자: 2026-08-10
 
 - [x] pipeline §10 매핑 표 초기 평가 작성
 - [x] status §북극성과 pipeline §8·§10 일관성 확인
@@ -267,3 +271,6 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 - [x] 축소 비전 없음; 의도적 제외는 사용자 승인 범위와 일치
 - [x] Bootstrap critic PASS (`docs/research-os-status/00-bootstrap.critic.md`)
 - [x] Rule 9 사용자 retrospective 완료 (`docs/research-os-status/00-bootstrap-retro.md`)
+- [x] Cycle 01 M1-A에서 status §12와 pipeline §8.4·§8.5·§10 동기화
+- [x] M chain 의미 변경 없음; 추가 Rule 9 retrospective 불필요
+- [x] Cycle 01 progress critic + independent 7-pass auditor 최종 PASS

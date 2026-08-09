@@ -48,9 +48,9 @@
 6. **유한 자율 루프** (§6): provider의 출력은 비신뢰 packet이며 kernel preflight 뒤에만 실행된다.
 7. **비교 가능한 효과 측정** (§7): 동일 후보 언어·실험 budget에서 정확도와 낭비를 비교한다.
 
-현재 상태:
+현재 상태 (Cycle 01):
 
-- 1번 ⚠️ — ResultEnvelope와 Decision은 있으나 structured operator/threshold/slack과 baseline verify 대칭이 없다.
+- 1번 ✅/○ — directional delta, constitution-owned typed gate/slack, baseline/candidate verify 대칭과 nested/flat certification lifecycle이 구현·검증됐다.
 - 2번 ❌ — process limit은 있으나 generation cumulative budget·StudyContract가 없다.
 - 3번 ❌ — 자유문자열 graph metadata와 Finding만 있고 typed diagnosis/class reducer가 없다.
 - 4번 ❌ — project-bound Finding은 cross-project conditional Program Claim이 아니다.
@@ -82,9 +82,9 @@ Evaluator의 관측값을 kernel 소유 gate 정의와 결합해 metric delta, t
 
 ### 1.4 코드 관점
 
-- 기존 seam: `src/research_os/contracts/results.py`, `src/research_os/policy.py`, `src/research_os/service.py`.
+- 구현 seam: `src/research_os/contracts/results.py`, `src/research_os/config.py`, `src/research_os/policy.py`, `src/research_os/service.py`.
 - 새 contract는 project candidate JSON과 분리한다.
-- M1-A에서 기존 flat certificate와 nested immutable fingerprint lifecycle을 함께 회귀한다.
+- M1-A에서 기존 flat certificate와 nested immutable fingerprint lifecycle을 함께 회귀했고 Python 3.12 전체 `290 tests + 67 subtests`가 통과했다.
 
 ---
 
@@ -308,22 +308,23 @@ Canonical truth boundaries:
 
 ### 8.4 비전 vs 현재 — 갭 요약
 
-| 영역 | 종착지 모습 | 현재 모습 | Cycle 00 delta |
+| 영역 | 종착지 모습 | 현재 모습 | latest delta |
 |---|---|---|---|
-| Evidence semantics | 방향 보정 delta와 typed gate/slack이 veto와 무관하게 남음 | arbitrary constraint + pass/status, baseline verify 비대칭 | 구체화 |
+| Evidence semantics | 방향 보정 delta와 typed gate/slack이 veto와 무관하게 남음 | M1-A 구현: directional delta/margin, typed gate/slack, baseline/candidate VERIFY 대칭 | Cycle 01 구체화·검증 |
 | Study control | StudyContract와 cumulative budget이 atomic registration을 지배 | brief/skill 규율 + per-run resource cap | 추가 |
 | Study inference | typed Proposal·Diagnosis·ClassState와 semantic frontier | graph action + free-text scientific change + leaf frontier | 추가 |
 | Program memory | conditional Claim graph가 exact origin evidence를 참조 | project-bound generic Finding | 추가 |
 | Context | v3가 budget/class/pending diagnosis/relevant claim/reason을 제공 | bounded v2 packet, recent leaf/finding 중심 | 구체화 |
 | Autonomy | provider-neutral finite state machine이 stop/resume | 외부 대화가 수동으로 단계를 연결 | 추가 |
 | Meta-evaluation | post-freeze unseen 36 episodes와 choice oracle로 v0.2/v0.5 paired comparison | benchmark/comparator/oracle/generator 없음 | 추가 |
-| Compatibility/authority | v1 logs 무변환, legacy 격리, authority null 유지 | v1 replay·authority null은 강함; 새 schema migration 미정 | 구체화 |
+| Compatibility/authority | v1 logs 무변환, legacy 격리, authority null 유지 | nested/flat certification lifecycle과 M1-A authority-null scan PASS; 전체 v1 migration/release gate는 미정 | Cycle 01 evidence 보강 |
 
 ### 8.5 비전 변경 이력 ★
 
 | Cycle | 일자 | 변경 분류 | 변경 내용 | Trigger |
 |---|---|---|---|---|
 | 00 | 2026-08-09 | 추가·구체화 | integrity kernel 위에 study inference, program memory, provider-neutral loop와 fixed-budget 판정 종착지를 정의 | 사용자 v0.5 승인과 기존 프로젝트 분석 |
+| 01 | 2026-08-10 | 구체화·검증 | Evidence semantics를 typed delta/gate/slack·VERIFY 대칭으로 구현하고 Compatibility/authority의 nested/flat lifecycle·null scan evidence를 보강 | M1-A E1~E9 exact, checkpoint `ed76067` |
 
 ---
 
@@ -412,13 +413,13 @@ Canonical truth boundaries:
 
 | 단계 | 부합도 | 구현 위치 / 한계 | 근거 |
 |---|---|---|---|
-| 1. Evidence semantics | △ | `results.py`, `policy.py`; arbitrary constraints·baseline verify 비대칭 | NS1/NS2, M1-A tests 예정 |
+| 1. Evidence semantics | ○ | `results.py`, `config.py`, `policy.py`, `service.py`; typed gates·delta/margin·VERIFY 대칭 구현, metric 의미 타당성은 후속 contract 대상 | M1-A E1~E9; `290 tests + 67 subtests` PASS |
 | 2. Study generation | △ | per-run caps와 brief는 있으나 cumulative canonical contract 없음 | `config.py`, `architecture.md` |
 | 3. Study inference | ✗ | free-text metadata/leaf frontier, typed diagnosis/class 없음 | `graph_policy.py`, `agent.py`, `service.py` |
 | 4. Program memory | ✗ | project-bound Finding만 존재 | `memory/findings.py` |
 | 5. Relevant context v3 | ✗ | context v2 bounded snapshot만 존재 | `agent.py`, `docs/agent-usage.md` |
 | 6. Autonomous single-agent | ✗ | provider-neutral CLI는 있으나 canonical loop state 없음 | `docs/architecture.md` |
-| 7. Meta-evaluation/release | ✗ | 전체 regression suite는 강하나 learning benchmark 없음 | 262 tests + 57 subtests PASS; NS6 측정 전 |
+| 7. Meta-evaluation/release | ✗ | 전체 regression suite는 강하나 learning benchmark 없음 | 290 tests + 67 subtests PASS; NS6 측정 전 |
 
 범례: ◎ 우수 / ○ 양호 / △ 부분 / ✗ 미구현
 
@@ -430,11 +431,10 @@ Canonical truth boundaries:
 
 ### 10.3 메꿔야 할 갭 (이 문서 기준)
 
-1. evaluator evidence가 diagnosis에 필요한 typed delta/slack을 충분히 보존하지 않는다.
-2. 과학 상태와 누적 budget이 canonical machine state가 아니다.
-3. terminal 실패가 Proposal/Diagnosis/ClassState/Claim으로 연결되지 않는다.
-4. relevant memory retrieval과 knowledge disposition이 없다.
-5. autonomous loop와 fixed-budget learning benchmark가 없다.
+1. StudyContract, generation identity와 누적 budget이 canonical machine state가 아니다.
+2. terminal evidence가 Proposal/Diagnosis/ClassState/Claim으로 연결되지 않는다.
+3. relevant memory retrieval과 knowledge disposition이 없다.
+4. autonomous loop와 fixed-budget learning benchmark가 없다.
 
 ### 10.4 한 문장 요약
 

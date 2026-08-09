@@ -1,14 +1,14 @@
 # §01 — M1-A Evidence Correctness (2026-08-09)
 
-> Status: **PLAN — 구현 전 사전 명세**
+> Status: **CLOSED — critic PASS + independent auditor PASS**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §01
 > 직전 phase: [`§00 Bootstrap`](00-bootstrap-retro.md)
 > Pipeline 영향: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §1, §8.4 Evidence semantics·Compatibility/authority, §9.4 M1-A
-> 구현 전 기준선: commit `e728df9`, Python 3.12에서 `262 passed, 57 subtests passed`
+> 구현 전 기준선: 보존 tag `research-os-m1a-working-tree-baseline` / commit `50c4957` / tree `b7523f4`, Python 3.12에서 `262 passed, 57 subtests passed`
 
 ## 01.0 한 단락 요약 (TL;DR)
 
-M1-A는 veto가 있더라도 방향 보정 metric delta와 promotion margin을 보존하고, constitution 소유 typed gate를 evaluator metric 관측과 결합해 signed/normalized slack으로 판정한다. baseline도 candidate와 같은 sealed `VERIFY` 경계를 통과시키며, 승인된 기존 certification patch는 nested immutable fingerprint의 실제 CLI lifecycle까지 회귀한다. 목표 §북극성은 NS1·NS2, 목표 종착지 delta는 §8.4 Evidence semantics 구체화와 Compatibility/authority current-state 보강, 목표 checkpoint는 M1-A의 네 conjunct 전부를 `CLOSE`하는 것이다. 구현 결과가 기록되기 전이므로 이 파일의 결과·측정 절은 아직 미완료다.
+M1-A는 veto와 무관한 방향 보정 metric delta·promotion margin, constitution 소유 typed gate의 signed/normalized slack, baseline/candidate `VERIFY` 대칭성을 구현했다. 승인된 기존 certification patch는 nested immutable fingerprint의 실제 CLI lifecycle과 flat legacy replay까지 회귀했다. 사전 고정 E1~E9는 모두 exact match했고 Python 3.12 전체 suite는 `290 passed, 67 subtests`다. 네 exit conjunct와 common regression oracle은 progress critic과 독립 7-pass auditor의 PASS로 닫혔다.
 
 ## 01.1 왜 이 작업을 하나
 
@@ -66,32 +66,50 @@ baseline real-subprocess test는 adapter가 받은 operation/result digest를 du
 
 | 작업 | 위치 | LOC | 검증 산출물 |
 |---|---|---:|---|
-| typed gate contract/config/policy | 계획: `contracts/results.py`, `config.py`, `policy.py` | TBD | 계획: unit + service E2E |
-| baseline VERIFY symmetry | 계획: `service.py` | TBD | 계획: lifecycle/regression tests |
-| nested certification normalization + atomic CLI JSON | 승인된 dirty patch 포함; `certification.py`, `service.py`, `cli.py` | TBD | 계획: unit + real CLI lifecycle |
-| 문서·예제 계약 | 계획: examples/docs as needed | TBD | 계획: protocol example tests |
+| typed gate contract/config/policy | `contracts/results.py`, `contracts/__init__.py`, `config.py`, `policy.py` | src `+521/-18` | `test_policy_gates_unit.py` + M1-A E2E (`+752`) |
+| baseline VERIFY symmetry | `service.py` | src `+149/-11` | real-subprocess symmetry/attack suite (`+504`) |
+| nested certification normalization + atomic CLI JSON | 승인된 dirty patch 포함; `certification.py`, `cli.py` | src `+22/-6` | unit + real CLI lifecycle (`+372/-1`) |
+| 문서·예제 계약 | `README.md`, `docs/{adapter-protocol,architecture,new-project}.md`, protocol/failure tests | docs `+81/-20`, tests `+28/-8` | examples protocol + failure contract |
+
+구현 checkpoint `ed76067` 전체는 18 files, `+2429/-64`다. 위 행은 파일 소유 기준이며 `service.py`의 inspect/baseline 경계처럼 둘 이상의 기능을 잇는 코드는 중복 계산하지 않았다.
 
 ## 01.3 검증 (근거)
 
-- 구현 전 기준선: `uv run --python 3.12 --with pytest --no-project env PYTHONPATH=src pytest -q` → `262 passed, 57 subtests passed in 55.31s`.
-- 신규 집중 테스트: 구현 후 기록.
-- 전체 regression/정적 검사: 구현 후 기록.
-- critic verify와 독립 auditor: 구현 후 기록.
+- 구현 전 dirty-working-tree 기준선은 tag `research-os-m1a-working-tree-baseline`의 commit `50c495780b6bec6058b7f0ee4393f8217c4ed169`(tree `b7523f4ff1aa2a986544fcbc73744b76f6984db6`, parent `6f36a1b`)으로 보존했다. 별도 detached worktree에서 `uv run --python 3.12 --with pytest --no-project env PYTHONPATH=src pytest -q` → `262 passed, 57 subtests passed in 54.66s`.
+- 위 보존 tree는 parent 대비 승인된 dirty certification 파일 두 개만 `+91/-2`다. bootstrap docs commit `e728df9`는 기준선 코드 commit이 아니라 진행 문서 checkpoint이며, clean tree 자체의 수치는 `261/54`다.
+- M1-A 집중 suite: `uv run --python 3.12 --with pytest --no-project env PYTHONPATH=src pytest -q tests/test_policy_gates_unit.py tests/test_baseline_verify_symmetry.py tests/test_evaluator_certification_cli.py tests/test_evaluator_certification_unit.py tests/test_m1a_evidence_e2e.py tests/test_examples_protocol.py tests/test_failure_contract.py` → `65 passed, 16 subtests passed in 8.00s`.
+- 전체 regression: 같은 Python 3.12 명령의 전체 `pytest -q` → `290 passed, 67 subtests passed in 64.34s`.
+- 정적 검사: `ruff check src tests` → `All checks passed!`; `ty check src` → `All checks passed!`; `git diff --check` → exit `0`.
+- 독립 구현 검토 1: policy/gate reviewer가 unsafe integer→float rounding fail-open을 발견했고 수정 후 `PASS`; focused `15 passed`.
+- 독립 구현 검토 2: baseline integrity reviewer가 legacy validation skip과 failed/malformed VERIFY mutation dominance를 발견했고 수정 후 `PASS`; focused `11 passed, 9 subtests`.
+- progress critic verify: `PASS`; 독립 재현 focused `65/16`, full `290/67`, ruff/ty/diff-check PASS, Q1~Q8 모두 DIRECT 판정.
+- 독립 progress auditor 1차: `FAIL` — 문서가 dirty baseline을 `e728df9` clean tree에 잘못 귀속해 E9 재현성을 잃었다고 판정했다. unreachable Git tree에서 exact working tree를 복구·tag/commit으로 보존하고 `262/57`을 재측정했다.
+- 독립 progress auditor 재감사: `PASS`; 전체 trail은 [`01-m1-a-evidence-correctness.audit.md`](01-m1-a-evidence-correctness.audit.md).
 
 ## 01.4 결과 vs 가설
 
-| 가설 | 실제 측정값 | 차이 사유 |
+| ID | 실제 측정값 | 판정 |
 |---|---|---|
-| E1~E9가 exact 일치하고 M1-A 4 conjunct를 모두 닫는다 | 구현 전 — 미측정 | 구현 후 기록 |
+| E1 | maximize의 legacy/typed hard veto 모두 improvement `12`, margin `7`, `REJECTED/HARD_CONSTRAINT_FAILED` | exact match |
+| E2 | minimize의 legacy/typed hard veto 모두 improvement `12`, margin `7`, `REJECTED/HARD_CONSTRAINT_FAILED` | exact match |
+| E3 | gte observed `12/8/10` → signed `2/-2/0`, normalized `0.5/-0.5/0`, pass `T/F/T` | exact match |
+| E4 | lte observed `8/12/10` → signed `2/-2/0`, normalized `0.5/-0.5/0`, pass `T/F/T` | exact match |
+| E5 | repeats `2`에서 `BASELINE→VERIFY` 2쌍과 digest-bound verification evidence 2개 | exact match |
+| E6 | negative/malformed VERIFY 및 verify 뒤 source/artifact/workspace mutation에서 `BASELINE_RECORDED` 0; post-check failure가 parse/cleanup 오류보다 우선 | exact match |
+| E7 | nested fingerprint doctor/review-subject/certify/inspect exit `0`, stderr empty, JSON stdout, equivalent callback drift `0` | exact match |
+| E8 | flat certificate와 verification-less legacy baseline replay PASS; 현재 비교에는 미사용 후 reseal, malformed legacy는 skip 전에 거절 | exact match |
+| E9 | 전체 `290 passed, 67 subtests`; changed Decision/event/CLI surface authority key 분모 `>=6`, non-null `0` | exact match |
 
 ## 01.5 발견된 부수 이슈
 
-- 현재 없음. 구현 중 관찰되지만 M1-A 밖인 항목은 질문/근거와 함께 여기에 남긴다.
+- M1-A 이전 외부 adapter가 candidate-only `VERIFY`를 구현했다면 baseline 호출 추가는 adapter change-control이 필요하다. v0.5 전 live migration을 하지 않으므로 여기서 호환된다고 추정하지 않는다.
+- typed gate 산술의 정확성은 metric observation의 과학적 타당성까지 보증하지 않는다. metric 의미·scope·seal은 M1-B/C의 contract 대상이다.
+- M1-A는 Diagnosis·ClassState를 생성하지 않는다. 실패를 다음 가설 제약으로 바꾸는 핵심 능력은 M1-D까지 여전히 없다.
 
 ## 01.6 시스템 영향 분석 ★
 
 - 이 phase 이전: evaluator-owned opaque constraint가 delta보다 먼저 veto하고, baseline은 candidate VERIFY 경계와 비대칭이며, nested immutable fingerprint는 일부 API 경계에서 JSON 직렬화가 불안정하다.
-- 이 phase 이후 목표: veto와 무관한 delta/margin 및 kernel-owned typed slack이 terminal evidence에 남고, baseline/candidate가 대칭 검증되며, nested/flat certification lifecycle이 모두 replay 가능하다.
+- 이 phase 이후: veto와 무관한 delta/margin 및 kernel-owned typed slack이 terminal evidence에 남고, baseline/candidate가 대칭 검증되며, nested/flat certification lifecycle이 모두 replay 가능하다.
 - 실제로 가능해질 행동: M1-D Diagnosis가 “효과 없음 / hard 위반 / support 부족”을 exact numeric evidence로 구분한다.
 - 실제로 불가능해질 행동: unverified baseline이나 missing/non-finite gate observation이 candidate 승격을 지지하는 것.
 - downstream: M1-B~D scientific state가 trustworthy evidence semantics를 소비할 수 있다.
@@ -101,54 +119,61 @@ baseline real-subprocess test는 adapter가 받은 operation/result digest를 du
 
 **영향 받은 M_i.j**: `M1-A`
 
-**계획 라벨**: _CLOSE_ — 아래 네 conjunct가 모두 재현 가능한 evidence로 ✅일 때만 실제 CLOSE로 바꾼다.
+**실측 라벨**: _CLOSE_ — 아래 네 conjunct와 공통 regression/authority oracle이 모두 재현됐다.
 
-| conjunct | 이전 상태 | 이번 phase 목표 | 근거 |
+| conjunct | 이전 상태 | 실측 상태 | 근거 |
 |---|---|---|---|
-| veto 전 maximize/minimize delta·margin tests PASS | ❌ | ✅ | E1/E2 집중 tests + terminal Decision evidence |
-| typed gte/lte, hard/support, signed/normalized slack fail-closed tests PASS | ❌ | ✅ | E3/E4 + invalid/missing/overflow tests |
-| baseline verify 대칭 tests PASS | ❌ | ✅ | E5/E6/E8 lifecycle tests |
-| nested certification CLI lifecycle + flat legacy replay PASS | 기존 dirty patch 탐색적 | ✅ | E7/E8 unit + real CLI tests |
+| veto 전 maximize/minimize delta·margin tests PASS | ❌ | ✅ | E1/E2 4 paired rows exact; focused/full PASS |
+| typed gte/lte, hard/support, signed/normalized slack fail-closed tests PASS | ❌ | ✅ | E3/E4 + permutation + missing/non-finite/unsafe-int PASS |
+| baseline verify 대칭 tests PASS | ❌ | ✅ | E5/E6/E8 real subprocess + mutation dominance PASS |
+| nested certification CLI lifecycle + flat legacy replay PASS | 기존 dirty patch 탐색적 | ✅ | E7/E8 unit + real CLI lifecycle PASS |
 
-- 모든 conjunct ✅ 확인 [ ]
-- status §2.3에서 `M1-A=closed`, `M1-B=active` 갱신 [ ]
+- 모든 conjunct ✅ 확인 [x]
+- status §2.3에서 `M1-A=closed`, `M1-B=active` 갱신 [x]
 - parent M1은 M1-B~E가 남으므로 open 유지 [x]
 - Prerequisite: M1은 첫 milestone이므로 N/A; gate-bypass 없음.
 
 ## 01.6.5 종착지 비전 갱신 (end-state delta) ★
 
 - 이 phase 이전: pipeline §8.4 Evidence semantics는 “arbitrary constraint + pass/status, baseline verify 비대칭”.
-- 이 phase 이후 목표:
+- 이 phase 이후:
   - Evidence semantics: “directional delta + constitution-owned typed gate/slack + baseline/candidate verify symmetry”를 실행 증거로 구체화한다.
   - Compatibility/authority: nested immutable fingerprint CLI와 flat legacy certificate replay, changed authority surface non-null 0의 current evidence를 보강한다.
-- 계획 Delta: **두 영역 구체화**; §8.4 endpoint 자체·NS/M exit 기준은 약화하거나 바꾸지 않는다.
+- 실측 Delta: **두 영역 구체화**; §8.4 endpoint 자체·NS/M exit 기준은 약화하거나 바꾸지 않았다.
 - 제거/포기 항목: 없음.
 - 그대로 유지: Study control 이후 영역과 v0.5 unseen benchmark gate; M1-A 범위 밖이다.
-- pipeline §8.5 Cycle 01 행: 구현/검증 후 추가 [ ].
+- pipeline §8.5 Cycle 01 행: 구현·검증 delta 추가 [x].
 
 ## 01.6.6 의도-실행 정합 (Intent-Execution Reconciliation) ★
 
-**계획 라벨**: _MATCH_
+**실측 라벨**: _MATCH_
 
 - 의도: NS1·NS2를 위해 M1-A 네 conjunct를 모두 닫고 §8.4 Evidence semantics를 구체화한다.
-- 실행: 구현 후 실제 파일·test count·event/CLI 측정을 기록한다.
-- PIVOT/DRIFT가 발생하면 MATCH로 닫지 않고 status §2 Decision chain 또는 correction phase를 먼저 갱신한다.
+- 실행: exact typed gate·baseline VERIFY·certification lifecycle만 구현했고, 실제 파일·test count·event/CLI 측정을 기록했다.
+- PIVOT/DRIFT 없음. live migration, Diagnosis/ClassState, M chain 의미는 건드리지 않았다.
 
 ## 01.6.7 Claim Mode (청구 등급) ★
 
-**계획 라벨**: _MIXED_
+**실측 라벨**: _MIXED_
 
-| 청구 행 | 등급 | 근거 계획 |
+| 청구 행 | 등급 | 근거 |
 |---|---|---|
 | 승인 전에 존재한 certification normalization patch의 결함 수정 | EXPLORATORY | 코드 변경이 bootstrap pre-spec보다 먼저 존재했으므로 confirmatory로 청구하지 않는다. full lifecycle 회귀는 경계를 넓히지만 이 행의 등급을 소급 승격하지 않는다. |
-| typed gate·delta/margin·baseline VERIFY 신규 동작 | CONFIRMATORY 목표 | 본 phase plan+critic pre-spec checkpoint hash/timestamp가 구현·신규 결과 노출 commit보다 앞서야 한다. hash는 checkpoint 후 기록한다. |
-| 기존 full regression 보존 | CONFIRMATORY 목표 | 사전 고정 E9와 구현 후 독립 full-suite 결과를 commit 순서로 기록한다. |
+| typed gate·delta/margin·baseline VERIFY 신규 동작 | CONFIRMATORY candidate | pre-spec `c1f1b75`가 implementation/result checkpoint `ed76067`보다 먼저이고 E1~E8이 exact match했다. |
+| 기존 full regression 보존 | CONFIRMATORY candidate | E9 사전 고정 뒤 보존 baseline `50c4957`의 `262/57`과 implementation checkpoint `ed76067`의 전체 `290/67`을 각각 detached/current tree에서 재현했다. |
 
-- Pre-spec checkpoint: `PENDING`.
-- 첫 데이터 노출 commit: `PENDING`.
-- timestamp 순서 확인: 구현 후 기록.
+- Pre-spec checkpoint: `c1f1b7551f19b258d8811654fd168fb3e1e506bb`, `2026-08-09T23:41:51+09:00`.
+- 첫 implementation/result-bearing checkpoint: `ed76067a4af2936f9637f2fa3053df6d0b23822f`, `2026-08-10T00:23:41+09:00`.
+- timestamp 순서: pre-spec가 41분 50초 선행. certification patch 행은 이 순서와 무관하게 EXPLORATORY다.
+- Dirty baseline preservation: tag `research-os-m1a-working-tree-baseline` → commit `50c495780b6bec6058b7f0ee4393f8217c4ed169` → tree `b7523f4ff1aa2a986544fcbc73744b76f6984db6`; tree 내용은 original base `6f36a1b` + 승인된 certification patch 두 파일뿐이다. 보존 ref 생성 시각은 결과 뒤이므로 certification patch 등급을 승격하지 않고, E9의 사전 고정 expected count와 현재 full-suite 결과의 선후관계만 confirmatory 후보로 청구한다.
 
 ## 01.6.8 Requirement-Result Divergence ★
+
+**최종 유효 측정: 해당 없음 — E1~E9 exact match.**
+
+개발 중 독립 검토가 (1) JS-safe 범위 밖 정수의 float 반올림 fail-open, (2) malformed legacy baseline을 reseal 전에 완전 검증하지 않는 경로, (3) failed/malformed VERIFY가 mutation post-check보다 먼저 오류를 내는 경로를 발견했다. 이는 모두 `RESULT-INVALID` implementation defect로 분류해 당시 결과를 폐기했고, 동일 pre-spec 아래 regression을 추가한 뒤 focused/full suite 전체를 다시 측정했다. 수정 전 결과를 CLOSE 근거로 사용하지 않았다.
+
+1차 progress audit에서는 문서가 dirty-working-tree `262/57`을 clean bootstrap docs commit `e728df9`에 귀속한 탓에 E9 evidence가 `RESULT-INVALID`로 판정됐다. 그 audit 결과를 CLOSE 근거에서 제외한 뒤 exact unreachable tree `b7523f4`를 보존 commit/tag로 승격하고 별도 checkout에서 `262/57`을 재현했다. 요구값·NS1·M1-A criterion은 바꾸지 않았으며, 최종 E9는 보존 baseline과 current full suite를 모두 재현 가능한 측정으로 다시 판정한다.
 
 구현 전 분류 신호를 다음처럼 고정한다. E1~E9 차이가 있으면 어떤 갈래든 M1-A CLOSE를 우선 차단한다.
 
@@ -156,18 +181,16 @@ baseline real-subprocess test는 adapter가 받은 operation/result digest를 du
 - `RESULT-INVALID`: test harness가 operation/digest/event를 완전 관측하지 못함, fixture가 nondeterministic함, 잘못된 Python/runtime을 사용함, implementation bug로 사전 산술·wire oracle과 불일치함, 또는 측정 명령이 재현되지 않는 경우. 해당 결과는 §01.7 evidence에서 제외하고 동일 pre-spec 아래 harness/implementation을 수정한 뒤 전부 재측정한다.
 - `GENUINE-FINDING`: harness·runtime·독립 oracle이 모두 유효하고 반복 재현되지만 기존 kernel의 문서화되지 않은 recovery/ordering/legacy interaction이 예상과 다르게 나타난 경우. 그 행은 §01.6.7에서 EXPLORATORY로만 청구하고, 최소 재현 fixture와 사전 고정 holdout regression을 다음 cycle에 수행한다. requirement 변경 없이 고칠 수 있더라도 이번 CLOSE 근거에는 포함하지 않는다.
 
-실측 후 이 절 맨 앞에 `해당 없음 — E1~E9 exact match` 또는 실제 갈래/근거를 추가한다.
-
 ## 01.7 §북극성 갱신 (이 cycle 이후)
 
-- NS1: 기존 regression + baseline/certification integrity evidence가 생기면 부분 진척. NS1 전체 attack manifest/release gate는 후속 phase이므로 갭=0 청구하지 않는다.
-- NS2: evidence semantics capability만 부분 진척. NS2의 6/6 scientific state는 M1-B~E 후에만 닫힌다.
+- NS1: 기존+신규 전체 suite 100% PASS, M1-A changed authority surface non-null `0`, baseline/certification 공격 회귀를 확보했다. 그러나 versioned attack manifest·전체 v1 replay·release evidence가 남아 있어 NS1은 부분 진척이다.
+- NS2: 후속 scientific state가 소비할 typed evidence prerequisite를 확보했지만 정의된 6 capability 중 닫힌 항목은 여전히 `0/6`이다. M1-A 산술을 NS2 capability 하나로 과대계상하지 않는다.
 
 ## 01.8 §pipeline 매핑 영향
 
-- 목표: Stage 1 Evidence semantics `△ → ○`; Compatibility/authority의 current evidence 보강(등급은 v1 replay 전체 gate 전까지 유지).
-- pipeline §8.4·§8.5·§10.1 갱신은 구현 증거 후 수행한다.
-- 새 함정/메트릭이 발견되면 pipeline §1.2/§1.3에 반영한다.
+- Stage 1 Evidence semantics `△ → ○`.
+- Compatibility/authority current evidence는 nested/flat lifecycle과 authority-null scan으로 보강했지만, v1 replay 전체 gate 전까지 종착지 도달로 보지 않는다.
+- pipeline §8.4·§8.5·§10.1을 같은 cycle에서 동기화했다.
 
 ## 01.9 비관 재채점 — 이 phase 자체
 
@@ -177,6 +200,7 @@ baseline real-subprocess test는 adapter가 받은 operation/result digest를 du
 
 ## 01.10 다음 1행동
 
-- 단일 최우선 행동: M1-A 사전 critic 질문을 생성·응답하고 pre-spec checkpoint를 commit한다.
-- 그 다음: disjoint ownership으로 typed policy, baseline symmetry, certification lifecycle를 구현하고 집중/전체 tests → critic verify → 독립 auditor 순서로 닫는다.
-- 실패 시: exact divergence를 §01.6.8에 분류하고 해당 conjunct를 open으로 유지한다.
+- 단일 최우선 행동: M1-B Study generation/cumulative budget의 exact schema·산술·TOCTOU oracle을 구현 전에 phase plan과 critic으로 고정한다.
+- 그 다음: pre-spec checkpoint 뒤 canonical StudyContract/generation/budget ledger를 구현하고 M1-B 4 conjunct를 검증한다.
+- certification normalization patch 자체의 EXPLORATORY 등급은 유지한다. M1-E pre-spec에서 새 frozen nested/flat replay fixture와 release lifecycle을 고정한 뒤 별도 confirmatory regression으로 재측정한다.
+- 실패 시: M1-B divergence를 새 phase 파일에 분류하고 M1-B를 open으로 유지한다.
