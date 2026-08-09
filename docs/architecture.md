@@ -90,6 +90,44 @@ any veto. Directional primary-metric improvement and promotion margin are also
 computed first, so a hard failure cannot erase evidence of an otherwise useful
 effect.
 
+## Study generations and budget authority
+
+A versioned research run may open one canonical study generation from a strict
+`StudyContract`. The contract fixes hypothesis classes, candidate intervention
+pointers, evaluation-scope identities, frontier and stop policy, change control,
+and the generation's attempt, retry, elapsed-allocation, and optional
+cost-allocation limits. Its canonical digest is independent from the evaluation
+seal, which binds the current effective compatibility, evaluator certificate,
+and review subject.
+
+`research.study_generation_opened.v1` records both digests and the full normalized
+contract. The generation ID is deterministic over project, predecessor, contract,
+and evaluation-seal identity. Repeating the active contract and seal is
+idempotent. A changed successor must name the exact active predecessor and a
+non-empty reason; an unchanged successor is rejected so it cannot reset a spent
+budget.
+
+Once a generation exists, every experiment registration must carry its generation
+ID, contract and seal digests, the full version-one science bundle, and
+`authorized_action: null`. The registration's debit is derived from the contract:
+one attempt, zero or one retry, and fixed elapsed/cost reservations. The caller
+cannot choose these values. Terminal status does not refund them, and a null cost
+contract remains unknown rather than becoming zero.
+
+The canonical event stream, not SQLite, is the budget authority. Immediately
+before append, `EventLog`'s exclusive-lock precondition replays the supplied
+locked events and reserves the debit, preventing two processes from spending the
+last slot. `study-status` and `replay` use the same pure reducer, so live state,
+cold replay, and projection rebuild produce the same generation binding and
+ledger or the same stable failure code.
+
+These limits are conservative reserved allocations, not actual elapsed/cost
+telemetry, and they apply per generation. Explicitly opening changed successors
+can increase the total study allocation; Research OS preserves that change
+history but does not yet impose a lifetime cap. Registrations before the first
+generation remain readable as `legacy_unstructured`; after a generation opens,
+an unbound or partial registration fails closed.
+
 ## Scientific correctness boundary
 
 Research OS proves that configured bytes and protocol results are bounded,

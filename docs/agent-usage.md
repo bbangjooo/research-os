@@ -172,6 +172,46 @@ actual byte absence or a separate account, container/mount, or custodian. Final
 holdout evaluation occurs once after the candidate and implementation are frozen
 and does not feed another tuning iteration.
 
+## Study generation and cumulative reservation
+
+For versioned research, setup produces a strict `StudyContract` JSON after the
+scientific inputs are fixed and the evaluator certificate is current. Open it
+before obtaining the agent context used for the first proposal:
+
+```text
+research-os --project PATH open-generation /ABS/PATH/study-contract.json
+research-os --project PATH study-status
+research-os --project PATH baseline
+research-os --project PATH agent-context
+```
+
+The contract pre-registers hypothesis classes, allowed candidate JSON pointers,
+evaluation scopes, frontier/stop policy, and fixed per-registration reservations.
+All objects use exact version-one keys; unknown, missing, duplicate, unsafe, or
+semantically inconsistent values fail closed. The generation event binds the
+normalized contract separately from the current compatibility and evaluator
+certification seal.
+
+Every registration after that event atomically reserves one attempt, an optional
+retry, elapsed allocation, and optional cost allocation. A failed, invalid,
+cancelled, timed-out, untrusted, rejected, or validated terminal outcome consumes
+the same reservation; there is no refund. These are conservative allocations,
+not actual usage telemetry. `study-status` is replay-derived and is the operator's
+current budget view.
+
+A scientific or evaluation change opens an explicit successor only after the
+normal change-control and re-certification work:
+
+```text
+research-os --project PATH open-generation NEW-CONTRACT.json \
+  --predecessor-generation-id generation_CURRENT \
+  --change-reason "state the preregistered change"
+```
+
+The same contract and seal cannot be used to reset a generation. A genuinely
+changed successor receives a fresh per-generation budget; repeated successors
+are auditable but there is not yet a study-lifetime cap.
+
 ## Scientific graph workflow
 
 Research follows a phase machine rather than unconstrained sequential parameter

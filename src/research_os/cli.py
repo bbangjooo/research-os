@@ -158,6 +158,35 @@ def _parser() -> argparse.ArgumentParser:
         help="require the canonical agent-context snapshot to still be current",
     )
 
+    open_generation = subparsers.add_parser(
+        "open-generation",
+        help="open an evaluation-sealed study generation from a strict contract",
+    )
+    open_generation.add_argument(
+        "contract",
+        type=Path,
+        help="strict StudyContract JSON",
+    )
+    open_generation.add_argument(
+        "--predecessor-generation-id",
+        "--predecessor",
+        dest="predecessor_generation_id",
+        action=_SingleValue,
+        help="active generation being explicitly superseded",
+    )
+    open_generation.add_argument(
+        "--change-reason",
+        "--reason",
+        dest="change_reason",
+        action=_SingleValue,
+        help="non-empty reason required for a successor generation",
+    )
+
+    subparsers.add_parser(
+        "study-status",
+        help="show the replay-derived active study generation and reserved budget",
+    )
+
     subparsers.add_parser("status", help="show projected project status")
 
     lineage = subparsers.add_parser(
@@ -244,6 +273,14 @@ def _dispatch(args: argparse.Namespace) -> Any:
             args.conclusion,
             context_token=args.context_token,
         )
+    if args.command == "open-generation":
+        return service.open_generation(
+            args.contract,
+            predecessor_generation_id=args.predecessor_generation_id,
+            change_reason=args.change_reason,
+        )
+    if args.command == "study-status":
+        return service.study_status()
     if args.command == "status":
         return service.status()
     if args.command == "lineage":

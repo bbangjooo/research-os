@@ -254,11 +254,21 @@ Project code and agents must use a different key for their own findings.
 ## First integration run
 
 Create at least one candidate JSON object according to the project-owned schema,
-then run the gates explicitly:
+prepare a strict `StudyContract` JSON for versioned research, then run the gates
+explicitly:
 
 ```bash
+RESEARCH_REVIEW_DIR="$(mktemp -d)"
 research-os --project /path/to/your-project inspect
 research-os --project /path/to/your-project doctor
+research-os --project /path/to/your-project evaluator-review-subject \
+  > "$RESEARCH_REVIEW_DIR/review-subject.json"
+# After the independent critic writes "$RESEARCH_REVIEW_DIR/review.json":
+research-os --project /path/to/your-project certify-evaluator \
+  "$RESEARCH_REVIEW_DIR/review.json"
+research-os --project /path/to/your-project open-generation \
+  /absolute/path/to/study-contract.json
+research-os --project /path/to/your-project study-status
 research-os --project /path/to/your-project baseline
 research-os --project /path/to/your-project run-once \
   /path/to/your-project/candidates/first.json
@@ -269,12 +279,35 @@ research-os --project /path/to/your-project findings
 research-os --project /path/to/your-project replay
 ```
 
-The legacy/manual tokenless `run-once` path establishes a compatible repeated
+`StudyContract` version 1 is exact-key and contains:
+
+- `schema_version` and a stable `study_id`;
+- unique `hypothesis_classes` with conclusive-rejection limits;
+- an `intervention_surface` binding the candidate-schema digest, allowed RFC-6901
+  pointers, and maximum changes;
+- unique `evaluation_scopes`, including at least one `development` scope, each
+  bound to a manifest digest;
+- finite `frontier`, literal fail-closed `stop_policy`, and mandatory
+  new-generation `change_control`;
+- a `budget` for attempts, retries, elapsed reservation per attempt, and either a
+  complete cost-unit/limit/reservation triple or three nulls.
+
+The opened generation binds this normalized contract to a separate evaluation
+seal. Each later registration receives the contract-fixed debit inside the
+canonical append lock. `study-status` reports reserved allocations; it does not
+claim actual elapsed time or cost. Limits are per generation, and a changed
+successor requires both the exact predecessor ID and a reason. An identical
+successor is rejected instead of resetting the ledger.
+
+Before the first generation, the legacy/manual tokenless `run-once` path
+establishes a compatible repeated
 baseline when none exists. Codex and Claude Code must use `--context-token` and
 must run `baseline` explicitly before obtaining that context; an implicit
 baseline changes canonical state and correctly makes an older token stale. The
 tokenless path is retained only for direct API/CLI compatibility and does not
-enforce the agent certification gate. Explicit baseline setup also isolates
+enforce the agent certification gate. After a generation opens, tokenless and
+context-token registrations share the same generation binding and atomic budget
+gate. Explicit baseline setup also isolates
 reproducibility and cleanup failures before candidate work.
 Baseline artifacts are captured into the same content-addressed catalog as
 candidate artifacts and embedded in `BASELINE_RECORDED`. The `artifacts`

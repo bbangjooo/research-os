@@ -43,9 +43,11 @@ from .contracts import (
 from .errors import (
     AgentResearchNotReadyError,
     ConfigurationError,
+    EvaluatorCertificationError,
     IntegrityError,
     LifecycleError,
     ProtocolError,
+    ScientificStateError,
     StaleAgentContextError,
 )
 from .execution.adapter import AdapterClient
@@ -64,6 +66,16 @@ from .kernel.projection import ProjectionStore
 from .memory.findings import make_finding_event
 from .policy import Decision, decide
 from .provenance import environment_fingerprint, project_fingerprints
+from .science import (
+    GENERATION_EVENT_TYPE,
+    EvaluationSeal,
+    StudyContract,
+    plan_generation_open,
+    reduce_scientific_state,
+    registration_payload_fields,
+    reserve_registration,
+    validate_registration,
+)
 
 REQUIRED_OPERATIONS = frozenset(operation.value for operation in Operation)
 _TERMINAL_EVENT_TYPES = frozenset(
@@ -74,6 +86,18 @@ _ARTIFACT_EVENT_TYPES = frozenset(
 )
 _PRESERVED_RECOVERY_REASON = "INTERRUPTED_EVIDENCE_UNTRUSTED"
 _USE_CURRENT_PRIMARY_METRIC = object()
+
+
+class _GenerationAlreadyOpen(RuntimeError):
+    """Internal control flow for an identical generation-open race loser."""
+
+    def __init__(self, generation_id: str):
+        super().__init__(generation_id)
+        self.generation_id = generation_id
+
+
+class _ProjectAlreadyInitialized(RuntimeError):
+    """Internal control flow for an initialization race loser."""
 
 
 def _normalized_event_type(value: str) -> str:
@@ -613,6 +637,63 @@ class ResearchService:
         )
         self._sync()
 
+    def _ensure_initialized_for_generation(
+        self,
+        fingerprints: Mapping[str, Any],
+        *,
+        events: Sequence[Event],
+    ) -> tuple[Event, ...]:
+        """Initialize an empty stream without serializing generation races."""
+
+        if events:
+            if _normalized_event_type(events[0].event_type) != "PROJECT_INITIALIZED":
+                raise IntegrityError(
+                    "the first canonical event must initialize the project"
+                )
+            return tuple(events)
+
+        payload = {
+            "project_id": self.config.project_id,
+            "status": "active",
+            "metadata": {
+                "name": self.config.name,
+                "schema_version": 1,
+                "initial_compatibility_digest": fingerprints[
+                    "compatibility_digest"
+                ],
+                "authorized_action": None,
+            },
+        }
+
+        def require_empty(locked_events: tuple[Event, ...]) -> None:
+            if not locked_events:
+                return
+            if _normalized_event_type(
+                locked_events[0].event_type
+            ) != "PROJECT_INITIALIZED":
+                raise IntegrityError(
+                    "the first canonical event must initialize the project"
+                )
+            raise _ProjectAlreadyInitialized()
+
+        try:
+            self.event_log.append(
+                "PROJECT_INITIALIZED",
+                payload,
+                precondition=require_empty,
+                postcondition=require_empty,
+            )
+        except _ProjectAlreadyInitialized:
+            pass
+        initialized = tuple(self.event_log.read())
+        if (
+            not initialized
+            or _normalized_event_type(initialized[0].event_type)
+            != "PROJECT_INITIALIZED"
+        ):
+            raise IntegrityError("project initialization did not become canonical")
+        return initialized
+
     def doctor(self) -> DoctorReport:
         """Validate configuration and initialize canonical state atomically."""
 
@@ -655,6 +736,136 @@ class ResearchService:
                 self.config,
                 fingerprints=report.fingerprints,
             )
+
+    def open_generation(
+        self,
+        contract: str | Path | Mapping[str, Any],
+        *,
+        predecessor_generation_id: str | None = None,
+        change_reason: str | None = None,
+    ) -> dict[str, Any]:
+        """Open one evaluation-sealed study generation atomically.
+
+        Generation change control is canonical-event authority, so this path
+        deliberately does not use the process-local workflow lock.  The
+        authoritative plan is recalculated while EventLog holds its exclusive
+        append lock, with the evaluator certification held stable across the
+        complete write.
+        """
+
+        raw_contract = (
+            dict(contract)
+            if isinstance(contract, Mapping)
+            else self._load_json_object(contract, label="study contract")
+        )
+        study_contract = StudyContract.from_mapping(raw_contract)
+        self._assert_config_unchanged()
+        self.event_log.verify()
+        events = tuple(self.event_log.read())
+
+        event: Event | None = None
+        appended_events = 0
+        try:
+            with evaluator_certification_read_lock(self.config):
+                report = self._doctor_snapshot(event_count=len(events))
+                evaluation_seal = self._evaluation_seal_from_report(report)
+                events = self._ensure_initialized_for_generation(
+                    report.fingerprints,
+                    events=events,
+                )
+                plan = plan_generation_open(
+                    events,
+                    project_id=self.config.project_id,
+                    contract=study_contract,
+                    evaluation_seal=evaluation_seal,
+                    predecessor_generation_id=predecessor_generation_id,
+                    change_reason=change_reason,
+                )
+                if not plan.append_required:
+                    generation_id = plan.generation_id
+                else:
+                    proposed_payload = dict(plan.payload)
+
+                    def validate_locked_plan(locked_events: tuple[Event, ...]) -> None:
+                        fresh_report = self._doctor_snapshot(
+                            event_count=len(locked_events)
+                        )
+                        fresh_seal = self._evaluation_seal_from_report(fresh_report)
+                        if (
+                            fresh_report.capabilities != report.capabilities
+                            or fresh_report.side_effects != report.side_effects
+                            or fresh_report.adapter_fingerprint
+                            != report.adapter_fingerprint
+                            or fresh_report.fingerprints != report.fingerprints
+                            or fresh_seal.digest != evaluation_seal.digest
+                        ):
+                            raise IntegrityError(
+                                "evaluation seal changed before generation commit"
+                            )
+                        locked_plan = plan_generation_open(
+                            locked_events,
+                            project_id=self.config.project_id,
+                            contract=study_contract,
+                            evaluation_seal=fresh_seal,
+                            predecessor_generation_id=predecessor_generation_id,
+                            change_reason=change_reason,
+                        )
+                        if not locked_plan.append_required:
+                            raise _GenerationAlreadyOpen(locked_plan.generation_id)
+                        if (
+                            locked_plan.generation_id != plan.generation_id
+                            or locked_plan.event_type != plan.event_type
+                            or dict(locked_plan.payload) != proposed_payload
+                        ):
+                            raise IntegrityError(
+                                "study generation plan changed before canonical append"
+                            )
+
+                    event = self.event_log.append(
+                        plan.event_type,
+                        proposed_payload,
+                        precondition=validate_locked_plan,
+                        postcondition=validate_locked_plan,
+                    )
+                    generation_id = plan.generation_id
+                    appended_events = 1
+        except _GenerationAlreadyOpen as raced:
+            generation_id = raced.generation_id
+
+        self._sync()
+        result: dict[str, Any] = {
+            "project_id": self.config.project_id,
+            "event_type": GENERATION_EVENT_TYPE,
+            "generation_id": generation_id,
+            "study_contract_digest": study_contract.digest,
+            "evaluation_seal_digest": evaluation_seal.digest,
+            "predecessor_generation_id": predecessor_generation_id,
+            "change_reason": change_reason,
+            "appended": appended_events == 1,
+            "appended_events": appended_events,
+            "authorized_action": None,
+        }
+        if event is not None:
+            result["event_sequence"] = event.sequence
+        return normalize_json_object(result, field_name="generation open result")
+
+    def study_status(self) -> dict[str, Any]:
+        """Return the replay-derived generation and reserved-budget state."""
+
+        self._assert_config_unchanged()
+        self.event_log.verify()
+        state = reduce_scientific_state(
+            self.event_log.read(),
+            project_id=self.config.project_id,
+        )
+        return normalize_json_object(
+            {
+                **state.to_dict(),
+                "project_id": self.config.project_id,
+                "authorized_action": None,
+            },
+            field_name="study status",
+        )
 
     def _doctor(self) -> DoctorReport:
         """Unlocked implementation for callers already holding the workflow lock."""
@@ -1241,6 +1452,8 @@ class ResearchService:
         parent_id: str | None,
         compatibility_digest: str,
         retry_of: str | None,
+        *,
+        generation_id: str | None = None,
     ) -> tuple[str | None, int, str | None]:
         """Select and validate one explicit attempt without mutating history."""
 
@@ -1250,6 +1463,7 @@ class ResearchService:
                 candidate_digest,
                 parent_id,
                 compatibility_digest,
+                generation_id=generation_id,
             )
             if attempts:
                 raise ConfigurationError(
@@ -1273,15 +1487,17 @@ class ResearchService:
         if (
             prior.get("candidate_digest") != candidate_digest
             or prior.get("compatibility_digest") != compatibility_digest
+            or prior.get("generation_id") != generation_id
         ):
             raise ConfigurationError(
-                "retry_of does not match this candidate and compatibility"
+                "retry_of does not match this candidate, compatibility, and generation"
             )
         attempts = self.projection.candidate_attempts(
             self.config.project_id,
             candidate_digest,
             effective_parent,
             compatibility_digest,
+            generation_id=generation_id,
         )
         if not attempts or attempts[-1].get("experiment_id") != retry_of:
             raise ConfigurationError(
@@ -2076,6 +2292,24 @@ class ResearchService:
             )
         report = self._doctor()
         self._recover_incomplete_experiments()
+        science_state = reduce_scientific_state(
+            self.event_log.read(),
+            project_id=self.config.project_id,
+        )
+        generation_id = science_state.active_generation_id
+        if generation_id is not None:
+            live_seal = self._evaluation_seal_from_report(report)
+            if live_seal.digest != science_state.evaluation_seal_digest:
+                raise ScientificStateError(
+                    "STUDY_EVALUATION_SEAL_MISMATCH",
+                    "the active generation is not bound to the current evaluator seal",
+                    details={
+                        "active_evaluation_seal_digest": (
+                            science_state.evaluation_seal_digest
+                        ),
+                        "current_evaluation_seal_digest": live_seal.digest,
+                    },
+                )
         if context_token is not None:
             agent_context_snapshot, _ = self._validate_agent_context_after_doctor(
                 context_token,
@@ -2093,6 +2327,7 @@ class ResearchService:
             parent_id,
             compatibility,
             retry_of,
+            generation_id=generation_id,
         )
         if retry_of is not None:
             prior_attempt = self.projection.experiment(
@@ -2115,6 +2350,10 @@ class ResearchService:
                 raise ConfigurationError(
                     f"unknown parent experiment: {parent_id}"
                 ) from exc
+            if parent_row.get("generation_id") != generation_id:
+                raise ConfigurationError(
+                    "parent_id must reference an experiment in the active generation"
+                )
         if graph_metadata is not None:
             validate_graph_relationship(
                 graph_metadata,
@@ -2166,6 +2405,7 @@ class ResearchService:
             candidate_digest,
             compatibility_digest=compatibility,
             parent_id=parent_id,
+            generation_id=generation_id,
             attempt=attempt,
         )
         manager: WorkspaceManager | None = None
@@ -2244,6 +2484,13 @@ class ResearchService:
                 "status": "registered",
                 "authorized_action": None,
             }
+            if generation_id is not None:
+                registration.update(
+                    registration_payload_fields(
+                        science_state,
+                        retry_of=retry_of,
+                    )
+                )
             if graph_metadata is not None:
                 registration.update(graph_metadata.to_payload())
             if context_token is not None:
@@ -2251,15 +2498,14 @@ class ResearchService:
                 registration["agent_context_snapshot"] = agent_context_snapshot
                 if agent_context_snapshot is None:  # pragma: no cover - guarded above
                     raise IntegrityError("agent context snapshot is unavailable")
-                self._append_agent_authorized_event(
-                    "EXPERIMENT_REGISTERED",
-                    registration,
-                    context_token=context_token,
-                    snapshot=agent_context_snapshot,
-                    report=report,
-                )
-            else:
-                self.event_log.append("EXPERIMENT_REGISTERED", registration)
+            if generation_id is not None:
+                reserve_registration(science_state, registration)
+            self._append_registration_event(
+                registration,
+                report=report,
+                context_token=context_token,
+                snapshot=agent_context_snapshot,
+            )
             registered = True
             self._sync()
             self._assert_static_compatibility(report)
@@ -2680,6 +2926,43 @@ class ResearchService:
             fingerprints=fingerprints,
         )
 
+    def _evaluation_seal_from_report(
+        self,
+        report: DoctorReport,
+    ) -> EvaluationSeal:
+        """Derive the exact active-evaluator seal from a fresh doctor report."""
+
+        certification = self._evaluator_certification_summary(
+            fingerprints=report.fingerprints,
+        )
+        if (
+            certification.get("certified") is not True
+            or certification.get("current") is not True
+        ):
+            status = str(certification.get("status", "MISSING"))
+            raise EvaluatorCertificationError(
+                "a current passing evaluator certification is required to bind "
+                "a study generation",
+                reason=status.lower(),
+                details={
+                    "status": status,
+                    "blockers": list(certification.get("blockers", [])),
+                },
+            )
+        return EvaluationSeal.from_mapping(
+            {
+                "compatibility_digest": report.fingerprints[
+                    "compatibility_digest"
+                ],
+                "evaluator_certification_digest": certification[
+                    "certification_digest"
+                ],
+                "evaluator_review_subject_digest": certification[
+                    "review_subject_digest"
+                ],
+            }
+        )
+
     def _agent_research_state(
         self,
         *,
@@ -2810,6 +3093,71 @@ class ResearchService:
         ):
             raise IntegrityError("agent context snapshot has an invalid canonical head")
         return sequence, digest
+
+    def _append_registration_event(
+        self,
+        payload: Mapping[str, Any],
+        *,
+        report: DoctorReport,
+        context_token: str | None,
+        snapshot: Mapping[str, Any] | None,
+    ) -> Event:
+        """Commit one registration through the common locked science gate."""
+
+        if context_token is None:
+            expected_head = None
+        else:
+            if snapshot is None:  # pragma: no cover - guarded by caller
+                raise IntegrityError("agent context snapshot is unavailable")
+            expected_head = self._snapshot_head(snapshot)
+
+        def validate_locked_registration(locked_events: tuple[Event, ...]) -> None:
+            if context_token is not None:
+                self._validate_agent_context_after_doctor(
+                    context_token,
+                    report,
+                    events=locked_events,
+                )
+            locked_state = reduce_scientific_state(
+                locked_events,
+                project_id=self.config.project_id,
+            )
+            if locked_state.active_generation_id is not None:
+                # Keep malformed or incorrectly bound registration evidence
+                # ahead of live environment checks in the stable science error
+                # ordering. Pre-generation registrations intentionally retain
+                # their exact legacy semantics.
+                validate_registration(locked_state, payload)
+                fresh_report = self._doctor_snapshot(
+                    event_count=len(locked_events)
+                )
+                live_seal = self._evaluation_seal_from_report(fresh_report)
+                if live_seal.digest != locked_state.evaluation_seal_digest:
+                    raise ScientificStateError(
+                        "STUDY_EVALUATION_SEAL_MISMATCH",
+                        "the active generation is not bound to the current evaluator seal",
+                        details={
+                            "active_evaluation_seal_digest": (
+                                locked_state.evaluation_seal_digest
+                            ),
+                            "current_evaluation_seal_digest": live_seal.digest,
+                        },
+                    )
+                reserve_registration(locked_state, payload)
+
+        try:
+            with evaluator_certification_read_lock(self.config):
+                return self.event_log.append(
+                    "EXPERIMENT_REGISTERED",
+                    payload,
+                    expected_head=expected_head,
+                    precondition=validate_locked_registration,
+                    postcondition=validate_locked_registration,
+                )
+        except EventHeadMismatchError as exc:
+            raise StaleAgentContextError(
+                "agent context is stale; refresh agent-context before proposing"
+            ) from exc
 
     def _append_agent_authorized_event(
         self,
@@ -3163,9 +3511,17 @@ class ResearchService:
         with self._workflow_lock():
             self._assert_config_unchanged()
             self.event_log.verify()
+            reduce_scientific_state(
+                self.event_log.read(),
+                project_id=self.config.project_id,
+            )
             self.projection.rebuild(self.event_log)
             self._recover_incomplete_experiments()
             count = self.projection.rebuild(self.event_log)
+            science_state = reduce_scientific_state(
+                self.event_log.read(),
+                project_id=self.config.project_id,
+            )
             artifact_ids: set[str] = set()
             projected_records: list[
                 tuple[Mapping[str, Any], ArtifactRecord]
@@ -3203,6 +3559,8 @@ class ResearchService:
                 "events_replayed": count,
                 "artifacts_verified": len(artifact_ids),
                 "status": self.projection.project_status(self.config.project_id),
+                "science": science_state.to_dict(),
+                "authorized_action": None,
             }
 
 

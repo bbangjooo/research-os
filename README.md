@@ -88,6 +88,8 @@ raw event records.
 - isolated, disposable experiment workspaces;
 - immutable evaluator, evidence, and protected paths during a run;
 - finite experiment, time, output, input, and artifact budgets;
+- strict, versioned study contracts whose generation-wide attempt, retry,
+  elapsed-allocation, and optional cost-allocation budgets are reserved atomically;
 - compatible repeated baselines verified through the same digest-bound adapter
   boundary as candidates;
 - constitution-owned typed `gte`/`lte` hard and support gates with numeric
@@ -139,6 +141,8 @@ research-os --project /path/to/project evaluator-review-subject \
 # The critic writes "$RESEARCH_REVIEW_DIR/review.json".
 research-os --project /path/to/project certify-evaluator \
   "$RESEARCH_REVIEW_DIR/review.json"
+research-os --project /path/to/project open-generation study-contract.json
+research-os --project /path/to/project study-status
 research-os --project /path/to/project baseline
 research-os --project /path/to/project agent-context
 research-os --project /path/to/project run-once candidate.json \
@@ -162,6 +166,16 @@ The independent reviewer must copy the exact `digest` emitted by
 an old review cannot certify changed inputs.
 Both subject and review JSON belong in a private temporary directory outside
 the project root; certification rejects an in-project review path.
+
+`open-generation` requires a current evaluator certificate and records an exact
+`StudyContract` plus a separate evaluation seal in the canonical event log.
+Every later registration in that generation receives a contract-fixed,
+non-refundable budget reservation under the same event-log lock; `study-status`
+derives the remaining allocation by replay. Elapsed and cost values are reserved
+allocations, not measured usage. The limit is per generation rather than a study
+lifetime cap. Replacing the contract or seal therefore requires an explicit
+successor with `--predecessor-generation-id` and `--change-reason`; reopening the
+same contract cannot reset its budget.
 
 See [agent usage](docs/agent-usage.md) and
 [architecture](docs/architecture.md) for the complete contract.
