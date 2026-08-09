@@ -20,7 +20,7 @@ manifest `authority-null-changed-surfaces`가 generation event, open-generation 
 `NS1` E10과 신규 기준을 `CONFIRMATORY`로 청구하려면 raw/canonical manifest digest와 E1~E10이 담긴 docs+fixture-only pre-spec commit이 첫 science/service/identity/projection 코드 또는 결과 노출 commit보다 앞선다는 것을 어떤 두 full hash·timestamp·diff로 입증하며, 순서가 어긋나면 어느 청구를 `EXPLORATORY`로 강등할 것인가?
 
 **Response:** _DIRECT_
-docs+fixture-only pre-spec commit의 full hash/timestamp와 `git diff-tree --no-commit-id --name-only -r <hash>`를 §02.6.7에 먼저 기록하고, 첫 product/result-bearing commit도 같은 세 값을 구현 후 병기한다. 현재 pre-spec hash는 commit 전 `PENDING`이고 product code는 기준선 `6bbe7a6` 이후 미변경이다. 순서가 어긋나면 StudyContract/generation/budget/E1~E10 신규 결과 전부 `EXPLORATORY`로 강등하며 legacy corpus 자체의 사전 고정 사실만 남긴다.
+docs+fixture-only pre-spec은 `a6b4f86b66335cb0155a6d5b34ebd0b5079f6cc4` (`2026-08-10T01:36:03+09:00`)이며 `git diff-tree --no-commit-id --name-only -r` 결과는 phase/critic 2개와 fixture 5개뿐이다. 첫 product/result-bearing commit은 아직 `PENDING`이며 같은 세 값을 구현 후 병기한다. 순서가 어긋나면 StudyContract/generation/budget/E1~E10 신규 결과 전부 `EXPLORATORY`로 강등하며 legacy corpus 자체의 사전 고정 사실만 남긴다.
 
 ## Q4 [sample-dependence]
 `NS2 기계 강제 scientific state`의 contract capability를 E1만으로 1/6로 셀 수 있는가: exact-key/missing/null, duplicate ID/pointer, bool-number/nonfinite/unsafe integer, bad digest/RFC-6901, role/development, retry/attempt, cost-triple, stop/change-control 제약 각각을 한 행 이상 깨뜨리는 versioned negative matrix와 고정 분모는 무엇인가?

@@ -134,7 +134,7 @@ Versioned oracle: `tests/fixtures/scientific_state/v1/manifest.json`; 29 cases, 
 
 ## 02.6.7 Claim Mode ★
 
-**계획 라벨**: _CONFIRMATORY candidate_. Phase plan+critic+fixture manifest docs-only pre-spec commit이 첫 implementation/result-bearing commit보다 앞설 때만 유지한다. hash/timestamp는 checkpoint 후 기록하며, 사전 명세 전에 본 것은 현재 v0.2 seam뿐이고 E1~E10 결과는 미측정이다.
+**계획 라벨**: _CONFIRMATORY candidate_. Docs+fixture-only pre-spec은 `a6b4f86b66335cb0155a6d5b34ebd0b5079f6cc4` (`2026-08-10T01:36:03+09:00`)이며 7개 phase/critic/fixture 파일만 포함한다. 첫 implementation/result-bearing commit은 아직 `PENDING`; 사전 명세 전에 본 것은 현재 v0.2 seam뿐이고 E1~E10 결과는 미측정이다. 구현 commit이 앞서거나 oracle이 사후 변경되면 신규 청구 전체를 EXPLORATORY로 강등한다.
 
 ## 02.6.8 Requirement-Result Divergence ★
 
