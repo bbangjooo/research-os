@@ -167,11 +167,12 @@ class M1CProjectionTests(unittest.TestCase):
         worker_count = 8
         barrier = threading.Barrier(worker_count)
         failures: list[BaseException] = []
+        cold_database = self.root / "concurrent-cold-state.db"
 
         def initialize() -> None:
             try:
                 barrier.wait(timeout=5)
-                ProjectionStore(self.database)
+                ProjectionStore(cold_database)
             except BaseException as exc:  # pragma: no cover - asserted below
                 failures.append(exc)
 
@@ -183,8 +184,10 @@ class M1CProjectionTests(unittest.TestCase):
 
         self.assertFalse(any(worker.is_alive() for worker in workers))
         self.assertEqual(failures, [])
-        self.assertEqual(list(self.root.glob("state.db.corrupt-*")), [])
-        self.assertFalse(ProjectionStore(self.database).project_status(PROJECT_ID)["initialized"])
+        self.assertEqual(list(self.root.glob("concurrent-cold-state.db.corrupt-*")), [])
+        self.assertFalse(
+            ProjectionStore(cold_database).project_status(PROJECT_ID)["initialized"]
+        )
 
     def test_rebuild_persists_and_queries_evaluation_scope_axis(self) -> None:
         event_log = EventLog(self.root / "events.jsonl", PROJECT_ID)
