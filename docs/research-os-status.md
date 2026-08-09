@@ -14,7 +14,8 @@
 - 요약:
   - 사용자가 v0.3 Scientific State → v0.4 Program Memory → v0.5 Autonomous Single-Agent Loop 순서를 승인했다.
   - 구현 전 기준선은 제품 v0.2.0, Python 3.12에서 262 tests + 57 subtests PASS다.
-  - Bootstrap critic과 Rule 9 사용자 회고가 PASS했다; 문서 checkpoint commit 후 M1-A를 시작한다.
+  - Bootstrap critic과 Rule 9 사용자 회고가 PASS했고 checkpoint `e728df9`로 고정됐다.
+  - M1-A는 exact evidence semantics·baseline VERIFY·certification lifecycle 사전 명세와 critic 단계다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 
@@ -31,10 +32,10 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** Bootstrap 문서를 checkpoint commit하고 M1-A 사전 critic을 생성한다.
+- [ ] **단일 최우선 행동:** M1-A 사전 critic을 생성·응답하고 pre-spec checkpoint를 commit한다.
 - 그 다음:
-  - checkpoint commit이 성공하면 → M1-A phase plan과 사전 critic을 고정한다.
-  - commit 전 diff가 문서 밖을 포함하면 → staging을 정리하고 bootstrap 문서만 다시 검증한다.
+  - pre-spec checkpoint가 성공하면 → M1-A 구현과 집중 검증을 시작한다.
+  - critic이 범위/판정 공백을 지적하면 → 구현 전에 phase plan을 먼저 보강한다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
@@ -42,8 +43,8 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 |---|---|---|---|
 | v0.2 제품 코드 | `src/research_os/` | 동작 | 위 §0.2 pytest 명령 PASS |
 | 기존 전체 테스트 | `tests/` | 동작 | 262 tests + 57 subtests PASS |
-| 진행 상태 core | `docs/research-os-status.md` | bootstrap draft | 본 파일 |
-| 방법론 pipeline core | `docs/research-os-pipeline.md` | bootstrap draft | paired 문서 |
+| 진행 상태 core | `docs/research-os-status.md` | active | bootstrap `e728df9`, M1-A phase plan |
+| 방법론 pipeline core | `docs/research-os-pipeline.md` | active | bootstrap `e728df9` |
 
 ### 0.5 알려진 잔여 이슈
 
@@ -180,14 +181,15 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | § | 일자 / 단계 | 디테일 파일 | 한 줄 요약 |
 |---|---|---|---|
 | 00 | 2026-08-09 / Bootstrap | [`research-os-status/00-bootstrap-retro.md`](research-os-status/00-bootstrap-retro.md) | critic PASS + 사용자 회고로 목표·북극성·종착지·M chain 고정 |
+| 01 | 2026-08-09 / M1-A | [`research-os-status/01-2026-08-09-m1-a-evidence-correctness.md`](research-os-status/01-2026-08-09-m1-a-evidence-correctness.md) | 구현 전 evidence correctness 판정·예상 결과 고정 |
 
 ---
 
 ## 11. 한 페이지 요약 (TL;DR)
 
 - 현재 상태: v0.2.0, 기존 262 tests + 57 subtests PASS, v0.3~v0.5 learning-state surface는 미구현.
-- 마지막 phase: Cycle 00 bootstrap 진행 중.
-- 다음 1행동: bootstrap checkpoint commit 후 M1-A evidence correctness를 시작한다.
+- 마지막 phase: Cycle 00 bootstrap closed; Cycle 01 M1-A pre-spec 진행 중.
+- 다음 1행동: M1-A 사전 critic과 pre-spec checkpoint를 고정한다.
 - 가장 큰 갭: terminal 실패가 evidence-bound diagnosis/class/claim으로 변환되어 다음 proposal을 제한·개선하지 않는다.
 
 ---
@@ -246,7 +248,8 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 | Phase | 누적 LOC | 비고 | 검증 산출물 |
 |---|---|---|---|
-| 00 Bootstrap | 911 doc LOC | 코드 변경 0; status 266 + pipeline 490 + critic 51 + retro 104 lines | pytest 기준선, bootstrap critic PASS; 사용자 retro verdict 대기 |
+| 00 Bootstrap | 911 doc LOC | 코드 변경 0; status 266 + pipeline 490 + critic 51 + retro 104 lines | pytest 기준선, bootstrap critic PASS, 사용자 retro 승인, commit `e728df9` |
+| 01 M1-A | 구현 전 산정 대기 | phase plan/critic 사전 고정 단계 | E1~E9 exact expected outcomes; 실측 전 |
 
 ---
 

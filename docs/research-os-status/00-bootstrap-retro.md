@@ -100,5 +100,5 @@ Coverage 결론 초안: §1.4의 모든 의미 단위가 최소 하나의 §북�
 - [x] bootstrap critic `PASS`
 - [x] Rule 9 Coverage/Sufficiency/Faithfulness 사용자 verdict 기록
 - [x] status §14 retrospective 체크
-- [ ] Bootstrap checkpoint commit
-- [ ] M1-A 시작
+- [x] Bootstrap checkpoint commit — `e728df9 docs: bootstrap Research OS v0.5 roadmap`
+- [x] M1-A 시작 — `docs/research-os-status/01-2026-08-09-m1-a-evidence-correctness.md`
