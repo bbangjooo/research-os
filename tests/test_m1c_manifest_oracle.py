@@ -54,6 +54,12 @@ from tests.m1c_support import (
     strict_load_json,
     strict_load_json_lines,
 )
+from tests.test_m1b_manifest_oracle import _CASE_BY_ID as _M1B_CASES_BY_ID
+from tests.test_m1b_manifest_oracle import _certified_project as _m1b_certified_project
+from tests.test_m1b_manifest_oracle import (
+    _observe_manifest_case as _observe_m1b_manifest_case,
+)
+from tests.test_m1b_service_cli import CONTRACT_PATH as M1B_CONTRACT_PATH
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "scientific_state" / "v2"
 V1_FIXTURE_ROOT = FIXTURE_ROOT.parent / "v1"
@@ -241,6 +247,110 @@ def _recursive_key_occurrences(value: object, keys: frozenset[str]) -> int:
     return 0
 
 
+def _canonical_shape(value: object) -> object:
+    if isinstance(value, Mapping):
+        return {key: _canonical_shape(value[key]) for key in sorted(value)}
+    if isinstance(value, list):
+        if not value:
+            return []
+        shapes = [_canonical_shape(item) for item in value]
+        if any(shape != shapes[0] for shape in shapes[1:]):
+            raise AssertionError("public surface sequence has heterogeneous shapes")
+        return [shapes[0]]
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "bool"
+    if isinstance(value, int):
+        return "int"
+    if isinstance(value, float):
+        return "number"
+    if isinstance(value, str):
+        return "string"
+    raise AssertionError(f"unsupported public surface value: {type(value).__name__}")
+
+
+def _fixed_v1_service(
+    root: Path,
+    generation_bytes: bytes,
+) -> ResearchService:
+    project = root / "project"
+    shutil.copytree(Path(__file__).resolve().parents[1] / "examples" / "toy_optimization", project)
+    runtime = project / ".research-os" / "runtime"
+    if runtime.exists():
+        shutil.rmtree(runtime)
+    config_path = project / ".research-os" / "project.toml"
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8").replace(
+            'id = "toy-optimization"',
+            'id = "fixture-m1c-v1-compat"',
+            1,
+        ),
+        encoding="utf-8",
+    )
+    runtime.mkdir(parents=True)
+    (runtime / "events.jsonl").write_bytes(generation_bytes)
+    return ResearchService(project)
+
+
+def _observe_v1_public_surfaces(
+    root: Path,
+    *,
+    public_keysets: Mapping[str, object],
+    shape_digests: Mapping[str, object],
+) -> tuple[int, int, int]:
+    root.mkdir(parents=True)
+    project, service = _m1b_certified_project(root)
+    baseline = service.baseline()
+    opened = service.open_generation(M1B_CONTRACT_PATH)
+    run = service.run_once(project / "candidates" / "improve.json")
+    generation_event = next(
+        event
+        for event in service.event_log.read()
+        if event.event_type == "research.study_generation_opened.v1"
+    )
+    registration_event = next(
+        event
+        for event in service.event_log.read()
+        if event.event_type == "EXPERIMENT_REGISTERED"
+    )
+    study_status = service.study_status()
+    replay = service.replay()
+    experiment_id = str(run["experiment_id"])
+    surfaces: dict[str, Mapping[str, object]] = {
+        "generation_event_payload": generation_event.payload,
+        "open_generation": opened,
+        "baseline": baseline,
+        "run_once": run,
+        "study_status": study_status,
+        "replay": replay,
+        "replay_science": replay["science"],  # type: ignore[dict-item]
+        "projection_experiment": service.projection.experiment(
+            service.config.project_id,
+            experiment_id,
+        ),
+        "project_status": service.projection.project_status(
+            service.config.project_id
+        ),
+        "registration_payload": registration_event.payload,
+    }
+    keyset_matches = sum(
+        sorted(surfaces[name]) == expected
+        for name, expected in public_keysets.items()
+    )
+    shape_matches = sum(
+        sha256_json(_canonical_shape(surfaces[name])) == expected
+        for name, expected in shape_digests.items()
+    )
+    nullable_scope_keys = {"evaluation_scope", "evaluation_scope_id"}
+    nullable_scope_occurrences = sum(
+        key in nullable_scope_keys
+        for name in public_keysets
+        for key in surfaces[name]
+    )
+    return keyset_matches, shape_matches, nullable_scope_occurrences
+
+
 def _observe_legacy_parity(inputs: Mapping[str, object], tmp_path: Path) -> dict[str, object]:
     legacy_name = inputs.get("legacy_events")
     generation_name = inputs.get("m1b_generation_events")
@@ -306,13 +416,49 @@ def _observe_legacy_parity(inputs: Mapping[str, object], tmp_path: Path) -> dict
     assert isinstance(invariance, Mapping)
     shape_digests = shape_oracle["shape_digests"]
     assert isinstance(shape_digests, Mapping)
-    nullable_scope_keys = {"evaluation_scope", "evaluation_scope_id"}
-    public_scope_occurrences = sum(
-        key in nullable_scope_keys
-        for keyset in public_keysets.values()
-        if isinstance(keyset, list)
-        for key in keyset
+    fixed_service = _fixed_v1_service(
+        tmp_path / "fixed-v1-service",
+        generation_bytes,
     )
+    service_status = fixed_service.study_status()
+    before_replay_bytes = fixed_service.event_log.path.read_bytes()
+    before_replay_head = fixed_service.event_log.read()[-1].hash
+    replay = fixed_service.replay()
+    replay_findings = fixed_service.findings()
+    after_replay_events = fixed_service.event_log.read()
+    keyset_matches, shape_matches, public_scope_occurrences = (
+        _observe_v1_public_surfaces(
+            tmp_path / "v1-public-surfaces",
+            public_keysets=public_keysets,
+            shape_digests=shape_digests,
+        )
+    )
+    expected_registration_keys = oracle["exact_v1_registration_keyset"]
+    assert isinstance(expected_registration_keys, list)
+    actual_registration_keysets = [
+        sorted(event.payload)
+        for event in events
+        if event.event_type == "EXPERIMENT_REGISTERED"
+    ]
+    assert actual_registration_keysets
+    assert all(
+        keyset == expected_registration_keys
+        for keyset in actual_registration_keysets
+    )
+    v1_manifest_path = FIXTURE_ROOT / str(v1_manifest_name)
+    assert sha256_bytes(v1_manifest_path.read_bytes()) == invariance["raw_sha256"]
+    assert sorted_compact_digest(v1_manifest) == invariance["sorted_compact_digest"]
+    assert set(_M1B_CASES_BY_ID) == {
+        str(case["id"])
+        for case in v1_manifest["cases"]  # type: ignore[index]
+        if isinstance(case, Mapping)
+    }
+    m1b_matches = 0
+    for ordinal, case in enumerate(_M1B_CASES_BY_ID.values()):
+        case_root = tmp_path / "m1b-manifest" / str(ordinal)
+        case_root.mkdir(parents=True)
+        observed = _observe_m1b_manifest_case(case, case_root)
+        m1b_matches += int(observed == case["expected"])
     event_typed_occurrences = _recursive_key_occurrences(
         [event.payload for event in events],
         forbidden,
@@ -332,16 +478,20 @@ def _observe_legacy_parity(inputs: Mapping[str, object], tmp_path: Path) -> dict
         "m1b_fixture_finding_ids": finding_ids,
         "m1b_science_state_digest": sha256_json(state.to_dict()),
         "m1b_projection_digest": sha256_json(projection_observed),
-        "m1b_study_status_digest": oracle_expected["study_status_sorted_compact_digest"],
-        "m1b_replay_digest": oracle_expected["replay_sorted_compact_digest"],
-        "m1b_replay_events": len(events),
-        "m1b_replay_findings": len(finding_ids),
-        "m1b_event_bytes_preserved_after_replay": generation_copy.read_bytes() == generation_bytes,
-        "m1b_event_head_preserved_after_replay": generation_log.read()[-1].hash == events[-1].hash,
-        "m1b_manifest_exact_matches": len(v1_manifest["cases"]),
-        "m1b_exact_registration_keys": len(oracle["exact_v1_registration_keyset"]),
-        "m1b_public_surface_keysets_exact": len(public_keysets),
-        "m1b_public_surface_shape_digests_exact": len(shape_digests),
+        "m1b_study_status_digest": sha256_json(service_status),
+        "m1b_replay_digest": sha256_json(replay),
+        "m1b_replay_events": replay["events_replayed"],
+        "m1b_replay_findings": len(replay_findings),
+        "m1b_event_bytes_preserved_after_replay": (
+            fixed_service.event_log.path.read_bytes() == before_replay_bytes
+        ),
+        "m1b_event_head_preserved_after_replay": (
+            after_replay_events[-1].hash == before_replay_head
+        ),
+        "m1b_manifest_exact_matches": m1b_matches,
+        "m1b_exact_registration_keys": len(actual_registration_keysets[0]),
+        "m1b_public_surface_keysets_exact": keyset_matches,
+        "m1b_public_surface_shape_digests_exact": shape_matches,
         "nullable_scope_api_keys_added": public_scope_occurrences,
         "typed_key_occurrences": event_typed_occurrences,
     }
