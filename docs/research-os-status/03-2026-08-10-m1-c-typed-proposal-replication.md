@@ -179,7 +179,7 @@ Manifest의 20 unique case node 전체 observed dict가 expected dict와 exact e
 
 ## 03.6.7 Claim Mode ★
 
-**계획 라벨**: _CONFIRMATORY CANDIDATE_. 구현 전 기준선은 `cd1a3c6`이고, 이 docs+fixture-only pre-spec checkpoint가 첫 product/result-bearing commit보다 먼저 생성되어야 한다. supporting fixture 8개 raw match와 manifest raw `bc00f9648a5c663856c1ba19aa3f9aece48d422b565ca47b3a3c2fa01bea06ea` / sorted-compact `2cd22cc0d230fbd36e7dd37c7d9fe83c1d4358e05b66d54342c116157a2107af`를 고정한다. pre-spec commit ID는 직후 provenance-only doc commit에 기록한다. 이후 fixture/manifest digest diff가 0일 때만 confirmatory며, 구현 뒤 oracle을 바꾸면 M1-C 전체를 `EXPLORATORY`로 내리고 재명세한다.
+**계획 라벨**: _CONFIRMATORY CANDIDATE_. 구현 전 기준선은 `cd1a3c6`이다. docs+fixture-only pre-spec checkpoint는 `40bb3e06d16ff09ea2807e61eba4a8367a09f43a` (`2026-08-10T05:01:30+09:00`, tree `6d8f4f7978265622d32b0b1c1bfa8ba51c2688e4`, parent `cd1a3c6ae965cdfd6209025f088a2d92129039e4`)이며 phase/critic 2개와 v2 fixture 9개만 포함한다. supporting fixture 8개 raw match와 manifest raw `bc00f9648a5c663856c1ba19aa3f9aece48d422b565ca47b3a3c2fa01bea06ea` / sorted-compact `2cd22cc0d230fbd36e7dd37c7d9fe83c1d4358e05b66d54342c116157a2107af`를 첫 product/result-bearing commit 전에 고정했다. 이후 fixture/manifest digest diff가 0일 때만 confirmatory며, 구현 뒤 oracle을 바꾸면 M1-C 전체를 `EXPLORATORY`로 내리고 재명세한다.
 
 ## 03.6.8 Requirement-Result Divergence ★
 
