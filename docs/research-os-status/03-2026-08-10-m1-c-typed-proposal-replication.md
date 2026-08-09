@@ -1,6 +1,6 @@
 # §03 — M1-C Typed Proposal and Scientific Replication (2026-08-10)
 
-> Status: **PRE-SPEC LOCKED — immutable oracle·progress critic PASS, docs+fixture checkpoint 직전**
+> Status: **IMPLEMENTATION PAUSED — oracle correction critic PASS, correction checkpoint ready, claim mode EXPLORATORY**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §02
 > 직전 phase: [`§02 M1-B`](02-2026-08-10-m1-b-study-generation-budget.md)
 > Pipeline 영향: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §3, §8.4 Scientific state, §9.4 M1-C
@@ -140,11 +140,15 @@ Manifest의 20 unique case node 전체 observed dict가 expected dict와 exact e
 
 ## 03.4 결과 vs 가설
 
-구현 전이다. E1~E15와 20-case manifest를 수정하지 않은 채 측정한다. 결과가 나온 뒤 expected/observed/delta를 이 절에 기록한다.
+제품 구현을 시작한 뒤 generic transition observer가 선언된 `extends` deep-merge 의미로 15개 scenario를 전수 해석했고, 5개 child `expected_state`가 parent의 이미 지난 상태를 상속한다는 모순을 발견했다. 예를 들어 `v1-open-baseline`은 실제 v1 generation이 열렸는데 parent의 `active_generation_id=null`을 상속했고, `rep1-terminal`/`rep12-terminal`은 새 baseline·registration·terminal list를 명시하지 않아 이전 list를 상속했다. 이는 제품 결과가 아니라 oracle data 결함이므로 당시 transition/manifest 측정을 전부 제외했다.
+
+정정은 선언된 범용 해석 규칙을 약화하지 않는다. `expected_state`를 replacement/부분 assertion으로 바꾸지 않고 5개 scenario에 실제 generation ID, baseline scope list, registration IDs, terminal IDs를 명시해 deep-merge 뒤에도 full state가 exact하도록 했다. 동시에 fixture가 이미 요구한 두 `control_assertions`가 named production observer를 실제 호출하도록 harness gate를 강화한다. 정정 뒤 E1~E15 전체를 처음부터 재측정하며, 결과는 exploratory evidence로만 기록한다.
 
 ## 03.5 발견된 부수 이슈
 
 구현 전 탐색에서 scope가 contract digest 밖에서는 전혀 소비되지 않고, 기존 `replicate`가 candidate 변경을 요구하며, projection이 persisted candidate hash/experiment ID를 재계산하지 않는 seam을 발견했다. 이는 M1-C 요구 자체이며 결과로 선점하지 않는다.
+
+구현 중 독립 oracle 감사가 두 가지 harness/oracle 결함을 발견했다. (1) 5개 scenario의 partial-looking `expected_state`가 선언상 deep-merge되어 stale parent leaf를 유지했고, (2) `DocumentResolver`가 frozen fixture의 `control_assertions`를 실행하지 않았으며 baseline derive도 실제 service observer가 아닌 합성 payload builder였다. 둘 다 `RESULT-INVALID`로 분류한다. 제품 코드를 fixture에 맞춰 우회하지 않고 원 결과를 폐기했으며, corrected oracle과 실제 production-observer control을 새 checkpoint로 고정한 뒤 전량 재측정한다.
 
 ## 03.6 시스템 영향 분석 ★
 
@@ -179,7 +183,9 @@ Manifest의 20 unique case node 전체 observed dict가 expected dict와 exact e
 
 ## 03.6.7 Claim Mode ★
 
-**계획 라벨**: _CONFIRMATORY CANDIDATE_. 구현 전 기준선은 `cd1a3c6`이다. docs+fixture-only pre-spec checkpoint는 `40bb3e06d16ff09ea2807e61eba4a8367a09f43a` (`2026-08-10T05:01:30+09:00`, tree `6d8f4f7978265622d32b0b1c1bfa8ba51c2688e4`, parent `cd1a3c6ae965cdfd6209025f088a2d92129039e4`)이며 phase/critic 2개와 v2 fixture 9개만 포함한다. supporting fixture 8개 raw match와 manifest raw `bc00f9648a5c663856c1ba19aa3f9aece48d422b565ca47b3a3c2fa01bea06ea` / sorted-compact `2cd22cc0d230fbd36e7dd37c7d9fe83c1d4358e05b66d54342c116157a2107af`를 첫 product/result-bearing commit 전에 고정했다. 이후 fixture/manifest digest diff가 0일 때만 confirmatory며, 구현 뒤 oracle을 바꾸면 M1-C 전체를 `EXPLORATORY`로 내리고 재명세한다.
+**현재 라벨**: _EXPLORATORY_. 구현 전 기준선은 `cd1a3c6`이다. 최초 docs+fixture-only pre-spec checkpoint는 `40bb3e06d16ff09ea2807e61eba4a8367a09f43a` (`2026-08-10T05:01:30+09:00`, tree `6d8f4f7978265622d32b0b1c1bfa8ba51c2688e4`, parent `cd1a3c6ae965cdfd6209025f088a2d92129039e4`)이며 phase/critic 2개와 v2 fixture 9개만 포함했다. 최초 manifest raw `bc00f9648a5c663856c1ba19aa3f9aece48d422b565ca47b3a3c2fa01bea06ea` / sorted-compact `2cd22cc0d230fbd36e7dd37c7d9fe83c1d4358e05b66d54342c116157a2107af`는 제품 구현 전에 고정됐지만, 구현 시작 뒤 observer가 위 expected-state 상속 모순과 미실행 control assertion을 발견했다.
+
+사전 규칙대로 M1-C 전체를 confirmatory에서 exploratory로 강등한다. corrected transition raw는 `1e9e8e60a18dfe0d610a4928ecb90933204d43c53796e00d253343093ed96dd0`, corrected manifest raw/sorted-compact는 `4b9c216ea7a6bcbd8aec00a2224e4c41c349c038ea4b1d7c7fafcc8721e31b1d` / `75d7e1e568f3d42463184544e4b396c6f68cd1ae91fc3d5026dffda8454dca67`이다. 정정 시점까지 product/result-bearing commit은 없었지만 구현이 이미 시작됐으므로 chronology를 이용해 confirmatory 자격을 복원하지 않는다. correction checkpoint 뒤 oracle digest를 다시 바꾸면 해당 결과도 폐기하고 별도 재명세한다.
 
 ## 03.6.8 Requirement-Result Divergence ★
 
@@ -187,6 +193,8 @@ Manifest의 20 unique case node 전체 observed dict가 expected dict와 exact e
 - `RESULT-INVALID`: wrong runtime, adapter request 미관찰, race 미발생, test observer가 service를 재구현, replay/live 불일치, implementation bug, oracle drift → 결과 제외·같은 pre-spec으로 재측정.
 - `GENUINE-FINDING`: 독립 최소 재현에서도 기존 legacy/projection/adapter 의미가 예상과 다르거나 scope-bound execution이 현재 protocol과 근본 충돌 → M1-C open 유지, EXPLORATORY + 재명세.
 - 어느 분류든 E1~E15 exact 불일치가 있으면 M1-C CLOSE를 차단한다.
+
+**발생 기록 (`2026-08-10T05:31:52+09:00`)**: scenario inheritance contradiction과 control observer 미실행을 `RESULT-INVALID`로 판정했다. 최초 oracle 아래 얻은 transition/manifest 관찰값은 evidence에서 제외한다. 요구 의미—deep-merge된 full expected state와 실제 production observer control—는 유지·강화하며, corrected checkpoint 후 E1~E15를 전량 재측정한다. 이 correction 때문에 성공하더라도 M1-C evidence claim은 `EXPLORATORY`다.
 
 ## 03.7 §북극성 갱신 계획
 
@@ -209,5 +217,5 @@ Manifest의 20 unique case node 전체 observed dict가 expected dict와 exact e
 
 ## 03.10 다음 1행동
 
-- pre-spec progress critic Q1~Q8의 blocking defect를 0으로 만든 뒤 docs+fixture-only checkpoint를 커밋한다.
-- 그 다음 immutable oracle을 유지한 채 contract/Proposal → identity/projection → service/adapter/CLI → manifest/race 순서로 구현한다.
+- corrected fixture·manifest·production-observer control과 이 chronology를 독립 critic에게 재검토받고 correction-only checkpoint로 커밋한다.
+- 그 checkpoint 뒤 corrected oracle을 고정한 채 남은 구현 통합과 E1~E15 전량 재측정을 진행한다.

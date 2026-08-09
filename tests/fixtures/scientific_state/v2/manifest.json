@@ -25,7 +25,7 @@
     "proposal_negative_matrix": "m1c-proposal-negative-matrix.json",
     "proposal_negative_matrix_raw_sha256": "418ecde928d308d04453a5e3d8906bb57139ae80ef2a6c11a71d7a77f7be294a",
     "transition_negative_matrix": "m1c-transition-negative-matrix.json",
-    "transition_negative_matrix_raw_sha256": "c8615aefbbba94c65dbe92d7de85273438c19cf2a3f8a89a392fc2dfd0906d59",
+    "transition_negative_matrix_raw_sha256": "1e9e8e60a18dfe0d610a4928ecb90933204d43c53796e00d253343093ed96dd0",
     "m1b_v1_generation_events": "m1b-v1-generation-events.jsonl",
     "m1b_v1_generation_events_raw_sha256": "9624d76d3d95c02b50fb4f4aeecff97de4bb7e86333ec5630b0aedf42b2f4c13",
     "m1b_v1_compat_oracle": "m1b-v1-compat-oracle.json",

@@ -55,3 +55,15 @@ typed Proposal과 replication identity를 “실패를 지식으로 바꾸는 �
 ## Pre-spec verdict
 
 **PASS** — 독립 critic 최종 `VERDICT: PASS`; matrix 독립 재감사도 `PASS`. Q1~Q8의 구현 evidence Response는 의도적으로 `PENDING`이며, docs+fixture-only checkpoint 뒤에만 제품 구현을 시작한다.
+
+## Post-freeze oracle correction review
+
+최초 pre-spec 기록과 PASS는 당시 chronology로 보존한다. 제품 구현 시작 뒤 transition observer가 선언된 deep-merge 의미와 충돌하는 5개 inherited `expected_state`와 미실행 `control_assertions`를 발견했으므로 해당 결과를 `RESULT-INVALID`로 제외했고, M1-C 전체 claim mode를 `EXPLORATORY`로 강등했다.
+
+1차 독립 correction review는 정확히 5개 scenario 불일치와 정정 뒤 15/15 일치를 재현했지만, control observer dispatch 축 누락, literal `case_id_dispatches=0`, 이 durable review 기록 부재를 이유로 **FAIL**했다. correction checkpoint 전에 세 결함을 모두 보완하고 새 transition/manifest digest와 독립 재심 verdict를 아래에 고정한다.
+
+- corrected transition raw: `1e9e8e60a18dfe0d610a4928ecb90933204d43c53796e00d253343093ed96dd0`
+- corrected manifest raw / sorted-compact: `4b9c216ea7a6bcbd8aec00a2224e4c41c349c038ea4b1d7c7fafcc8721e31b1d` / `75d7e1e568f3d42463184544e4b396c6f68cd1ae91fc3d5026dffda8454dca67`
+- case-ID discipline: display-only `id`를 observer input에서 구조적으로 제거하고, support interpreter와 transition observer source 양쪽을 실제 53개 ID 및 금지 access pattern으로 검사한다.
+- production controls: `documents.*.control_assertions.observer`를 declared dispatch field로 추가하고, patch 전 source를 실제 `ResearchService.baseline`/validator 및 `reduce_scientific_state`로 검증한다.
+- independent re-review: **VERDICT: PASS** — frozen pre-spec 대비 불일치가 정확히 5개 scenario였고 corrected scenario 15/15가 일치함을 독립 재현했다. 위 transition/manifest digest는 exact이며, declared production-control dispatch와 patch 전 실제 `ResearchService.baseline`/validator·`reduce_scientific_state` 실행, control metadata 비유입, display-only ID의 구조적 제거와 support/observer 양쪽 forbidden-access 및 53개 literal-ID 검사를 확인했다. Focused oracle은 `17 passed, 10 skipped`였고 skip은 아직 미결인 별도 product observer bindings이며 correction surface failure는 0이다. 최초 결과의 `RESULT-INVALID` 제외와 M1-C `EXPLORATORY` 강등을 유지한다.
