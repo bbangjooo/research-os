@@ -34,6 +34,7 @@ from .contracts import (
     ProtocolResponse,
     ResultEnvelope,
     TerminalStatus,
+    VerifyResult,
     decode_json_object,
     normalize_json_object,
     sha256_json,
@@ -117,7 +118,7 @@ class DoctorReport:
     event_count: int
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "project_id": self.project_id,
             "project_root": self.project_root,
             "healthy": True,
@@ -128,6 +129,7 @@ class DoctorReport:
             "event_count": self.event_count,
             "authorized_action": None,
         }
+        return normalize_json_object(result, field_name="doctor report")
 
 
 def _response_payload(
@@ -151,6 +153,16 @@ def _result(response: ProtocolResponse, operation: Operation) -> ResultEnvelope:
             f"{operation.value} returned status; terminal status is owned by the kernel"
         )
     return envelope
+
+
+def _verify_result(response: ProtocolResponse) -> VerifyResult:
+    """Parse one successful adapter VERIFY response under the shared contract."""
+
+    _response_payload(response, Operation.VERIFY)
+    try:
+        return response.verify_result()
+    except (TypeError, ValueError, KeyError) as exc:
+        raise ProtocolError(f"verify returned an invalid verdict: {exc}") from exc
 
 
 def _safe_error(exc: BaseException) -> dict[str, Any]:
@@ -286,6 +298,10 @@ class ResearchService:
                 "baseline_repeats": config.baseline_repeats,
                 "baseline_tolerance": config.baseline_tolerance,
                 "minimum_improvement": config.minimum_improvement,
+            },
+            "promotion": {
+                "minimum_improvement": config.minimum_improvement,
+                "gates": [gate.to_dict() for gate in config.gates],
             },
             "authorized_action": None,
         }
@@ -746,6 +762,7 @@ class ResearchService:
         manager = WorkspaceManager(self.config)
         results: list[ResultEnvelope] = []
         captured_artifacts: list[dict[str, Any]] = []
+        verifications: list[dict[str, Any]] = []
         try:
             for index in range(count):
                 workspace_id = stable_id(
@@ -767,18 +784,78 @@ class ResearchService:
                         experiment_id=workspace_id,
                     )
                     baseline_result = _result(response, Operation.BASELINE)
-                    results.append(baseline_result)
                     manager.verify(
                         handle,
                         allowed_outputs=baseline_result.artifacts,
                         allow_mutable=False,
                     )
-                    for record in self.catalog.capture(
+                    captured_records = self.catalog.capture(
                         handle.path,
                         self.config.project_id,
                         workspace_id,
                         baseline_result.artifacts,
-                    ):
+                    )
+
+                    result_digest = sha256_json(baseline_result.to_dict())
+                    verify_result: VerifyResult | None = None
+                    try:
+                        verify_response = self._call_sealed(
+                            report,
+                            Operation.VERIFY,
+                            payload={"result_digest": result_digest},
+                            workspace=handle.path,
+                            experiment_id=workspace_id,
+                        )
+                        verify_result = _verify_result(verify_response)
+                    finally:
+                        # VERIFY is project code.  Its mutation boundary must be
+                        # checked even when transport fails or its verdict is
+                        # malformed; otherwise cleanup could erase the stronger
+                        # integrity failure and leave only a protocol error.
+                        manager.verify(
+                            handle,
+                            allowed_outputs=baseline_result.artifacts,
+                            allow_mutable=False,
+                        )
+                        recaptured = self.catalog.capture(
+                            handle.path,
+                            self.config.project_id,
+                            workspace_id,
+                            [
+                                {
+                                    "path": record.relative_path,
+                                    "role": record.role,
+                                    "media_type": record.media_type,
+                                    "metadata": record.metadata,
+                                    "sha256": record.digest,
+                                    "size_bytes": record.size,
+                                }
+                                for record in captured_records
+                            ],
+                        )
+                        if [record.to_dict() for record in recaptured] != [
+                            record.to_dict() for record in captured_records
+                        ]:
+                            raise IntegrityError(
+                                "verified baseline artifact records changed after evaluation"
+                            )
+                    if verify_result is None:  # pragma: no cover - guarded by try/finally
+                        raise ProtocolError("baseline verification verdict is unavailable")
+                    if not verify_result.valid:
+                        raise ProtocolError(
+                            "baseline verification rejected repetition "
+                            f"{index}: {verify_result.reason_code}"
+                        )
+
+                    results.append(baseline_result)
+                    verifications.append(
+                        {
+                            "repetition": index,
+                            "result_digest": result_digest,
+                            "verdict": verify_result.to_dict(),
+                        }
+                    )
+                    for record in captured_records:
                         captured_artifacts.append(
                             {
                                 **record.to_dict(),
@@ -873,6 +950,7 @@ class ResearchService:
             "primary_value": metrics[self.config.primary_metric],
             "repetitions": count,
             "observations": [result.to_dict() for result in results],
+            "verifications": verifications,
             "artifacts": captured_artifacts,
             "spread": spread,
             "tolerance": self.config.baseline_tolerance,
@@ -974,6 +1052,63 @@ class ResearchService:
                 observations.append(result)
         except (KeyError, TypeError, ValueError) as exc:
             raise IntegrityError(f"compatible baseline observation is invalid: {exc}") from exc
+
+        if "verifications" not in baseline:
+            if enforce_current_policy:
+                raise IntegrityError(
+                    "compatible baseline verification evidence is missing"
+                )
+        else:
+            verifications_value = baseline["verifications"]
+            if not isinstance(verifications_value, Sequence) or isinstance(
+                verifications_value, (str, bytes, bytearray)
+            ):
+                raise IntegrityError(
+                    "compatible baseline verifications must be an array"
+                )
+            if len(verifications_value) != repetitions:
+                raise IntegrityError(
+                    "compatible baseline verification evidence is incomplete"
+                )
+            for index, value in enumerate(verifications_value):
+                if not isinstance(value, Mapping):
+                    raise IntegrityError(
+                        "compatible baseline verification is not an object"
+                    )
+                expected_fields = {"repetition", "result_digest", "verdict"}
+                if set(value) != expected_fields:
+                    raise IntegrityError(
+                        "compatible baseline verification fields are invalid"
+                    )
+                repetition = value.get("repetition")
+                if (
+                    isinstance(repetition, bool)
+                    or not isinstance(repetition, int)
+                    or repetition != index
+                ):
+                    raise IntegrityError(
+                        "compatible baseline verification repetition is invalid"
+                    )
+                expected_digest = sha256_json(observations[index].to_dict())
+                if value.get("result_digest") != expected_digest:
+                    raise IntegrityError(
+                        "compatible baseline verification result digest is inconsistent"
+                    )
+                verdict_value = value.get("verdict")
+                try:
+                    verdict = VerifyResult.from_dict(verdict_value)
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise IntegrityError(
+                        f"compatible baseline verification verdict is invalid: {exc}"
+                    ) from exc
+                if verdict_value != verdict.to_dict():
+                    raise IntegrityError(
+                        "compatible baseline verification verdict is not portable"
+                    )
+                if not verdict.valid:
+                    raise IntegrityError(
+                        "compatible baseline verification verdict is not positive"
+                    )
 
         metric_names = set(observations[0].metrics)
         if any(set(result.metrics) != metric_names for result in observations[1:]):
@@ -1078,6 +1213,15 @@ class ResearchService:
             if payload.get("compatibility_digest") != compatibility_digest:
                 continue
             if payload.get("primary_metric") != self.config.primary_metric:
+                continue
+            # Verification-less baselines remain valid historical replay input,
+            # but they cannot authorize a current-policy candidate comparison.
+            if "verifications" not in payload:
+                self._validate_baseline_payload(
+                    payload,
+                    compatibility_digest,
+                    enforce_current_policy=False,
+                )
                 continue
             value = payload.get("primary_value")
             if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -2211,13 +2355,7 @@ class ResearchService:
                 input_value=verify_input,
                 response=response,
             )
-            _response_payload(response, Operation.VERIFY)
-            try:
-                verify_result = response.verify_result()
-            except (TypeError, ValueError, KeyError) as exc:
-                raise ProtocolError(
-                    f"verify returned an invalid verdict: {exc}"
-                ) from exc
+            verify_result = _verify_result(response)
             manager.verify(handle, allowed_outputs=result.artifacts)
             verified = verify_result.valid
 

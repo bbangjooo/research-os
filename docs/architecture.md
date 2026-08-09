@@ -72,6 +72,24 @@ policy. A `ResearchService` instance caches its validated `ProjectConfig`; if
 either TOML contract changes, callers must create a new instance. Public methods
 fail closed on a stale cached configuration.
 
+Every baseline repetition is normalized and hashed, then passed to the same
+adapter `verify` operation used after candidate evaluation. Research OS checks
+the immutable workspace before and after that call and re-captures artifacts
+against their first digest/size declarations. `BASELINE_RECORDED` binds each
+repetition to its result digest and positive typed verdict. A legacy event that
+predates this evidence remains replayable, but it cannot authorize a current
+comparison; the service seals a new verified baseline instead.
+
+The constitution may also declare exact `[[promotion.gates]]`. Each definition
+owns an ID, metric name, `hard|support` role, `gte|lte` operator, finite
+threshold, unit, and positive normalization scale. The adapter supplies only the
+finite observation in `ResultEnvelope.metrics`; it does not choose the threshold
+or declare the gate pass. The kernel computes signed slack (`observed-threshold`
+for `gte`, `threshold-observed` for `lte`) and normalized slack before applying
+any veto. Directional primary-metric improvement and promotion margin are also
+computed first, so a hard failure cannot erase evidence of an otherwise useful
+effect.
+
 ## Scientific correctness boundary
 
 Research OS proves that configured bytes and protocol results are bounded,
@@ -114,10 +132,12 @@ implementation are frozen.
 - A wall-clock process timeout becomes `TIMED_OUT`.
 - Spawn, process, output-limit, or protocol failures become `INFRA_FAILED`.
 - Protected/source/mutation-boundary drift becomes `UNTRUSTED`.
-- Missing evidence becomes `INSUFFICIENT_EVIDENCE`.
+- Missing primary/gate evidence or a failed support gate becomes
+  `INSUFFICIENT_EVIDENCE`.
 - A user interrupt becomes `CANCELLED` after its terminal event is recorded.
-- A valid non-improvement becomes `REJECTED`.
-- A verified improvement satisfying constraints becomes `VALIDATED`.
+- A valid non-improvement or failed legacy/typed hard gate becomes `REJECTED`.
+- A verified strict improvement satisfying every hard and support gate becomes
+  `VALIDATED`.
 
 Every registered attempt eventually receives exactly one durable terminal event.
 If a worker disappears between registration and termination, the next
@@ -213,7 +233,8 @@ a clean projection, and repopulates it from canonical events on the next
 service operation.
 
 Both baseline and candidate artifacts are captured before their disposable
-workspaces are deleted. Baseline artifact records live in `BASELINE_RECORDED`;
+workspaces are deleted and are content-bound across the adapter `verify` call.
+Baseline artifact and per-repeat verification records live in `BASELINE_RECORDED`;
 candidate artifact records also project into the `artifacts` query. `replay`
 collects both sets, validates each immutable catalog record, and re-hashes its
 SHA-256 blob. Its `artifacts_verified` result counts unique artifact records,

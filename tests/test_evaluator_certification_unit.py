@@ -8,6 +8,7 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
+from types import MappingProxyType
 from unittest import mock
 
 from research_os.agent import load_agent_spec
@@ -27,7 +28,7 @@ from research_os.certification import (
     record_evaluator_certification as _record_evaluator_certification,
 )
 from research_os.config import load_project_config
-from research_os.contracts import sha256_json
+from research_os.contracts import normalize_json_object, sha256_json
 from research_os.errors import (
     ConfigurationError,
     EvaluatorCertificationError,
@@ -218,6 +219,109 @@ class EvaluatorCertificationTests(unittest.TestCase):
         self.assertIsNone(summary["reason"])
         self.assertEqual(summary["certification_digest"], artifact["digest"])
         self.assertEqual(require_evaluator_certification(config)["digest"], artifact["digest"])
+
+    def test_record_normalizes_frozen_nested_adapter_fingerprint_for_read_back(self):
+        temporary, project = self.make_project()
+        self.addCleanup(temporary.cleanup)
+        config = load_project_config(project)
+        source = project_fingerprints(config)
+        project_digest = source["compatibility_digest"]
+        frozen_adapter_value = MappingProxyType(
+            {
+                "fixture_adapter_revision": "nested-v1",
+                "models": (
+                    MappingProxyType(
+                        {
+                            "name": "alpha",
+                            "features": ("price", "volume"),
+                        }
+                    ),
+                ),
+            }
+        )
+        adapter_digest = sha256_json(frozen_adapter_value)
+        doctor = {
+            **source,
+            "project_compatibility_digest": project_digest,
+            "adapter": {"digest": adapter_digest, "value": frozen_adapter_value},
+            "compatibility_digest": sha256_json(
+                {"project": project_digest, "adapter": adapter_digest}
+            ),
+        }
+        subject = build_evaluator_review_subject(config, fingerprints=doctor)
+        self.assertEqual(json.loads(json.dumps(subject, allow_nan=False)), subject)
+        review_path = self.write_review(
+            project,
+            _review(subject_digest=str(subject["digest"])),
+        )
+
+        normalized_doctor = normalize_json_object(
+            doctor,
+            field_name="doctor fingerprints",
+        )
+        self.assertIsNot(normalized_doctor, doctor)
+        self.assertIsNot(
+            normalized_doctor["adapter"]["value"],
+            frozen_adapter_value,
+        )
+        normalized_subject = build_evaluator_review_subject(
+            config,
+            fingerprints=normalized_doctor,
+        )
+        self.assertEqual(normalized_subject, subject)
+        self.assertEqual(normalized_subject["digest"], subject["digest"])
+
+        artifact = record_evaluator_certification(
+            config,
+            review_path,
+            fingerprints=doctor,
+            fresh_fingerprints=lambda: json.loads(
+                json.dumps(normalized_doctor, allow_nan=False)
+            ),
+        )
+
+        self.assertEqual(
+            artifact["bindings"]["adapter"]["value"],
+            {
+                "fixture_adapter_revision": "nested-v1",
+                "models": [{"name": "alpha", "features": ["price", "volume"]}],
+            },
+        )
+        self.assertEqual(artifact["bindings"]["adapter"]["digest"], adapter_digest)
+        self.assertEqual(artifact["review"]["subject_digest"], subject["digest"])
+        self.assertEqual(load_evaluator_certification(config), artifact)
+        for supplied_fingerprints in (None, source, doctor, normalized_doctor):
+            with self.subTest(
+                fingerprint_kind=(
+                    "implicit-source"
+                    if supplied_fingerprints is None
+                    else "frozen-doctor"
+                    if supplied_fingerprints is doctor
+                    else "normalized-doctor"
+                    if supplied_fingerprints is normalized_doctor
+                    else "explicit-source"
+                )
+            ):
+                summary = inspect_evaluator_certification(
+                    config,
+                    fingerprints=supplied_fingerprints,
+                )
+                self.assertTrue(summary["present"])
+                self.assertTrue(summary["certified"])
+                self.assertTrue(summary["current"])
+                self.assertEqual(summary["status"], "CERTIFIED")
+                self.assertEqual(summary["review_subject_digest"], subject["digest"])
+        self.assertEqual(
+            require_evaluator_certification(config, fingerprints=doctor),
+            artifact,
+        )
+        self.assertEqual(
+            require_evaluator_certification(
+                config,
+                fingerprints=normalized_doctor,
+            ),
+            artifact,
+        )
 
     def test_rejected_review_revokes_a_prior_pass(self):
         temporary, project = self.make_project()

@@ -135,7 +135,8 @@ Every adapter implements protocol version 1 operations:
 4. `materialize`: translate candidate JSON into declared mutable surfaces.
 5. `run`: execute the bounded experiment.
 6. `evaluate`: return finite metrics, constraints, provenance, resource usage, and artifact refs.
-7. `verify`: perform domain-specific result validity checks.
+7. `verify`: perform domain-specific result validity checks for every baseline
+   and candidate result digest.
 8. `cleanup`: remove adapter-owned transient state inside the disposable workspace.
 
 Each process receives one JSON request on stdin and must emit one JSON response
@@ -206,6 +207,29 @@ from the final result.
 ## Designing a constitution
 
 Choose one scalar primary metric. It should answer whether a candidate is better than a compatible baseline; secondary metrics and hard constraints can remain multidimensional.
+
+Prefer kernel-owned typed gates for promotion-critical secondary metrics. The
+adapter returns only observations in `ResultEnvelope.metrics`; the constitution
+owns the comparison:
+
+```toml
+[[promotion.gates]]
+id = "latency-budget"
+metric = "latency_ms"
+role = "hard"       # hard | support
+operator = "lte"    # gte | lte
+threshold = 50.0
+unit = "ms"
+scale = 50.0
+```
+
+Gate IDs must be unique after trimming. Thresholds are finite, scales are
+finite and positive, and every configured metric must be present in the result.
+`hard` failure rejects the candidate; `support` failure records insufficient
+evidence. Equality passes a gate, while primary promotion still requires strict
+improvement beyond `minimum_improvement`. Existing arbitrary `constraints`
+remain compatible legacy hard vetoes but do not carry operator/threshold/slack
+evidence.
 
 `[baseline].repeats` is the single authoritative repetition count. Research OS
 uses exactly that value both when sealing and when revalidating a baseline. The

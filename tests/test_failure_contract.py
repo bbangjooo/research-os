@@ -157,14 +157,17 @@ class VerifyVerdictTests(unittest.TestCase):
             respond(request, payload=verdict)
 """
         new = """        elif operation == "verify":
-            respond(
-                request,
-                payload={
-                    "valid": False,
-                    "category": "INSUFFICIENT_EVIDENCE",
-                    "reason_code": "OUT_OF_SAMPLE_REPORT_MISSING",
-                },
-            )
+            if str(request.get("experiment_id", "")).startswith("base_"):
+                respond(request, payload={"valid": True, "reason_code": "OK"})
+            else:
+                respond(
+                    request,
+                    payload={
+                        "valid": False,
+                        "category": "INSUFFICIENT_EVIDENCE",
+                        "reason_code": "OUT_OF_SAMPLE_REPORT_MISSING",
+                    },
+                )
 """
         self.assertIn(old, source)
         adapter.write_text(source.replace(old, new), encoding="utf-8")

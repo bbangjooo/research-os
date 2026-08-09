@@ -88,7 +88,10 @@ raw event records.
 - isolated, disposable experiment workspaces;
 - immutable evaluator, evidence, and protected paths during a run;
 - finite experiment, time, output, input, and artifact budgets;
-- compatible repeated baselines and deterministic promotion thresholds;
+- compatible repeated baselines verified through the same digest-bound adapter
+  boundary as candidates;
+- constitution-owned typed `gte`/`lte` hard and support gates with numeric
+  signed/normalized slack in every promotion decision;
 - pre-registered universes, selection/split policy, and holdout boundaries;
 - hand-derived golden cases and independent evaluator certification;
 - explicit graph actions, scientific changes, ancestry, ablations, replications,

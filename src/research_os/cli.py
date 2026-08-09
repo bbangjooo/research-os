@@ -181,10 +181,10 @@ def _parser() -> argparse.ArgumentParser:
 
 def _print(value: Any, *, stream: Any | None = None) -> None:
     stream = sys.stdout if stream is None else stream
-    json.dump(
-        value, stream, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False
+    rendered = json.dumps(
+        value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False
     )
-    stream.write("\n")
+    stream.write(rendered + "\n")
 
 
 def _dispatch(args: argparse.Namespace) -> Any:

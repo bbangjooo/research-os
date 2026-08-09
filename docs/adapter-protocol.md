@@ -145,7 +145,7 @@ and `VerifyResult` are defined below.
 | `materialize` | Workspace | `candidate`, `candidate_digest` | `{}`; extension fields are ignored |
 | `run` | Workspace | `candidate_digest`, `baseline_id` | `{}`; extension fields are ignored |
 | `evaluate` | Workspace | `candidate_digest` | `ResultEnvelope` |
-| `verify` | Workspace | `result_digest` | `VerifyResult` |
+| `verify` | Workspace, after every `baseline` or `evaluate` result | `result_digest` | `VerifyResult` |
 | `cleanup` | Workspace | `{}` | `{}` |
 
 ### `describe`
@@ -237,13 +237,16 @@ mutable inputs during baseline; it may create only outputs declared by the
 returned artifact references.
 
 After each repetition passes workspace verification, Research OS copies every
-declared artifact into the content-addressed catalog and adds its immutable
-record to the eventual `BASELINE_RECORDED` event, annotated with the repetition
-index. Each repetition uses a distinct baseline workspace identity even when
-two records share one deduplicated blob. The baseline is sealed only after all
-repetitions and their cleanup phases succeed. A failed baseline can therefore
-leave an unreferenced catalog object, but it cannot leave a canonical sealed
-baseline.
+declared artifact into the content-addressed catalog, computes the normalized
+result digest, and calls `verify` in the same workspace. A positive verdict is
+followed by another immutable-workspace check and an exact digest/size-bound
+artifact recapture. The eventual `BASELINE_RECORDED` event binds each repetition
+to that result digest, portable verdict, and immutable artifact record. Each
+repetition uses a distinct baseline workspace identity even when two records
+share one deduplicated blob. The baseline is sealed only after all repetitions
+and their cleanup phases succeed. A negative/malformed verdict or verifier
+mutation can therefore leave an unreferenced catalog object, but it cannot leave
+a canonical sealed baseline.
 
 ### `materialize`
 
@@ -314,8 +317,9 @@ changes to files that existed in the snapshot.
 
 ### `verify`
 
-Purpose: separately state, within the same project adapter protocol, whether the
-normalized evaluation evidence is complete and valid for domain policy.
+Purpose: separately state, within the same project adapter protocol, whether one
+normalized baseline or candidate evaluation is complete and valid for domain
+policy.
 
 Request payload:
 
@@ -335,6 +339,12 @@ This operation is independent of the kernel's promotion calculation, but it is
 not an independent audit of the evaluator implementation. Scientific setup
 still requires hand-derived golden cases and a separate read-only critic whose
 certificate is bound to the evaluator and evidence digests.
+
+Adapters must accept `verify` for baseline workspace identities as well as
+candidate experiment identities. A candidate-only verifier is an incompatible
+integration and fails closed; it is not silently bypassed. The verifier may read
+the workspace but may not mutate project source, protected inputs, or captured
+artifacts. Research OS checks and re-captures those surfaces after the call.
 
 ### `cleanup`
 
@@ -418,10 +428,13 @@ paths are rejected. An adapter may additionally supply both `sha256` (64 hex
 characters) and non-negative integer `size_bytes`; supplying only one is
 invalid, and Research OS verifies both during capture.
 
-The project constitution selects the primary metric, direction, and absolute
-minimum improvement. Baseline tolerance is reserved for reproducibility drift;
-it is not the promotion threshold. The kernel does not impose a cross-domain
-score.
+The project constitution selects the primary metric, direction, absolute
+minimum improvement, and any typed promotion gates. A typed gate reads its
+observation from this envelope's `metrics` object; its ID, role, operator,
+threshold, unit, and scale never come from the adapter. Legacy `constraints`
+remain readable as opaque hard vetoes, but they cannot supply typed slack.
+Baseline tolerance is reserved for reproducibility drift; it is not the
+promotion threshold. The kernel does not impose a cross-domain score.
 
 ## `VerifyResult`
 
