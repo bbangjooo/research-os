@@ -1,0 +1,530 @@
+{
+  "schema_version": 1,
+  "kind": "research_os.scientific_state_transition_oracle",
+  "covered_capabilities": [
+    "generation_contract",
+    "cumulative_budget"
+  ],
+  "fixtures": {
+    "contract": "m1b-contract.json",
+    "contract_negative_matrix": "m1b-contract-negative-matrix.json",
+    "contract_negative_matrix_raw_sha256": "73ddbe0dc4a5e4953073dde40c26c57f90ede53ca368f9c306e0f9f52b90808b",
+    "legacy_v1_events": "legacy-v1-events.jsonl",
+    "legacy_v1_events_raw_sha256": "b35e9d74a64c729ceea3c5ca66303a7f4e14043129d4e4686741c5939cf178d6",
+    "legacy_v1_projection": "legacy-v1-projection.json",
+    "legacy_v1_projection_raw_sha256": "1b168e6eeef42a470dccbac9385366714c4def4f9e0e031c6b005e07bb391800",
+    "legacy_v1_projection_canonical_digest": "9acf4e08a01756d39e4789a7e13f635d891cb426c183abcbfc4793c53d472e88",
+    "legacy_v1_experiment_id": "exp_9c077608f342414ce35c5dec5d7aa07b",
+    "project_id": "fixture-m1b",
+    "contract_digest": "00029b4eae18e71513001bdee36bd8a3333b58720b1f27f78b1ab80d68ca1320",
+    "evaluation_seal": {
+      "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "evaluator_certification_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "evaluator_review_subject_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
+    "first_generation_id": "generation_b87daa35b5f8e5593fe0c4f5d245f8a6",
+    "successor_contract_digest": "13939085e3170fd4c7c20362be1984961a4916a00c17050c42c1c9b533e22f27",
+    "successor_generation_id": "generation_741c395dc889da6703f3eb090ef75afc"
+  },
+  "cases": [
+    {
+      "id": "contract-exact-round-trip",
+      "operation": "parse_contract",
+      "input": {
+        "fixture": "m1b-contract.json"
+      },
+      "expected": {
+        "contract_digest": "00029b4eae18e71513001bdee36bd8a3333b58720b1f27f78b1ab80d68ca1320",
+        "hypothesis_class_ids": [
+          "optimizer_family",
+          "regularization"
+        ],
+        "evaluation_scope_ids": [
+          "development",
+          "replication-1"
+        ]
+      }
+    },
+    {
+      "id": "contract-order-invariance",
+      "operation": "parse_contract",
+      "input": {
+        "fixture": "m1b-contract.json",
+        "transform": "reverse_semantically_unordered_arrays"
+      },
+      "expected": {
+        "contract_digest": "00029b4eae18e71513001bdee36bd8a3333b58720b1f27f78b1ab80d68ca1320"
+      }
+    },
+    {
+      "id": "contract-unknown-field",
+      "operation": "parse_contract",
+      "input": {
+        "fixture": "m1b-contract.json",
+        "add": {
+          "/budget/credits": 1
+        }
+      },
+      "expected": {
+        "error_code": "STUDY_CONTRACT_INVALID"
+      }
+    },
+    {
+      "id": "contract-unsafe-integer",
+      "operation": "parse_contract",
+      "input": {
+        "fixture": "m1b-contract.json",
+        "replace": {
+          "/budget/max_attempts": 9007199254740992
+        }
+      },
+      "expected": {
+        "error_code": "STUDY_CONTRACT_INVALID"
+      }
+    },
+    {
+      "id": "contract-null-cost",
+      "operation": "parse_contract",
+      "input": {
+        "fixture": "m1b-contract.json",
+        "replace": {
+          "/budget/cost_unit": null,
+          "/budget/max_cost_microunits": null,
+          "/budget/cost_reservation_per_attempt_microunits": null
+        }
+      },
+      "expected": {
+        "cost_ledger": null
+      }
+    },
+    {
+      "id": "contract-negative-matrix",
+      "operation": "parse_contract_negative_matrix",
+      "input": {
+        "fixture": "m1b-contract-negative-matrix.json"
+      },
+      "expected": {
+        "cases": 24,
+        "rejections": 24,
+        "error_code": "STUDY_CONTRACT_INVALID"
+      }
+    },
+    {
+      "id": "generation-first-open",
+      "operation": "open_generation",
+      "input": {
+        "fixture": "m1b-contract.json",
+        "predecessor_generation_id": null,
+        "change_reason": null
+      },
+      "expected": {
+        "generation_id": "generation_b87daa35b5f8e5593fe0c4f5d245f8a6",
+        "event_type": "research.study_generation_opened.v1",
+        "appended_events": 1,
+        "authorized_action": null
+      }
+    },
+    {
+      "id": "generation-identical-reopen",
+      "operation": "open_generation_twice",
+      "input": {
+        "fixture": "m1b-contract.json"
+      },
+      "expected": {
+        "generation_id": "generation_b87daa35b5f8e5593fe0c4f5d245f8a6",
+        "total_generation_events": 1,
+        "second_append_delta": 0
+      }
+    },
+    {
+      "id": "generation-explicit-successor",
+      "operation": "open_generation",
+      "input": {
+        "fixture": "m1b-contract.json",
+        "replace": {
+          "/budget/max_attempts": 5
+        },
+        "predecessor_generation_id": "generation_b87daa35b5f8e5593fe0c4f5d245f8a6",
+        "change_reason": "Increase the preregistered attempt budget after evaluator review."
+      },
+      "expected": {
+        "contract_digest": "13939085e3170fd4c7c20362be1984961a4916a00c17050c42c1c9b533e22f27",
+        "generation_id": "generation_741c395dc889da6703f3eb090ef75afc",
+        "active_generation_id": "generation_741c395dc889da6703f3eb090ef75afc",
+        "appended_events": 1
+      }
+    },
+    {
+      "id": "generation-unchanged-budget-reset",
+      "operation": "open_generation",
+      "input": {
+        "fixture": "m1b-contract.json",
+        "predecessor_generation_id": "generation_b87daa35b5f8e5593fe0c4f5d245f8a6",
+        "change_reason": "Attempt to reset an unchanged generation budget."
+      },
+      "expected": {
+        "error_code": "STUDY_GENERATION_UNCHANGED",
+        "appended_events": 0
+      }
+    },
+    {
+      "id": "generation-missing-change-reason",
+      "operation": "open_generation",
+      "input": {
+        "fixture": "m1b-contract.json",
+        "replace": {
+          "/budget/max_attempts": 5
+        },
+        "predecessor_generation_id": "generation_b87daa35b5f8e5593fe0c4f5d245f8a6",
+        "change_reason": null
+      },
+      "expected": {
+        "error_code": "STUDY_CHANGE_REASON_REQUIRED",
+        "appended_events": 0
+      }
+    },
+    {
+      "id": "generation-stale-predecessor",
+      "operation": "open_generation",
+      "input": {
+        "fixture": "m1b-contract.json",
+        "replace": {
+          "/budget/max_attempts": 5
+        },
+        "predecessor_generation_id": "generation_00000000000000000000000000000000",
+        "change_reason": "Attempt a stale successor."
+      },
+      "expected": {
+        "error_code": "STUDY_GENERATION_MISMATCH",
+        "appended_events": 0
+      }
+    },
+    {
+      "id": "generation-first-open-race",
+      "operation": "race_generation_open",
+      "input": {
+        "fixture": "m1b-contract.json",
+        "workers": 2,
+        "barrier": "immediately_before_locked_append"
+      },
+      "expected": {
+        "successful_results": 2,
+        "generation_ids": [
+          "generation_b87daa35b5f8e5593fe0c4f5d245f8a6",
+          "generation_b87daa35b5f8e5593fe0c4f5d245f8a6"
+        ],
+        "generation_event_delta": 1,
+        "active_generation_id": "generation_b87daa35b5f8e5593fe0c4f5d245f8a6"
+      }
+    },
+    {
+      "id": "generation-divergent-successor-race",
+      "operation": "race_generation_open",
+      "input": {
+        "predecessor_generation_id": "generation_b87daa35b5f8e5593fe0c4f5d245f8a6",
+        "contract_max_attempts": [
+          5,
+          6
+        ],
+        "workers": 2,
+        "barrier": "immediately_before_locked_append"
+      },
+      "expected": {
+        "winner_count": 1,
+        "rejection_count": 1,
+        "rejection_code": "STUDY_GENERATION_MISMATCH",
+        "generation_event_delta": 1,
+        "allowed_active_generation_ids": [
+          "generation_741c395dc889da6703f3eb090ef75afc",
+          "generation_64218dec5982640fd914612fd6734c10"
+        ]
+      }
+    },
+    {
+      "id": "legacy-v1-byte-projection-parity",
+      "operation": "replay_legacy_corpus",
+      "input": {
+        "events_fixture": "legacy-v1-events.jsonl",
+        "projection_fixture": "legacy-v1-projection.json"
+      },
+      "expected": {
+        "event_bytes_sha256": "b35e9d74a64c729ceea3c5ca66303a7f4e14043129d4e4686741c5939cf178d6",
+        "last_event_hash": "3b3fcaa193ac3af814a67c605c253d86b5d993b4e277ceed78b7b97ed367d901",
+        "experiment_id": "exp_9c077608f342414ce35c5dec5d7aa07b",
+        "projection_canonical_digest": "9acf4e08a01756d39e4789a7e13f635d891cb426c183abcbfc4793c53d472e88",
+        "legacy_unstructured_registrations": 1
+      }
+    },
+    {
+      "id": "legacy-registration-before-generation",
+      "operation": "replay",
+      "input": {
+        "event_sequence": [
+          "legacy_experiment_registered"
+        ]
+      },
+      "expected": {
+        "active_generation_id": null,
+        "legacy_unstructured_registrations": 1
+      }
+    },
+    {
+      "id": "unbound-registration-after-generation",
+      "operation": "replay",
+      "input": {
+        "event_sequence": [
+          "generation_opened",
+          "legacy_experiment_registered"
+        ]
+      },
+      "expected": {
+        "error_code": "STUDY_GENERATION_REQUIRED"
+      }
+    },
+    {
+      "id": "registration-partial-science-metadata",
+      "operation": "replay",
+      "input": {
+        "event_sequence": [
+          "generation_opened",
+          "registration_with_generation_id_only"
+        ]
+      },
+      "expected": {
+        "error_code": "STUDY_REGISTRATION_INVALID"
+      }
+    },
+    {
+      "id": "registration-evaluation-seal-mismatch",
+      "operation": "reserve_registration",
+      "input": {
+        "override_evaluation_seal_digest": "9999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "expected": {
+        "error_code": "STUDY_EVALUATION_SEAL_MISMATCH",
+        "appended_events": 0
+      }
+    },
+    {
+      "id": "live-replay-rebuild-parity",
+      "operation": "compare_science_state_paths",
+      "input": {
+        "event_sequence": [
+          "generation_opened",
+          "ordinary_registration",
+          "retry_registration"
+        ],
+        "paths": [
+          "post_append",
+          "cold_replay",
+          "projection_rebuild_then_status"
+        ],
+        "forbidden_next_registration": "retry_registration"
+      },
+      "expected": {
+        "path_state_match_count": 3,
+        "active_generation_id": "generation_b87daa35b5f8e5593fe0c4f5d245f8a6",
+        "study_contract_digest": "00029b4eae18e71513001bdee36bd8a3333b58720b1f27f78b1ab80d68ca1320",
+        "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
+        "attempts_used": 2,
+        "retries_used": 1,
+        "elapsed_reserved_milliseconds": 2000,
+        "cost_reserved_microunits": 5000,
+        "forbidden_error_code": "BUDGET_RETRIES_EXCEEDED"
+      }
+    },
+    {
+      "id": "malformed-direct-append-matrix",
+      "operation": "replay_malformed_direct_appends",
+      "input": {
+        "cases": [
+          "unbound_after_generation",
+          "partial_science_bundle",
+          "contract_digest_mismatch",
+          "evaluation_seal_mismatch",
+          "generation_mismatch",
+          "budget_debit_tamper",
+          "attempts_overrun"
+        ]
+      },
+      "expected": {
+        "rejections": 7,
+        "error_codes": [
+          "STUDY_GENERATION_REQUIRED",
+          "STUDY_REGISTRATION_INVALID",
+          "STUDY_CONTRACT_MISMATCH",
+          "STUDY_EVALUATION_SEAL_MISMATCH",
+          "STUDY_GENERATION_MISMATCH",
+          "STUDY_REGISTRATION_INVALID",
+          "BUDGET_ATTEMPTS_EXCEEDED"
+        ]
+      }
+    },
+    {
+      "id": "ledger-terminal-statuses-do-not-refund",
+      "operation": "reduce_budget",
+      "input": {
+        "registrations": [
+          {
+            "retry": false,
+            "terminal_status": "INVALID_EXPERIMENT"
+          },
+          {
+            "retry": false,
+            "terminal_status": "INFRA_FAILED"
+          },
+          {
+            "retry": true,
+            "terminal_status": "INSUFFICIENT_EVIDENCE"
+          },
+          {
+            "retry": false,
+            "terminal_status": "REJECTED"
+          }
+        ]
+      },
+      "expected": {
+        "attempts": {
+          "limit": 4,
+          "used": 4,
+          "remaining": 0
+        },
+        "retries": {
+          "limit": 1,
+          "used": 1,
+          "remaining": 0
+        },
+        "elapsed_milliseconds": {
+          "limit": 4000,
+          "reserved": 4000,
+          "remaining": 0
+        },
+        "cost_microunits": {
+          "unit": "USD_MICRO",
+          "limit": 10000,
+          "reserved": 10000,
+          "remaining": 0
+        }
+      }
+    },
+    {
+      "id": "budget-attempts-overrun",
+      "operation": "reserve_registration",
+      "input": {
+        "prior_attempts": 4,
+        "retry": false
+      },
+      "expected": {
+        "error_code": "BUDGET_ATTEMPTS_EXCEEDED",
+        "appended_events": 0
+      }
+    },
+    {
+      "id": "budget-retries-overrun",
+      "operation": "reserve_registration",
+      "input": {
+        "prior_attempts": 2,
+        "prior_retries": 1,
+        "retry": true
+      },
+      "expected": {
+        "error_code": "BUDGET_RETRIES_EXCEEDED",
+        "appended_events": 0
+      }
+    },
+    {
+      "id": "budget-elapsed-overrun",
+      "operation": "reserve_registration",
+      "input": {
+        "contract_override": {
+          "max_attempts": 4,
+          "max_elapsed_milliseconds": 1500
+        },
+        "prior_attempts": 1,
+        "retry": false
+      },
+      "expected": {
+        "error_code": "BUDGET_ELAPSED_EXCEEDED",
+        "appended_events": 0
+      }
+    },
+    {
+      "id": "budget-cost-overrun",
+      "operation": "reserve_registration",
+      "input": {
+        "contract_override": {
+          "max_attempts": 4,
+          "max_cost_microunits": 4000
+        },
+        "prior_attempts": 1,
+        "retry": false
+      },
+      "expected": {
+        "error_code": "BUDGET_COST_EXCEEDED",
+        "appended_events": 0
+      }
+    },
+    {
+      "id": "locked-append-races",
+      "operation": "race_reservations",
+      "input": {
+        "registration_path": "common_tokenless_registration_gate",
+        "dimensions": [
+          "attempts",
+          "retries",
+          "elapsed_milliseconds",
+          "cost_microunits"
+        ],
+        "workers_per_dimension": 2
+      },
+      "expected": {
+        "winners_per_dimension": 1,
+        "rejections_per_dimension": 1,
+        "registration_delta_per_dimension": 1,
+        "overrun_block_rate": 1.0,
+        "rejection_codes": {
+          "attempts": "BUDGET_ATTEMPTS_EXCEEDED",
+          "retries": "BUDGET_RETRIES_EXCEEDED",
+          "elapsed_milliseconds": "BUDGET_ELAPSED_EXCEEDED",
+          "cost_microunits": "BUDGET_COST_EXCEEDED"
+        }
+      }
+    },
+    {
+      "id": "context-head-race-is-separate",
+      "operation": "race_context_registration",
+      "input": {
+        "workers": 2,
+        "shared_context_token": true
+      },
+      "expected": {
+        "winner_count": 1,
+        "rejection_count": 1,
+        "rejection_code": "STALE_AGENT_CONTEXT",
+        "counts_toward_budget_race_denominator": false
+      }
+    },
+    {
+      "id": "authority-null-changed-surfaces",
+      "operation": "scan_authority_surfaces",
+      "input": {
+        "surfaces": [
+          "generation_event_payload",
+          "open_generation_service_result",
+          "open_generation_cli_json",
+          "experiment_registration_payload",
+          "run_once_service_result",
+          "run_once_cli_json",
+          "study_status_cli_json",
+          "replay_cli_json"
+        ]
+      },
+      "expected": {
+        "surface_count": 8,
+        "authorized_action_key_count": 8,
+        "authorized_action_non_null_count": 0
+      }
+    }
+  ]
+}

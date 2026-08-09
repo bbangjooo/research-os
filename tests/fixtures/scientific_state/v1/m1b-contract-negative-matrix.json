@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "kind": "research_os.study_contract_negative_matrix",
+  "base_fixture": "m1b-contract.json",
+  "expected_error_code": "STUDY_CONTRACT_INVALID",
+  "cases": [
+    {"id": "missing-top-level", "remove": ["/budget"]},
+    {"id": "unknown-nested", "add": {"/budget/credits": 1}},
+    {"id": "null-required", "replace": {"/study_id": null}},
+    {"id": "duplicate-hypothesis-id", "transform": "duplicate_first_hypothesis_id"},
+    {"id": "duplicate-scope-id", "transform": "duplicate_first_scope_id"},
+    {"id": "duplicate-pointer", "transform": "duplicate_first_allowed_pointer"},
+    {"id": "bool-number", "replace": {"/budget/max_attempts": true}},
+    {"id": "nonfinite-number", "transform": "replace_max_elapsed_with_nan"},
+    {"id": "unsafe-integer", "replace": {"/budget/max_attempts": 9007199254740992}},
+    {"id": "bad-candidate-schema-digest", "replace": {"/intervention_surface/candidate_schema_digest": "not-a-digest"}},
+    {"id": "bad-scope-manifest-digest", "replace": {"/evaluation_scopes/0/manifest_digest": "not-a-digest"}},
+    {"id": "bad-rfc6901-pointer", "replace": {"/intervention_surface/allowed_json_pointers/0": "learning_rate"}},
+    {"id": "max-changes-over-pointer-count", "replace": {"/intervention_surface/max_changes": 4}},
+    {"id": "invalid-scope-role", "replace": {"/evaluation_scopes/0/role": "training"}},
+    {"id": "missing-development-role", "replace": {"/evaluation_scopes/0/role": "diagnostic"}},
+    {"id": "zero-frontier", "replace": {"/frontier/max_active_branches": 0}},
+    {"id": "zero-attempts", "replace": {"/budget/max_attempts": 0}},
+    {"id": "retries-equal-attempts", "replace": {"/budget/max_retries": 4}},
+    {"id": "zero-max-elapsed", "replace": {"/budget/max_elapsed_milliseconds": 0}},
+    {"id": "zero-elapsed-reservation", "replace": {"/budget/elapsed_reservation_per_attempt_milliseconds": 0}},
+    {"id": "partial-cost-triple", "replace": {"/budget/cost_unit": null}},
+    {"id": "zero-max-cost", "replace": {"/budget/max_cost_microunits": 0}},
+    {"id": "stop-policy-not-literal", "replace": {"/stop_policy/on_budget_exhausted": "continue"}},
+    {"id": "change-control-false", "replace": {"/change_control/require_new_generation": false}}
+  ]
+}
