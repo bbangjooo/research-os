@@ -842,21 +842,27 @@ def _observe_authority_surfaces(tmp_path: Path, case: Mapping[str, object]) -> d
     )
     second_candidate = tmp_path / "second-candidate.json"
     second_candidate.write_text('{"x":3.0}\n', encoding="utf-8")
+    second_outcome_cli = _cli_json(
+        project, "run-once", str(second_candidate)
+    )
     surfaces = {
         "generation_event_payload": generation_event.payload,
         "open_generation_service_result": opened,
         "open_generation_cli_json": opened_cli,
         "experiment_registration_payload": registration_event.payload,
         "run_once_service_result": first_outcome,
-        "run_once_cli_json": _cli_json(
-            project, "run-once", str(second_candidate)
-        ),
+        "run_once_cli_json": second_outcome_cli,
         "study_status_cli_json": _cli_json(project, "study-status"),
         "replay_cli_json": _cli_json(project, "replay"),
     }
     inputs = case["input"]
     assert isinstance(inputs, Mapping)
     assert list(surfaces) == inputs["surfaces"]
+    for outcome in (first_outcome, second_outcome_cli):
+        decision = outcome.get("decision")
+        assert isinstance(decision, Mapping)
+        assert "authorized_action" in decision
+        assert decision["authorized_action"] is None
     recursive_values = [
         authority
         for surface in surfaces.values()

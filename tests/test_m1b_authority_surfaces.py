@@ -114,6 +114,11 @@ def test_all_eight_changed_service_event_decision_and_cli_surfaces_are_null() ->
         assert len(surfaces) == authority_case["expected"]["surface_count"] == 8
         assert sum("authorized_action" in surface for surface in surfaces.values()) == 8
         assert all(surface["authorized_action"] is None for surface in surfaces.values())
+        for outcome in (first_outcome, second_outcome_cli):
+            decision = outcome.get("decision")
+            assert isinstance(decision, Mapping)
+            assert "authorized_action" in decision
+            assert decision["authorized_action"] is None
         recursive_values = [
             authority
             for surface in surfaces.values()

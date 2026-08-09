@@ -27,7 +27,7 @@
 
 1. **v0.3~v0.5는 single local worker** — 기존 workflow lock과 provider-neutral CLI 경계를 유지한다.
 2. **ProgramLog는 append-only file + rebuildable projection** — graph/vector DB를 canonical truth로 도입하지 않는다.
-3. **다중 agent 진입 gate** — NS6 fixed-budget benchmark에서 v0.5가 v0.2보다 개선되고 integrity regression이 0일 때만 검토한다.
+3. **다중 agent 진입 gate** — 제품 multi-agent는 NS6 fixed-budget benchmark를 통과한 이후에만 검토한다. v0.5 안에서는 single local worker를 유지한다.
 
 ### MVP / Full 활성표 (over-engineering 방지)
 
@@ -48,15 +48,15 @@
 6. **유한 자율 루프** (§6): provider의 출력은 비신뢰 packet이며 kernel preflight 뒤에만 실행된다.
 7. **비교 가능한 효과 측정** (§7): 동일 후보 언어·실험 budget에서 정확도와 낭비를 비교한다.
 
-현재 상태 (Cycle 01):
+현재 상태 (Cycle 02 closed — implementation evidence, progress critic, independent auditor PASS):
 
 - 1번 ✅/○ — directional delta, constitution-owned typed gate/slack, baseline/candidate verify 대칭과 nested/flat certification lifecycle이 구현·검증됐다.
-- 2번 ❌ — process limit은 있으나 generation cumulative budget·StudyContract가 없다.
+- 2번 ○ — checkpoint `df2c900`에서 canonical StudyContract·evaluation-sealed generation·replayable cumulative reservation ledger·locked overrun gate가 구현됐다. executable manifest `29/29`, focused `81+37`; 단, generation별 non-refundable reservation이지 actual usage telemetry나 study lifetime cap은 아니며 successor 반복 증액을 막지 않는다.
 - 3번 ❌ — 자유문자열 graph metadata와 Finding만 있고 typed diagnosis/class reducer가 없다.
 - 4번 ❌ — project-bound Finding은 cross-project conditional Program Claim이 아니다.
-- 5번 ❌ — context v2는 최근 leaf/finding 중심이며 retrieval reason·supersession이 없다.
+- 5번 ❌ — context v2는 최근 leaf/finding 중심이고 M1-B generation/ledger도 직접 노출하지 않으며 retrieval reason·supersession이 없다.
 - 6번 ❌ — 외부 agent가 수동으로 단계를 잇고 canonical loop resume state가 없다.
-- 7번 ❌ — v0.2 comparator와 고정 episode suite가 없다.
+- 7번 ❌ — 전체 regression은 `371 passed, 104 subtests`로 갱신됐지만 v0.2 comparator와 precommitted unseen learning episode suite는 없다.
 
 ---
 
@@ -84,7 +84,7 @@ Evaluator의 관측값을 kernel 소유 gate 정의와 결합해 metric delta, t
 
 - 구현 seam: `src/research_os/contracts/results.py`, `src/research_os/config.py`, `src/research_os/policy.py`, `src/research_os/service.py`.
 - 새 contract는 project candidate JSON과 분리한다.
-- M1-A에서 기존 flat certificate와 nested immutable fingerprint lifecycle을 함께 회귀했고 Python 3.12 전체 `290 tests + 67 subtests`가 통과했다.
+- M1-A에서 기존 flat certificate와 nested immutable fingerprint lifecycle을 함께 회귀했고, M1-B까지 Python 3.12 전체 `371 tests + 104 subtests`가 통과했다.
 
 ---
 
@@ -111,9 +111,11 @@ Machine-readable `StudyContract`가 generation identity, compatibility/evaluatio
 
 ### 2.4 코드 관점
 
-- 새 seam: `src/research_os/science/contracts.py`, `science/state.py`.
+- 구현 seam: `src/research_os/science/contracts.py`, `science/state.py`, `service.py`, `kernel/{ids,projection}.py`, `cli.py`.
 - Event envelope v1과 기존 lines는 수정하지 않고 versioned namespaced payload/event를 사용한다.
 - evaluation seal, study generation digest, program ID를 직교 identity로 유지한다.
+- M1-B checkpoint `df2c900`에서 contract/generation/ledger/locked race의 executable manifest `29/29`, focused `81+37`, full `371+104`가 통과했다.
+- 현재 budget은 generation별 non-refundable reserved allocation이다. actual elapsed/cost settlement, study-lifetime ceiling, successor 반복 증액 방지, context v2 노출은 아직 없다.
 
 ---
 
@@ -260,6 +262,7 @@ Project-bound execution log를 억지로 global memory로 쓰지 않고 별도 `
 - comparator는 commit `6f36a1b`의 context v2 + packaged skill을 byte-fixed fixture로 둔다.
 - 제품 release는 `pyproject.toml`, `src/research_os/__init__.py`, `uv.lock`, packaged skill/docs를 동기화한다.
 - managed prior release의 exact manifest를 검증하는 0.2→0.3→0.4→0.5와 0.2→0.5 safe upgrade를 제공한다.
+- M1-B까지 Python 3.12 regression `371 passed, 104 subtests`와 authority/legacy/race 회귀는 통과했지만, 이는 NS6 learning benchmark를 대신하지 않는다.
 
 ---
 
@@ -298,7 +301,7 @@ Canonical truth boundaries:
 
 ### 8.3 종착지에 없는 것 (의도적 제외)
 
-- ✗ 다중 agent community·다수결·role swarm — 단일 agent 개선이 먼저 측정되어야 한다.
+- ✗ 다중 agent community·다수결·role swarm·제품 multi-agent — **NS6 통과 이후**에만 검토하며 v0.5 범위에서는 제외한다.
 - ✗ distributed workers·lease scheduler·parallel adaptive children — 현재 single-worker 안전성 유지.
 - ✗ graph/vector DB를 canonical truth로 사용 — append-only log + reducer로 충분한지 먼저 측정.
 - ✗ Research OS core의 특정 LLM SDK/API key/session 소유 — provider-neutral 경계를 유지.
@@ -311,13 +314,13 @@ Canonical truth boundaries:
 | 영역 | 종착지 모습 | 현재 모습 | latest delta |
 |---|---|---|---|
 | Evidence semantics | 방향 보정 delta와 typed gate/slack이 veto와 무관하게 남음 | M1-A 구현: directional delta/margin, typed gate/slack, baseline/candidate VERIFY 대칭 | Cycle 01 구체화·검증 |
-| Study control | StudyContract와 cumulative budget이 atomic registration을 지배 | brief/skill 규율 + per-run resource cap | 추가 |
+| Study control | StudyContract와 cumulative budget이 atomic registration을 지배 | M1-B 구현: canonical contract/evaluation-sealed generation, replayable ledger, locked registration reservation; `29/29` exact. 단, generation별 non-refundable reservation이며 actual usage telemetry·study-lifetime cap·successor 반복 증액 방지는 없음 | Cycle 02 구체화·검증 |
 | Study inference | typed Proposal·Diagnosis·ClassState와 semantic frontier | graph action + free-text scientific change + leaf frontier | 추가 |
 | Program memory | conditional Claim graph가 exact origin evidence를 참조 | project-bound generic Finding | 추가 |
-| Context | v3가 budget/class/pending diagnosis/relevant claim/reason을 제공 | bounded v2 packet, recent leaf/finding 중심 | 구체화 |
+| Context | v3가 budget/class/pending diagnosis/relevant claim/reason을 제공 | bounded v2 packet, recent leaf/finding 중심; active generation/reservation ledger 직접 노출 없음 | Cycle 02 limitation 명시 |
 | Autonomy | provider-neutral finite state machine이 stop/resume | 외부 대화가 수동으로 단계를 연결 | 추가 |
-| Meta-evaluation | post-freeze unseen 36 episodes와 choice oracle로 v0.2/v0.5 paired comparison | benchmark/comparator/oracle/generator 없음 | 추가 |
-| Compatibility/authority | v1 logs 무변환, legacy 격리, authority null 유지 | nested/flat certification lifecycle과 M1-A authority-null scan PASS; 전체 v1 migration/release gate는 미정 | Cycle 01 evidence 보강 |
+| Meta-evaluation | post-freeze unseen 36 episodes와 choice oracle로 v0.2/v0.5 paired comparison | full regression `371+104`는 PASS; learning benchmark/comparator/oracle/generator는 없음 | Cycle 02 regression evidence 보강; learning 효과는 미측정 |
+| Compatibility/authority | v1 logs 무변환, legacy 격리, authority null 유지 | nested/flat certification lifecycle + M1-B legacy bytes/ID/projection parity, changed surfaces key `8/8`·non-null `0` PASS; 전체 v1 migration/release gate는 미정 | Cycle 02 evidence 보강 |
 
 ### 8.5 비전 변경 이력 ★
 
@@ -325,6 +328,7 @@ Canonical truth boundaries:
 |---|---|---|---|---|
 | 00 | 2026-08-09 | 추가·구체화 | integrity kernel 위에 study inference, program memory, provider-neutral loop와 fixed-budget 판정 종착지를 정의 | 사용자 v0.5 승인과 기존 프로젝트 분석 |
 | 01 | 2026-08-10 | 구체화·검증 | Evidence semantics를 typed delta/gate/slack·VERIFY 대칭으로 구현하고 Compatibility/authority의 nested/flat lifecycle·null scan evidence를 보강 | M1-A E1~E9 exact, checkpoint `ed76067` |
+| 02 | 2026-08-10 | 구체화·검증 | Study control을 canonical StudyContract·generation·atomic cumulative reservation으로 구현하고 per-generation/non-refundable·no-telemetry·no-lifetime-cap·repeat-increase limitations를 유지; Context와 Meta-evaluation의 남은 갭도 재명시 | M1-B manifest `29/29`, focused `81+37`, full `371+104`, checkpoint `df2c900`; progress critic + independent auditor PASS |
 
 ---
 
@@ -335,6 +339,8 @@ Canonical truth boundaries:
 > "위 방향대로 개선해서 v0.5 까지 개선을 진행하고 싶다"
 
 > "추천안 승인 / 로컬 체크포인트 커밋 허용 / 기존 certification 패치 포함"
+
+> "회고 승인 / unseen synthetic benchmark를 v0.5 release gate로 인정 / 실제 프로젝트 live pilot·migration은 v0.5 이후 / multi-agent는 NS6 통과 이후"
 
 ### 9.1 M chain 도해
 
@@ -407,19 +413,19 @@ Canonical truth boundaries:
 
 ## 10. 이 프로젝트가 위 틀에 얼마나 부합하는가
 
-총평: v0.2는 integrity·audit·replay에 강하지만 learning state 이후 단계는 대부분 미구현이다. 따라서 기존 kernel을 보존하면서 §1→§7을 순서대로 추가한다.
+총평: v0.2 기반의 integrity·audit·replay와 M1-A/B evidence/study control은 강해졌지만 typed learning state 이후 단계는 대부분 미구현이다. 따라서 기존 kernel과 M1-B canonical generation 경계를 보존하면서 §3→§7을 순서대로 추가한다.
 
 ### 10.1 단계별 평가
 
 | 단계 | 부합도 | 구현 위치 / 한계 | 근거 |
 |---|---|---|---|
-| 1. Evidence semantics | ○ | `results.py`, `config.py`, `policy.py`, `service.py`; typed gates·delta/margin·VERIFY 대칭 구현, metric 의미 타당성은 후속 contract 대상 | M1-A E1~E9; `290 tests + 67 subtests` PASS |
-| 2. Study generation | △ | per-run caps와 brief는 있으나 cumulative canonical contract 없음 | `config.py`, `architecture.md` |
+| 1. Evidence semantics | ○ | `results.py`, `config.py`, `policy.py`, `service.py`; typed gates·delta/margin·VERIFY 대칭 구현, metric 의미 타당성은 후속 scope/diagnosis 대상 | M1-A E1~E9; M1-B 포함 full `371 tests + 104 subtests` PASS |
+| 2. Study generation | ○ | `science/{contracts,state}.py`, `service.py`, `kernel/{ids,projection}.py`; canonical contract/generation/replay와 locked cumulative reservation 구현. generation별 non-refundable reservation이며 actual telemetry·study lifetime cap·successor 반복 증액 방지는 없음 | M1-B executable manifest `29/29`, focused `81+37`, checkpoint `df2c900` |
 | 3. Study inference | ✗ | free-text metadata/leaf frontier, typed diagnosis/class 없음 | `graph_policy.py`, `agent.py`, `service.py` |
 | 4. Program memory | ✗ | project-bound Finding만 존재 | `memory/findings.py` |
-| 5. Relevant context v3 | ✗ | context v2 bounded snapshot만 존재 | `agent.py`, `docs/agent-usage.md` |
+| 5. Relevant context v3 | ✗ | context v2 bounded snapshot만 존재하고 M1-B generation/reservation ledger를 agent packet에 직접 노출하지 않음 | `agent.py`, `docs/agent-usage.md`; M1-E 범위 |
 | 6. Autonomous single-agent | ✗ | provider-neutral CLI는 있으나 canonical loop state 없음 | `docs/architecture.md` |
-| 7. Meta-evaluation/release | ✗ | 전체 regression suite는 강하나 learning benchmark 없음 | 290 tests + 67 subtests PASS; NS6 측정 전 |
+| 7. Meta-evaluation/release | ✗ | 전체 regression·legacy/authority/race 회귀는 갱신됐지만 learning comparator/generator/unseen benchmark는 없음 | `371 tests + 104 subtests` PASS; NS6 측정 전 |
 
 범례: ◎ 우수 / ○ 양호 / △ 부분 / ✗ 미구현
 
@@ -431,14 +437,14 @@ Canonical truth boundaries:
 
 ### 10.3 메꿔야 할 갭 (이 문서 기준)
 
-1. StudyContract, generation identity와 누적 budget이 canonical machine state가 아니다.
+1. Study control은 canonical generation별 reservation까지 왔지만 actual usage settlement·study-lifetime ceiling·successor 반복 증액 방지와 context v3 노출이 없다.
 2. terminal evidence가 Proposal/Diagnosis/ClassState/Claim으로 연결되지 않는다.
 3. relevant memory retrieval과 knowledge disposition이 없다.
-4. autonomous loop와 fixed-budget learning benchmark가 없다.
+4. autonomous loop와 fixed-budget unseen learning benchmark가 없다. 제품 multi-agent는 이 NS6 gate 통과 이후까지 명시적으로 유예한다.
 
 ### 10.4 한 문장 요약
 
-> Research OS v0.2의 신뢰 가능한 실행·감사 kernel 위에, v0.3의 과학 상태, v0.4의 program memory, v0.5의 측정 가능한 단일 자율 연구 loop를 순서대로 올린다.
+> Research OS v0.2의 신뢰 가능한 실행·감사 kernel과 M1-B canonical generation 위에, 남은 v0.3 과학 상태, v0.4 program memory, v0.5의 측정 가능한 단일 자율 연구 loop를 순서대로 올리고 제품 multi-agent는 NS6 이후로 남긴다.
 
 ---
 

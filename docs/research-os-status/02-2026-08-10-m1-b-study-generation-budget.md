@@ -1,6 +1,6 @@
 # §02 — M1-B Study Generation and Cumulative Budget (2026-08-10)
 
-> Status: **PLAN — 구현 전 사전 명세**
+> Status: **CLOSED — 구현·독립 교차 리뷰·progress critic·7-pass auditor PASS**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §02
 > 직전 phase: [`§01 M1-A`](01-2026-08-09-m1-a-evidence-correctness.md)
 > Pipeline 영향: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §2, §8.4 Study control, §9.4 M1-B
@@ -95,16 +95,30 @@ Versioned oracle: `tests/fixtures/scientific_state/v1/manifest.json`; 29 cases, 
 
 | 가설 | 실제 측정값 | 차이 사유 |
 |---|---|---|
-| E1~E10 exact + M1-B 4 conjunct close | 구현 전 — 미측정 | 구현 후 기록 |
+| E1 contract exact + negative matrix | digest `00029b4e...1320`, reordered digest 동일, negative `24/24`, manifest case `29/29` exact | 예상 일치 |
+| E2 first/idempotent/concurrent open | first ID `generation_b87d...f8a6`, sequential delta `0`, forced concurrent 2 success/event delta `1` | 예상 일치 |
+| E3 successor/change-control race | fixed successor ID/digest exact, unchanged/reason/stale delta `0`, divergent winner/reject/event `1/1/1` | 예상 일치 |
+| E4 legacy parity/isolation | raw `b35e...78d6`, head/ID/projection `9acf...2e88` exact; pre-generation opaque, post-generation unbound fail-closed | 예상 일치 |
+| E5 ledger/path parity/non-refund | terminal 4개 뒤 `4 attempts / 1 retry / 4000 ms / 10000 microunits`; post-append/cold/rebuild 3/3, next retry code exact | 예상 일치 |
+| E6 null cost | cost ledger 전체 `null` | 예상 일치 |
+| E7 malformed/overrun | 차원별 4 code exact, direct malformed `7/7` exact reject | 초기 테스트가 6/7만 실행한 결함을 독립 리뷰가 발견해 `attempts_overrun`을 추가한 뒤 manifest exact 재측정 |
+| E8 actual common service races | 실제 `ResearchService._append_registration_event`에서 차원별 `1 commit / 1 reject / delta 1 / remaining 0`, `4/4=100%`; shared-context는 `1/1 STALE_AGENT_CONTEXT` 별도 분모 | 초기 harness가 reducer+EventLog를 재구현해 service gate를 우회한 결함을 독립 리뷰가 발견해 실제 경로로 교체 |
+| E9 generation/seal mismatch | stable mismatch code, append delta `0`; noncanonical generation ID도 fail-closed | 예상 일치 + direct-instance/canonical-ID 경계 강화 |
+| E10 regression/authority | focused `81 passed, 37 subtests`; full `371 passed, 104 subtests`; 8 surfaces key `8/8`, non-null `0`; ruff/`ty check src`/diff-check PASS | 예상 floor 초과 |
+
+사전 고정 manifest 29개는 이제 각각 고유 parametrized node로 실행되며 각 case의 전체 `observed` dict를 pre-spec `expected` dict와 exact equality 비교한다. 두 독립 구현 리뷰의 최초 verdict는 테스트 증거 공백 때문에 FAIL이었고, 결함 수정 후 교차 재리뷰는 모두 PASS였다.
 
 ## 02.5 발견된 부수 이슈
 
-- 구현 중 관찰되지만 M1-B 밖인 actual usage settlement, Proposal/Diagnosis/context v3 문제는 근거와 함께 여기에 남긴다.
+- `StudyContract` frozen dataclass의 direct constructor가 parser를 우회할 수 있어 planner 경계에서 `to_dict() → from_mapping()` 재검증을 추가했다. planner가 낸 payload는 reducer가 반드시 수용한다.
+- namespaced-ID 공통 validator가 공백을 trim하므로 generation reducer가 입력과 normalized ID의 exact equality를 추가로 검사한다.
+- race harness의 science-minimal registration은 budget gate를 직접 검증하는 데 충분하지만 full projection-valid payload까지 포함한 경쟁 replay는 향후 방어 강화 항목이다. 실제 live/replay/rebuild parity는 별도 service E2E가 보완한다.
+- actual usage settlement, typed Proposal/Diagnosis/context v3는 각각 M1-B 범위 밖이며 M1-C~E에 남는다.
 
 ## 02.6 시스템 영향 분석 ★
 
 - 이전: 연구 세대와 누적 예산은 brief/agent 규율이며 새 session/branch가 canonical counter를 공유하지 않는다.
-- 이후 목표: operator가 typed contract로 generation별 finite reserved budget을 열고, 모든 versioned registration이 durable budget을 원자 debit하며 replay가 동일 ledger를 복원한다.
+- 이후: operator가 typed contract로 generation별 finite reserved budget을 열고, 모든 versioned registration이 durable budget을 원자 debit하며 replay가 동일 ledger를 복원한다.
 - 가능: M1-C Proposal이 exact generation/remaining budget/scope identity를 bind한다.
 - 불가능: active generation 아래 unbound registration, unchanged budget reset, stale successor, concurrent last-slot double spend.
 - 외부 관찰: `open-generation → study-status → run-once → study-status → replay → study-status`에서 차단과 동일 ledger가 보인다. v1 legacy bytes/API projection은 바뀌지 않는다.
@@ -113,28 +127,28 @@ Versioned oracle: `tests/fixtures/scientific_state/v1/manifest.json`; 29 cases, 
 
 **영향 받은 M_i.j**: `M1-B` · **계획 라벨**: _CLOSE_
 
-| conjunct | 이전 | 목표 | 고정 근거 |
+| conjunct | 이전 | 실제 | 고정 근거 |
 |---|---|---|---|
 | canonical StudyContract schema/digest tests PASS | ❌ | ✅ | E1 + fixture exact digest |
 | generation open/replay tests PASS | ❌ | ✅ | E2~E4/E9 event and stable-code oracle |
 | attempt/retry/elapsed/cost ledger arithmetic tests PASS | ❌ | ✅ | E5~E7/null/equality/non-refund |
 | locked append overrun 100% reject·TOCTOU race PASS | ❌ | ✅ | E8 4 dimensions, 1 winner/1 reject |
 
-- 모든 conjunct ✅ 확인 [ ] · status에서 M1-B closed/M1-C active [ ] · parent M1은 C~E가 남아 open [x] · prerequisite N/A/gate-bypass 없음.
+- 모든 conjunct ✅ 확인 [x] · status에서 M1-B closed/M1-C active [x] · parent M1은 C~E가 남아 open [x] · prerequisite N/A/gate-bypass 없음.
 
 ## 02.6.5 종착지 비전 갱신 ★
 
-- 계획 Delta: §8.4 Study control을 “brief/per-run cap”에서 “canonical StudyContract + atomic cumulative reservation”으로 구체화·검증한다.
+- 실제 Delta: §8.4 Study control을 “brief/per-run cap”에서 “canonical StudyContract + atomic cumulative reservation”으로 구체화·검증했다.
 - §8 endpoint, NS/M criterion, 다른 7영역은 유지한다. actual usage settlement나 multi-agent를 종착지에서 제거하지 않는다.
-- pipeline §8.5 Cycle 02 행은 결과 후 추가 [ ].
+- pipeline §8.5 Cycle 02 행 추가 [x]; endpoint 의미와 M chain 정의는 변경하지 않았다.
 
 ## 02.6.6 의도-실행 정합 ★
 
-**계획 라벨**: _MATCH_ — NS1/NS2, Study control, M1-B 네 conjunct의 실제 파일/test/manifest 결과를 구현 후 비교한다. 의미 변화면 PIVOT/DRIFT를 숨기지 않는다.
+**실제 라벨**: _MATCH_ — NS1/NS2, Study control, M1-B 네 conjunct가 사전 고정된 E1~E10과 일치했다. reservation이 actual telemetry나 lifetime cap이 아니라는 limitation도 제거하지 않았다.
 
 ## 02.6.7 Claim Mode ★
 
-**계획 라벨**: _CONFIRMATORY candidate_. Docs+fixture-only pre-spec은 `a6b4f86b66335cb0155a6d5b34ebd0b5079f6cc4` (`2026-08-10T01:36:03+09:00`)이며 7개 phase/critic/fixture 파일만 포함한다. 첫 implementation/result-bearing commit은 아직 `PENDING`; 사전 명세 전에 본 것은 현재 v0.2 seam뿐이고 E1~E10 결과는 미측정이다. 구현 commit이 앞서거나 oracle이 사후 변경되면 신규 청구 전체를 EXPLORATORY로 강등한다.
+**실제 라벨**: _CONFIRMATORY_. Docs+fixture-only pre-spec은 `a6b4f86b66335cb0155a6d5b34ebd0b5079f6cc4` (`2026-08-10T01:36:03+09:00`)이며 phase/critic 2개와 fixture 5개만 포함한다. 첫 product/result-bearing commit은 `3201ad2bda795a943c14d3dafa6855893c1076b4` (`2026-08-10T01:49:53+09:00`)이고 `kernel/{ids,projection}.py`와 신규 identity test만 포함해 pre-spec보다 13분 50초 뒤다. 후속 구현 checkpoint는 `52530b0`과 `df2c900`; manifest raw/canonical digest는 그대로다. Claim mode는 chronology와 immutable oracle로 이미 결정되며 progress critic/auditor는 증거 신뢰성과 phase close를 별도 판정한다.
 
 ## 02.6.8 Requirement-Result Divergence ★
 
@@ -144,12 +158,12 @@ Versioned oracle: `tests/fixtures/scientific_state/v1/manifest.json`; 29 cases, 
 
 ## 02.7 §북극성 갱신 계획
 
-- NS1: full/legacy/authority/race evidence만 부분 진척; 전체 attack manifest/release gate는 open.
-- NS2: generation/contract + cumulative budget이 exact manifest와 함께 동작하면 `0/6 → 2/6`; 그 전에는 0/6 유지.
+- NS1: full `371+104`, fixed legacy bytes/projection, changed authority 8/8 null, generation/budget races PASS로 부분 진척; 전체 protocol attack manifest/release gate는 open.
+- NS2: generation/contract + cumulative budget 두 capability가 executable 29-case manifest와 함께 동작해 `0/6 → 2/6`; diagnosis gate/class closure/semantic frontier/complete legacy isolation 4개는 open.
 
 ## 02.8 §pipeline 매핑 영향
 
-- 목표: Stage 2 Study generation `△ → ○`; §8.4 Study control current state 보강. endpoint 의미 변경 없음.
+- 실제: Stage 2 Study generation `△ → ○`; §8.4 Study control current state를 보강한다. endpoint 의미 변경 없음.
 
 ## 02.9 비관 재채점 — 이 phase 자체
 
@@ -161,5 +175,5 @@ Versioned oracle: `tests/fixtures/scientific_state/v1/manifest.json`; 29 cases, 
 
 ## 02.10 다음 1행동
 
-- 단일 최우선 행동: M1-B critic 질문을 생성·응답하고 docs+fixture pre-spec checkpoint를 commit한다.
-- 그 다음: strict contracts/reducer → service atomic append/CLI → generation-aware identity/projection 순으로 구현하고 focused/full tests, critic verify, independent auditor를 통과한다.
+- 단일 최우선 행동: M1-C typed Proposal·replication identity의 exact pre-spec과 critic을 작성한다.
+- 감사 trail: [`02-m1-b-study-generation-budget.audit.md`](02-m1-b-study-generation-budget.audit.md) — 7-pass PASS, blocking/advisory defect 0.

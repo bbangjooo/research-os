@@ -17,7 +17,9 @@
   - 당시 dirty-working-tree 기준선은 tag `research-os-m1a-working-tree-baseline` / commit `50c4957`로 복구·보존되어 별도 checkout에서 `262/57`이 재현된다.
   - Bootstrap critic과 Rule 9 사용자 회고가 PASS했고 checkpoint `e728df9`로 고정됐다.
   - M1-A의 typed evidence semantics·baseline VERIFY 대칭·certification lifecycle이 checkpoint `ed76067`에 구현됐다.
-  - 최종 전체 회귀는 `290 passed, 67 subtests`; 두 독립 구현 재검토, progress critic, 7-pass progress auditor는 PASS다.
+  - M1-A close 당시 전체 회귀는 `290 passed, 67 subtests`; 두 독립 구현 재검토, progress critic, 7-pass progress auditor가 PASS했다.
+  - M1-B의 canonical `StudyContract`·generation replay·누적 reservation ledger·locked budget gate가 implementation checkpoint `df2c900`에 구현됐다.
+  - M1-B executable manifest는 `29/29` exact, focused suite는 `81 passed, 37 subtests`, 전체 회귀는 `371 passed, 104 subtests`다. 네 exit conjunct, progress critic, 독립 7-pass auditor가 모두 PASS해 M1-B를 닫고 M1-C를 활성화했다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 
@@ -28,25 +30,26 @@ uv run --python 3.12 --with pytest --no-project env PYTHONPATH=src pytest -q
 rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 ```
 
-- 현재 명령 결과: `290 passed, 67 subtests passed in 64.34s`.
+- M1-B checkpoint `df2c900` 기준 명령 결과: `371 passed, 104 subtests`; focused `81 passed, 37 subtests`; executable manifest `29/29` exact.
 - 제품 버전: `0.2.0`.
 - 승인된 기존 certification 수정은 M1-A checkpoint `ed76067`에 포함됐다.
+- canonical StudyContract/generation/budget 구현은 M1-B checkpoint `df2c900`에 포함됐다.
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** M1-B StudyContract·generation·누적 budget의 exact schema/산술/TOCTOU oracle을 구현 전에 phase plan과 critic으로 고정한다.
+- [ ] **단일 최우선 행동:** active `M1-C`의 typed Proposal·replication identity exact schema, preflight, `evaluation_scope_id`, replication oracle을 구현 전에 phase plan과 critic으로 고정한다.
 - 그 다음:
-  - M1-B pre-spec checkpoint가 성공하면 → canonical state/reducer와 locked budget registration을 구현한다.
-  - critic이 범위/판정 공백을 지적하면 → 구현 전에 M1-B phase plan을 먼저 보강한다.
+  - M1-C pre-spec checkpoint가 성공하면 → canonical Proposal과 scope-bound replication identity를 구현한다.
+  - critic이 범위/판정 공백을 지적하면 → 구현 전에 M1-C phase plan과 immutable oracle을 먼저 보강한다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
 | 항목 | 위치 | 상태 | 근거 |
 |---|---|---|---|
-| v0.2 제품 + M1-A 코드 | `src/research_os/` | 동작 | checkpoint `ed76067`; 위 §0.2 PASS |
-| 기존+M1-A 테스트 | `tests/` | 동작 | 290 tests + 67 subtests PASS |
-| 진행 상태 core | `docs/research-os-status.md` | active | M1-A close evidence; M1-B next action |
-| 방법론 pipeline core | `docs/research-os-pipeline.md` | active | Cycle 01 evidence/current-state delta |
+| v0.2 제품 + M1-A/B 코드 | `src/research_os/` | 동작 | checkpoints `ed76067`, `df2c900`; 위 §0.2 측정 |
+| 기존+M1-A/B 테스트 | `tests/` | 동작 | focused `81+37`, full `371+104`, manifest `29/29` exact |
+| 진행 상태 core | `docs/research-os-status.md` | active | M1-B 4/4 + critic/auditor PASS; M1-C active/next |
+| 방법론 pipeline core | `docs/research-os-pipeline.md` | active | Cycle 02 closed evidence/current-state delta |
 
 ### 0.5 알려진 잔여 이슈
 
@@ -54,6 +57,9 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 - `.venv`/기본 `uv run`이 Python 3.10을 선택할 수 있어 프로젝트 요구사항 Python ≥3.11을 만족하는 명시적 검증 명령이 필요하다.
 - v0.2 managed agent skill을 이후 release로 안전하게 upgrade하는 known-release 경로가 없다.
 - v0.5 성능 청구는 bootstrap 시점에는 사전 데이터 노출 commit이 없으므로 기본적으로 `EXPLORATORY`이며, 고정 benchmark 결과 후 별도 confirmatory validation이 필요하다.
+- M1-B budget은 **generation별 non-refundable reservation**이다. 실제 elapsed/cost 사용량 telemetry나 settlement가 아니며 study lifetime cap도 아니다.
+- 새 evaluation-sealed successor generation이 새 budget을 열 수 있고 반복 증액 자체를 막는 lifetime governance는 아직 없다.
+- context v2는 active generation과 reservation ledger를 agent packet에 직접 노출하지 않는다. 이 UX/authority binding은 M1-E context v3 범위다.
 
 ### 0.6 컨텍스트 복원 순서 (이 문서를 처음 보는 세션)
 
@@ -80,11 +86,11 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 ### 1.1 현재 운용 상태
 
 - 저장소: `/Users/bbangjo/research-os`, 제품 버전 `0.2.0`, commit `6f36a1b` 기반.
-- 구현 크기: `src/research_os`와 `tests` Python 합계 26,822 LOC.
+- 구현 크기: `src/research_os`와 `tests` Python 합계 34,005 LOC (M1-B checkpoint `df2c900`).
 - 검증 기준선: 보존 tag `research-os-m1a-working-tree-baseline`에서 Python 3.12 `262 tests + 57 subtests` PASS.
-- 강점: append-only hash-chained event log, disposable projection, artifact CAS, evaluator certification, stale-context와 compatibility gate, fail-closed recovery, `authorized_action=null`.
-- 핵심 갭: graph metadata는 `graph_action`과 자유문자열 `scientific_change` 중심이고, terminal 실패를 기계 판독 가능한 diagnosis/class/claim으로 축적해 다음 proposal에 재사용하는 상태가 없다.
-- `crypto-new`, `manager`, `BinancePredictionStrategy`가 Research OS를 사용하지만 v0.5까지는 해당 프로젝트를 live migration하지 않고 read-only 호환성만 점검한다.
+- 강점: append-only hash-chained event log, disposable projection, artifact CAS, evaluator certification, stale-context와 compatibility gate, fail-closed recovery, `authorized_action=null`, canonical StudyContract/generation과 atomic cumulative reservation.
+- 핵심 갭: generation control은 canonical state가 됐지만 graph metadata는 `graph_action`과 자유문자열 `scientific_change` 중심이고, terminal 실패를 기계 판독 가능한 Proposal/Diagnosis/ClassState/Claim으로 축적해 다음 proposal에 재사용하는 상태가 없다.
+- `crypto-new`, `manager`, `BinancePredictionStrategy`가 Research OS를 사용하지만 v0.5까지는 해당 프로젝트를 live migration하지 않고 read-only 호환성만 점검한다. 실제 live pilot·migration은 v0.5 이후다.
 
 ### 1.2 사용자 진단
 
@@ -107,7 +113,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 - integrity kernel은 교체하지 않고 학습 상태와 자율 루프를 그 위에 쌓는다.
 - 실행 DAG, study inference graph, program claim graph를 서로 다른 권위와 replay 경계로 분리한다.
-- 다중 에이전트 수보다 durable diagnosis·claim·class state와 fixed-budget 학습 개선을 먼저 증명한다.
+- 다중 에이전트 수보다 durable diagnosis·claim·class state와 fixed-budget 학습 개선을 먼저 증명한다. **제품 multi-agent는 NS6 통과 이후로 명시적으로 유예한다.**
 - provider-neutral·single-worker·no-deployment 권한 경계를 v0.5에서도 유지한다.
 
 ### 1.4 진짜 목표
@@ -124,7 +130,9 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 2.2 v0.5의 자율성 범위 → **단일 에이전트·provider-neutral loop**
 
-멀티에이전트 연구 공동체, distributed worker, graph/vector DB, embedded LLM SDK는 fixed-budget 단일 agent 개선이 입증된 이후로 미룬다.
+멀티에이전트 연구 공동체와 **제품 multi-agent**, distributed worker, graph/vector DB, embedded LLM SDK는 fixed-budget 단일 agent 개선의 NS6 gate가 통과된 이후로 미룬다. 실제 프로젝트 live pilot·migration도 v0.5 이후다.
+
+> "회고 승인 / unseen synthetic benchmark를 v0.5 release gate로 인정 / 실제 프로젝트 live pilot·migration은 v0.5 이후 / multi-agent는 NS6 통과 이후"
 
 ### 2.3 마일스톤 진척 (checkpoint chain — Rule 8) ★
 
@@ -136,20 +144,22 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 > "추천안 승인 / 로컬 체크포인트 커밋 허용 / 기존 certification 패치 포함"
 
+> "회고 승인 / unseen synthetic benchmark를 v0.5 release gate로 인정 / 실제 프로젝트 live pilot·migration은 v0.5 이후 / multi-agent는 NS6 통과 이후"
+
 #### 2.3.2 현재 active checkpoint
 
-- **Active M_i.j**: `M1-B`
-- **직전 close가 가능하게 한 작업**: typed scientific state가 신뢰할 수 있는 delta·gate·baseline verification evidence를 소비할 수 있다.
-- **이 M.j가 닫혀야 다음에 가능해지는 작업**: Proposal과 replication이 canonical generation identity와 누적 budget을 bind할 수 있다.
-- **M1 parent close까지 남은 sub**: `M1-B`, `M1-C`, `M1-D`, `M1-E`.
+- **Active M_i.j**: `M1-C`
+- **직전 close가 가능하게 한 작업**: Proposal과 replication이 canonical StudyContract·generation identity·remaining reservation budget을 bind할 수 있다.
+- **이 M.j가 닫혀야 다음에 가능해지는 작업**: terminal evidence를 stable Proposal/evaluation-scope identity에 연결해 Diagnosis·ClassState transition을 판정할 수 있다.
+- **M1 parent close까지 남은 sub**: `M1-C`, `M1-D`, `M1-E`.
 
 #### 2.3.3 M 진척 표
 
 | M_i.j | 정의 (요약) | exit conjunct progress | 상태 | closed-by phase | 근거 |
 |---|---|---|---|---|---|
 | M1-A | Decision/evidence correctness | 4/4 ✅ | closed | 01 | phase §01.3~§01.6.4 |
-| M1-B | Study generation과 누적 budget | 0/4 ✅ | active | — | pipeline §9.4 |
-| M1-C | Typed Proposal과 replication identity | 0/4 ✅ | open | — | pipeline §9.4 |
+| M1-B | Study generation과 누적 budget | 4/4 ✅ | closed | 02 | phase §02.4~§02.6.4; manifest `29/29`; checkpoint `df2c900`; critic + auditor PASS |
+| M1-C | Typed Proposal과 replication identity | 0/4 ✅ | active | — | pipeline §9.4; next pre-spec |
 | M1-D | Diagnosis·ClassState·semantic frontier | 0/5 ✅ | open | — | pipeline §9.4 |
 | M1-E | Context v3·legacy compatibility·v0.3 release | 0/5 ✅ | open | — | pipeline §9.4 |
 | M2-A | ProgramManifest·ProgramLog | 0/4 ✅ | open | — | pipeline §9.4 |
@@ -167,6 +177,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 |---|---|---|---|---|---|
 | 00 | 2026-08-09 | M1~M3 정의 | bootstrap | advance | 사용자 마일스톤 승인; 구현 전 |
 | 01 | 2026-08-10 | M1-A | 4/4 | close | E1~E9 exact; `290+67`; critic + auditor PASS |
+| 02 | 2026-08-10 | M1-B | 4/4 | close | manifest `29/29`; focused `81+37`; full `371+104`; checkpoint `df2c900`; critic + auditor PASS |
 
 #### 2.3.5 Gate-bypass 기록
 
@@ -186,15 +197,16 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 |---|---|---|---|
 | 00 | 2026-08-09 / Bootstrap | [`research-os-status/00-bootstrap-retro.md`](research-os-status/00-bootstrap-retro.md) | critic PASS + 사용자 회고로 목표·북극성·종착지·M chain 고정 |
 | 01 | 2026-08-09~10 / M1-A | [`research-os-status/01-2026-08-09-m1-a-evidence-correctness.md`](research-os-status/01-2026-08-09-m1-a-evidence-correctness.md) | typed gate·baseline VERIFY·certification lifecycle 4/4 close |
+| 02 | 2026-08-10 / M1-B | [`research-os-status/02-2026-08-10-m1-b-study-generation-budget.md`](research-os-status/02-2026-08-10-m1-b-study-generation-budget.md) | StudyContract·generation·atomic reservation 4/4; critic + independent auditor PASS |
 
 ---
 
 ## 11. 한 페이지 요약 (TL;DR)
 
-- 현재 상태: 제품 version은 아직 v0.2.0; M1-A 구현 checkpoint `ed76067`, 전체 290 tests + 67 subtests PASS.
-- 마지막 phase: Cycle 01 M1-A 4/4 close; progress critic PASS, 1차 audit의 baseline 재현성 지적 수리 후 7-pass 재감사 PASS.
-- 다음 1행동: M1-B StudyContract·generation·누적 budget 사전 명세와 critic을 고정한다.
-- 가장 큰 갭: terminal 실패가 evidence-bound diagnosis/class/claim으로 변환되어 다음 proposal을 제한·개선하지 않는다.
+- 현재 상태: 제품 version은 아직 v0.2.0; M1-B implementation checkpoint `df2c900`, executable manifest `29/29`, focused `81+37`, full `371+104` PASS.
+- 마지막 phase: Cycle 02 M1-B 네 exit conjunct 4/4, progress critic과 독립 7-pass auditor PASS, NS2 `0→2/6`; M1-B를 닫았다.
+- 다음 1행동: active M1-C typed Proposal·replication identity pre-spec과 critic을 고정한다.
+- 가장 큰 갭: terminal 실패가 evidence-bound Proposal/Diagnosis/ClassState/Claim으로 변환되어 다음 proposal을 제한·개선하지 않는다. M1-B reservation은 actual telemetry나 study lifetime cap이 아니다.
 
 ---
 
@@ -213,8 +225,8 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 | 지표 | 북극성 | 현재 (2026-08-10) | 갭 | 근거 | 시스템 영향 |
 |---|---|---|---|---|---|
-| NS1. 무결성·권한 하위호환 | 기존 262 tests와 모든 신규 suite 100% PASS ∧ versioned `tests/fixtures/protocol_attacks/v1/manifest.json`의 전체 위반 행 차단률 100% ∧ `authorized_action` non-null 0건 ∧ v1 event replay 100% | 기존+M1-A `290 tests + 67 subtests` PASS; changed authority surface non-null 0; baseline/certification focused attacks PASS | versioned attack manifest·전체 v1 replay·release evidence 필요 | §0.2; phase §01.3~§01.4; `README.md` authority contract | 학습 기능이 기존 fail-closed·no-deployment 보장을 약화하지 않는다 |
-| NS2. 기계 강제 scientific state | generation/contract·누적 budget·diagnosis gate·class closure·semantic frontier·legacy isolation 6/6 동작 ∧ `tests/fixtures/scientific_state/v1/manifest.json`의 모든 입력 상태/transition/거절 code/closure threshold 판정 일치 | 0/6; typed delta/gate/verification prerequisite는 구현, canonical transition oracle은 없음 | 6 capability + versioned transition oracle | phase §01.4; pipeline §2.2; `agent.py`, `graph_policy.py` | 실패 후 같은 class를 반복하지 않고 허용된 다음 행동만 실행한다 |
+| NS1. 무결성·권한 하위호환 | 기존 262 tests와 모든 신규 suite 100% PASS ∧ versioned `tests/fixtures/protocol_attacks/v1/manifest.json`의 전체 위반 행 차단률 100% ∧ `authorized_action` non-null 0건 ∧ v1 event replay 100% | 기존+M1-A/B `371 tests + 104 subtests` PASS; M1-B changed authority surfaces key `8/8`, recursive non-null `0`; legacy v1 bytes/ID/projection exact | 전체 protocol-attack manifest·전체 v1 replay·release evidence 필요 | §0.2; phase §01·§02.4; checkpoint `df2c900`; `README.md` authority contract | 학습 기능이 기존 fail-closed·no-deployment 보장을 약화하지 않는다 |
+| NS2. 기계 강제 scientific state | generation/contract·누적 budget·diagnosis gate·class closure·semantic frontier·legacy isolation 6/6 동작 ∧ `tests/fixtures/scientific_state/v1/manifest.json`의 모든 입력 상태/transition/거절 code/closure threshold 판정 일치 | **2/6 (`0→2/6`)**; generation/contract와 cumulative reservation budget이 executable manifest `29/29` exact로 동작 | diagnosis gate·class closure·semantic frontier·complete legacy isolation 4 capability | phase §02.4~§02.7; `tests/fixtures/scientific_state/v1/manifest.json`; checkpoint `df2c900` | generation-bound registration과 atomic reservation overrun 차단은 가능해졌지만 실패 후 class 선택 제한은 아직 불가하다 |
 | NS3. Durable learning 객체 | typed Proposal·Diagnosis·ClassState·Claim 4/4가 exact event/artifact evidence와 digest로 replay | 0/4; 범용 Finding만 존재 | 4 typed objects | `src/research_os/memory/findings.py`, `src/research_os/kernel/projection.py` | 실패가 검색 가능한 지식과 class 상태로 남는다 |
 | NS4. Program memory 정확도 | versioned `tests/fixtures/program_memory/retrieval-v1.json`의 exact ordered oracle에서 relevant claim recall 100% ∧ contradiction recall 100% ∧ superseded exclusion 100% ∧ shuffled/irrelevant contamination 0% | 0/4; program log/retrieval/oracle 없음 | 4 retrieval criteria + oracle manifest | pipeline §5.2의 분모·empty/tie/scope 규칙과 향후 fixture digest | 다음 proposal이 관련 지식만 근거로 사용하고 오염된 memory를 배제한다 |
 | NS5. 단일 자율 루프 완결성 | context→proposal→preflight→run→diagnosis→synthesis→next/stop 7 transition 모두 canonical state로 재개 가능 ∧ closed-class registration 0건 | 0/7; 사람이 외부 agent 대화를 수동 연결 | 7 transitions + resume | `docs/agent-usage.md`; 신규 loop integration suite | 유한 예산 안에서 중단·재개 가능한 provider-neutral 연구 episode를 수행한다 |
@@ -231,7 +243,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 | # | 작업 | 추정 LOC | 어떤 §북극성 행을 움직이나 | 시스템 영향 (예상) |
 |---|---|---|---|---|
-| 1 | M1-B~E Scientific State | 1,500~3,000 | NS1, NS2, NS3, NS5, NS7 | 과학 상태를 문서가 아닌 kernel이 강제 |
+| 1 | M1-C~E Scientific State | 1,500~3,000 | NS1, NS2, NS3, NS5, NS7 | Proposal·diagnosis·class/frontier·context를 kernel이 강제 |
 | 2 | M2 Program Memory | 1,200~2,500 | NS1, NS3, NS4, NS7 | 실패·조건부 claim을 다음 연구에 재사용 |
 | 3 | M3 Autonomous Loop | 1,000~2,200 | NS1, NS5, NS6, NS7 | 단일 agent가 유한 연구 episode를 자동 완결 |
 
@@ -239,12 +251,12 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 | 단계 | 이전 | 현재 (비관) | 사유 | 반례/근거 |
 |---|---|---|---|---|
-| Integrity kernel | 평가상 우수 | ○ | typed gates와 baseline verify 대칭은 닫혔으나 tokenless legacy/write attack manifest는 후속 gate | phase §01; README compatibility 경계 |
+| Integrity kernel | 평가상 우수 | ○ | typed gates·baseline verify 대칭과 generation/budget atomic race는 닫혔으나 전체 protocol-attack/release manifest는 후속 gate | phases §01~§02; full `371+104`; M1-B authority `8/8` null |
 | Evidence semantics | arbitrary constraint 중심 | ○ | directional delta·typed slack·verify symmetry 구현; 외부 metric 의미는 아직 contract 밖 | phase §01 E1~E9 |
-| Scientific State | 문서상 일부 존재 | ✗ | diagnosis/class closure/frontier가 canonical machine state가 아님 | NS2 = 0/6 |
+| Scientific State | 문서상 일부 존재 | △ | StudyContract/generation/cumulative reservation은 canonical `2/6`; diagnosis/class closure/frontier/complete legacy isolation은 없고 reservation도 actual telemetry·lifetime cap이 아님 | NS2 = 2/6; manifest `29/29`; phase §02.9 |
 | Program Memory | Finding 존재 | ✗ | project-bound free-form finding은 conditional claim graph가 아님 | NS3 = 0/4, NS4 = 0/4 |
 | Autonomous Loop | agent workflow 존재 | ✗ | 외부 대화가 수동으로 각 단계를 이어주며 resume 가능한 loop state가 없음 | NS5 = 0/7 |
-| 학습 효과 | 미측정 | ✗ | v0.2 comparator와 pre-fixed benchmark가 없음 | NS6 측정 전 |
+| 학습 효과 | 미측정 | ✗ | 전체 regression은 `371+104`로 갱신됐지만 v0.2 comparator와 pre-fixed unseen learning benchmark가 없음 | NS6 측정 전 |
 
 ---
 
@@ -254,6 +266,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 |---|---|---|---|
 | 00 Bootstrap | 911 doc LOC | 코드 변경 0; status 266 + pipeline 490 + critic 51 + retro 104 lines | pytest 기준선, bootstrap critic PASS, 사용자 retro 승인, commit `e728df9` |
 | 01 M1-A | implementation `+2429/-64` + phase close docs | 18 implementation files; Python 총 LOC `29,037` | baseline `262+57`, focused `65+16`, full `290+67`, critic + auditor PASS |
+| 02 M1-B | implementation `+6002/-29` | 27 files; Python 총 LOC `34,005` | checkpoint `df2c900`; manifest `29/29`; focused `81+37`; full `371+104`; critic + auditor PASS |
 
 ---
 
@@ -274,3 +287,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 - [x] Cycle 01 M1-A에서 status §12와 pipeline §8.4·§8.5·§10 동기화
 - [x] M chain 의미 변경 없음; 추가 Rule 9 retrospective 불필요
 - [x] Cycle 01 progress critic + independent 7-pass auditor 최종 PASS
+- [x] Cycle 02 M1-B current state·NS2 `0→2/6`·§8.4·§8.5·§10 동기화
+- [x] Cycle 02에서도 M chain 정의/의미 변경 없음; M1-B 4/4 close와 M1-C active만 동적 갱신
+- [x] Cycle 02 progress critic 최종 verdict — **PASS**
+- [x] Cycle 02 independent 7-pass auditor 최종 verdict — **PASS** (`research-os-status/02-m1-b-study-generation-budget.audit.md`)
