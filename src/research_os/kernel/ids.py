@@ -56,13 +56,17 @@ def new_experiment_id(
     *,
     parent_id: str | None = None,
     compatibility_digest: str | None = None,
+    generation_id: str | None = None,
     attempt: int = 1,
 ) -> str:
-    """Derive a stable ID for one candidate attempt at one DAG parent.
+    """Derive a stable ID for one candidate attempt in one study generation.
 
     The two-argument form represents a root experiment.  Supplying
     ``parent_id`` aligns ID identity with :meth:`ProjectionStore.candidate_exists`.
-    Retry attempts deliberately receive distinct deterministic IDs.
+    Retry attempts deliberately receive distinct deterministic IDs.  A missing
+    ``generation_id`` uses the original component sequence byte-for-byte so
+    legacy experiment IDs remain stable; a present generation is an orthogonal
+    identity axis for versioned studies.
     """
 
     project_id = require_text(project_id, "project_id")
@@ -73,8 +77,29 @@ def new_experiment_id(
         compatibility_digest = require_text(
             compatibility_digest, "compatibility_digest"
         )
+    if generation_id is not None:
+        generation_id = require_text(generation_id, "generation_id")
     if isinstance(attempt, bool) or not isinstance(attempt, int) or attempt < 1:
         raise ValueError("attempt must be a positive integer")
+    if generation_id is not None:
+        if compatibility_digest is None:
+            return stable_id(
+                "experiment",
+                project_id,
+                generation_id,
+                parent_id,
+                candidate_digest,
+                attempt,
+            )
+        return stable_id(
+            "experiment",
+            project_id,
+            generation_id,
+            compatibility_digest,
+            parent_id,
+            candidate_digest,
+            attempt,
+        )
     if compatibility_digest is None:
         return stable_id(
             "experiment", project_id, parent_id, candidate_digest, attempt

@@ -67,6 +67,7 @@ _REQUIRED_SCHEMA_COLUMNS = {
         {
             "experiment_id",
             "project_id",
+            "generation_id",
             "parent_id",
             "candidate_digest",
             "compatibility_digest",
@@ -298,7 +299,7 @@ _REQUIRED_NAMED_INDEXES: dict[str, tuple[str, bool, tuple[str | None, ...]]] = {
     "experiments_candidate_idx": (
         "experiments",
         False,
-        ("project_id", "candidate_digest", "parent_id"),
+        ("project_id", "generation_id", "candidate_digest", "parent_id"),
     ),
     "experiments_parent_idx": (
         "experiments",
@@ -310,10 +311,17 @@ _REQUIRED_NAMED_INDEXES: dict[str, tuple[str, bool, tuple[str | None, ...]]] = {
         False,
         ("project_id", "retry_of"),
     ),
-    "experiments_candidate_parent_compatibility_attempt_unique_idx": (
+    "experiments_candidate_parent_compatibility_generation_attempt_unique_idx": (
         "experiments",
         True,
-        ("project_id", "candidate_digest", None, "compatibility_digest", "attempt"),
+        (
+            "project_id",
+            "candidate_digest",
+            None,
+            "compatibility_digest",
+            None,
+            "attempt",
+        ),
     ),
     "baselines_project_idx": (
         "baselines",
@@ -671,6 +679,7 @@ class ProjectionStore:
                 CREATE TABLE IF NOT EXISTS experiments (
                     experiment_id TEXT PRIMARY KEY,
                     project_id TEXT NOT NULL,
+                    generation_id TEXT,
                     parent_id TEXT,
                     candidate_digest TEXT NOT NULL,
                     compatibility_digest TEXT NOT NULL,
@@ -796,6 +805,46 @@ class ProjectionStore:
                     "PRAGMA table_info(experiments)"
                 ).fetchall()
             }
+            if "generation_id" not in columns:
+                connection.execute(
+                    "ALTER TABLE experiments ADD COLUMN generation_id TEXT"
+                )
+                rows = connection.execute(
+                    "SELECT experiment_id, payload_json FROM experiments"
+                ).fetchall()
+                for row in rows:
+                    try:
+                        payload = strict_json_loads(row["payload_json"])
+                    except (TypeError, ValueError) as exc:
+                        raise _ProjectionCacheInvalid(
+                            f"cannot migrate experiment {row['experiment_id']!r}: {exc}"
+                        ) from exc
+                    generation_id = (
+                        payload.get("generation_id")
+                        if isinstance(payload, dict)
+                        else None
+                    )
+                    if generation_id is None:
+                        continue
+                    try:
+                        generation_id = require_text(
+                            generation_id, "generation_id"
+                        )
+                    except (TypeError, ValueError) as exc:
+                        raise _ProjectionCacheInvalid(
+                            f"cannot migrate experiment {row['experiment_id']!r}: {exc}"
+                        ) from exc
+                    connection.execute(
+                        "UPDATE experiments SET generation_id = ? "
+                        "WHERE experiment_id = ?",
+                        (generation_id, row["experiment_id"]),
+                    )
+            columns = {
+                row["name"]
+                for row in connection.execute(
+                    "PRAGMA table_info(experiments)"
+                ).fetchall()
+            }
             if "compatibility_digest" not in columns:
                 connection.execute(
                     "ALTER TABLE experiments ADD COLUMN compatibility_digest "
@@ -850,6 +899,11 @@ class ProjectionStore:
                 "CREATE INDEX IF NOT EXISTS experiments_retry_idx "
                 "ON experiments(project_id, retry_of)"
             )
+            connection.execute("DROP INDEX IF EXISTS experiments_candidate_idx")
+            connection.execute(
+                "CREATE INDEX experiments_candidate_idx "
+                "ON experiments(project_id, generation_id, candidate_digest, parent_id)"
+            )
 
             # A pre-retry projection could only contain the first attempt because
             # its candidate identity index was unique without an attempt number.
@@ -895,10 +949,14 @@ class ProjectionStore:
                 "experiments_candidate_parent_compatibility_unique_idx"
             )
             connection.execute(
+                "DROP INDEX IF EXISTS "
+                "experiments_candidate_parent_compatibility_attempt_unique_idx"
+            )
+            connection.execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS "
-                "experiments_candidate_parent_compatibility_attempt_unique_idx "
+                "experiments_candidate_parent_compatibility_generation_attempt_unique_idx "
                 "ON experiments(project_id, candidate_digest, COALESCE(parent_id, ''), "
-                "compatibility_digest, attempt)"
+                "compatibility_digest, COALESCE(generation_id, ''), attempt)"
             )
             self._validate_schema(
                 connection,
@@ -1142,7 +1200,9 @@ class ProjectionStore:
 
         candidate_index = connection.execute(
             "SELECT sql FROM sqlite_master WHERE type = 'index' AND name = ?",
-            ("experiments_candidate_parent_compatibility_attempt_unique_idx",),
+            (
+                "experiments_candidate_parent_compatibility_generation_attempt_unique_idx",
+            ),
         ).fetchone()
         candidate_sql = (
             ""
@@ -1150,9 +1210,11 @@ class ProjectionStore:
             else "".join(candidate_index["sql"].upper().split())
         )
         expected_candidate_sql = (
-            "CREATEUNIQUEINDEXEXPERIMENTS_CANDIDATE_PARENT_COMPATIBILITY_ATTEMPT_"
+            "CREATEUNIQUEINDEXEXPERIMENTS_CANDIDATE_PARENT_COMPATIBILITY_GENERATION_"
+            "ATTEMPT_"
             "UNIQUE_IDXONEXPERIMENTS(PROJECT_ID,CANDIDATE_DIGEST,"
-            "COALESCE(PARENT_ID,''),COMPATIBILITY_DIGEST,ATTEMPT)"
+            "COALESCE(PARENT_ID,''),COMPATIBILITY_DIGEST,"
+            "COALESCE(GENERATION_ID,''),ATTEMPT)"
         )
         if candidate_sql != expected_candidate_sql:
             raise _ProjectionCacheInvalid(
@@ -1469,6 +1531,7 @@ class ProjectionStore:
         self._ensure_project(connection, event)
         experiment_id = _text(event.payload, "experiment_id", "id", required=True)
         assert experiment_id is not None
+        generation_id = _text(event.payload, "generation_id")
         parent_id = _text(event.payload, "parent_id", "parent_experiment_id")
         digest = _text(event.payload, "candidate_digest", "digest", required=True)
         assert digest is not None
@@ -1496,6 +1559,10 @@ class ProjectionStore:
             parent = self._require_experiment(
                 connection, event.project_id, parent_id
             )
+            if parent["generation_id"] != generation_id:
+                raise IntegrityError(
+                    "parent_id must reference an experiment in the same generation"
+                )
             self._check_no_cycle(connection, event.project_id, experiment_id, parent_id)
         if graph_metadata is not None and parent is not None:
             try:
@@ -1535,9 +1602,11 @@ class ProjectionStore:
                 prior["candidate_digest"] != digest
                 or prior["parent_id"] != parent_id
                 or prior["compatibility_digest"] != compatibility_digest
+                or prior["generation_id"] != generation_id
             ):
                 raise IntegrityError(
-                    "retry_of must reference the same candidate, parent, and compatibility"
+                    "retry_of must reference the same candidate, parent, compatibility, "
+                    "and generation"
                 )
             if int(prior["attempt"]) != attempt - 1:
                 raise IntegrityError("retry attempts must be contiguous")
@@ -1545,13 +1614,17 @@ class ProjectionStore:
                 "SELECT experiment_id, attempt FROM experiments "
                 "WHERE project_id = ? AND candidate_digest = ? "
                 "AND ((parent_id = ?) OR (parent_id IS NULL AND ? IS NULL)) "
-                "AND compatibility_digest = ? ORDER BY attempt DESC LIMIT 1",
+                "AND compatibility_digest = ? "
+                "AND ((generation_id = ?) OR (generation_id IS NULL AND ? IS NULL)) "
+                "ORDER BY attempt DESC LIMIT 1",
                 (
                     event.project_id,
                     digest,
                     parent_id,
                     parent_id,
                     compatibility_digest,
+                    generation_id,
+                    generation_id,
                 ),
             ).fetchone()
             if latest is None or latest["experiment_id"] != retry_of:
@@ -1597,13 +1670,14 @@ class ProjectionStore:
         try:
             connection.execute(
                 "INSERT INTO experiments "
-                "(experiment_id, project_id, parent_id, candidate_digest, compatibility_digest, "
-                "attempt, retry_of, retryable, status, payload_json, registered_at, "
-                "terminated_at, created_sequence, updated_sequence) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, NULL, ?, ?)",
+                "(experiment_id, project_id, generation_id, parent_id, candidate_digest, "
+                "compatibility_digest, attempt, retry_of, retryable, status, payload_json, "
+                "registered_at, terminated_at, created_sequence, updated_sequence) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, NULL, ?, ?)",
                 (
                     experiment_id,
                     event.project_id,
+                    generation_id,
                     parent_id,
                     digest,
                     compatibility_digest,
@@ -2186,6 +2260,11 @@ class ProjectionStore:
         import json
 
         result = dict(row)
+        # ``generation_id`` did not exist in legacy query surfaces.  Keep null
+        # as an internal SQLite sentinel without adding a nullable API key to
+        # decoded legacy rows; versioned experiments expose the concrete axis.
+        if result.get("generation_id") is None:
+            result.pop("generation_id", None)
         if "retryable" in result:
             result["retryable"] = bool(result["retryable"])
         for key in tuple(result):
@@ -2281,6 +2360,7 @@ class ProjectionStore:
         digest: str,
         parent_id: str | None,
         compatibility_digest: str | None = None,
+        generation_id: str | None = None,
     ) -> bool:
         project_id = require_text(project_id, "project_id")
         digest = require_text(digest, "digest")
@@ -2296,6 +2376,11 @@ class ProjectionStore:
             parameters.append(
                 require_text(compatibility_digest, "compatibility_digest")
             )
+        if generation_id is None:
+            clauses.append("generation_id IS NULL")
+        else:
+            clauses.append("generation_id = ?")
+            parameters.append(require_text(generation_id, "generation_id"))
         query = "SELECT 1 FROM experiments WHERE " + " AND ".join(clauses) + " LIMIT 1"
         with closing(self._connect()) as connection, connection:
             row = connection.execute(query, parameters).fetchone()
@@ -2316,6 +2401,7 @@ class ProjectionStore:
         digest: str,
         parent_id: str | None,
         compatibility_digest: str,
+        generation_id: str | None = None,
     ) -> list[dict[str, Any]]:
         """Return every attempt for one candidate identity in attempt order."""
 
@@ -2335,6 +2421,11 @@ class ProjectionStore:
         else:
             clauses.append("parent_id = ?")
             parameters.append(require_text(parent_id, "parent_id"))
+        if generation_id is None:
+            clauses.append("generation_id IS NULL")
+        else:
+            clauses.append("generation_id = ?")
+            parameters.append(require_text(generation_id, "generation_id"))
         query = (
             "SELECT * FROM experiments WHERE "
             + " AND ".join(clauses)
