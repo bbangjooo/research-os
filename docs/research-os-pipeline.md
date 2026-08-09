@@ -48,7 +48,7 @@
 6. **유한 자율 루프** (§6): provider의 출력은 비신뢰 packet이며 kernel preflight 뒤에만 실행된다.
 7. **비교 가능한 효과 측정** (§7): 동일 후보 언어·실험 budget에서 정확도와 낭비를 비교한다.
 
-현재 상태 (Cycle 03 implementation/critic PASS — independent auditor pending):
+현재 상태 (Cycle 03 closed — implementation evidence, progress critic, independent auditor PASS):
 
 - 1번 ✅/○ — directional delta, constitution-owned typed gate/slack, baseline/candidate verify 대칭과 nested/flat certification lifecycle이 구현·검증됐다.
 - 2번 ○ — checkpoint `df2c900`에서 canonical StudyContract·evaluation-sealed generation·replayable cumulative reservation ledger·locked overrun gate가 구현됐다. executable manifest `29/29`, focused `81+37`; 단, generation별 non-refundable reservation이지 actual usage telemetry나 study lifetime cap은 아니며 successor 반복 증액을 막지 않는다.
@@ -330,7 +330,7 @@ Canonical truth boundaries:
 | 00 | 2026-08-09 | 추가·구체화 | integrity kernel 위에 study inference, program memory, provider-neutral loop와 fixed-budget 판정 종착지를 정의 | 사용자 v0.5 승인과 기존 프로젝트 분석 |
 | 01 | 2026-08-10 | 구체화·검증 | Evidence semantics를 typed delta/gate/slack·VERIFY 대칭으로 구현하고 Compatibility/authority의 nested/flat lifecycle·null scan evidence를 보강 | M1-A E1~E9 exact, checkpoint `ed76067` |
 | 02 | 2026-08-10 | 구체화·검증 | Study control을 canonical StudyContract·generation·atomic cumulative reservation으로 구현하고 per-generation/non-refundable·no-telemetry·no-lifetime-cap·repeat-increase limitations를 유지; Context와 Meta-evaluation의 남은 갭도 재명시 | M1-B manifest `29/29`, focused `81+37`, full `371+104`, checkpoint `df2c900`; progress critic + independent auditor PASS |
-| 03 | 2026-08-10 | 구체화·검증 | Study inference에 typed Proposal·scope-bound identity·frozen-candidate replication을 추가하고 v1 service/CLI parity, exact-event ownership과 cold projection race를 보강; Diagnosis/ClassState/frontier와 adapter semantic-consumption limitation은 유지 | M1-C manifest `20/20`, transition/direct `53/72`, full `442+111`, checkpoints `a783a88`~`2e14096`; progress critic PASS, independent audit pending |
+| 03 | 2026-08-10 | 구체화·검증 | Study inference에 typed Proposal·scope-bound identity·frozen-candidate replication을 추가하고 v1 service/CLI parity, exact-event ownership과 cold projection race를 보강; Diagnosis/ClassState/frontier와 adapter semantic-consumption limitation은 유지 | M1-C manifest `20/20`, transition/direct `53/72`, full `442+111`, checkpoints `a783a88`~`2e14096`; progress critic + independent auditor PASS |
 
 ---
 

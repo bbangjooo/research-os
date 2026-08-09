@@ -1,6 +1,6 @@
 # §03 — M1-C Typed Proposal and Scientific Replication (2026-08-10)
 
-> Status: **IMPLEMENTATION GATE PASS — E1~E15 exact, close critic/auditor pending, claim mode EXPLORATORY**
+> Status: **CLOSED — E1~E15 exact, progress critic + independent 7-pass auditor PASS, claim mode EXPLORATORY**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §02
 > 직전 phase: [`§02 M1-B`](02-2026-08-10-m1-b-study-generation-budget.md)
 > Pipeline 영향: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §3, §8.4 Scientific state, §9.4 M1-C
@@ -148,6 +148,8 @@ corrected checkpoint 뒤 재측정 결과 E1~E15는 전부 exact 일치했다. F
 
 최종 Python 3.12 전체 suite는 `442 passed, 111 subtests passed`, skip 0이다. `ruff check src tests`, `ty check src`, `git diff --check`도 모두 PASS했다. 같은-scope forced race는 두 실제 private `_run_once` lifecycle을 append 경계에서 동기화해 winner 1, stable rejection 1, registration/budget delta 1을 얻었고 내부적으로 terminal 1, winner stage 4, cleanup 1, residual workspace 0을 확인했다. append 직후 `KeyboardInterrupt` 회귀는 registration 1과 `CANCELLED` terminal 1을 확인했다. corrected oracle 이후의 두 concurrency 수정 전 부분 결과는 최종 수치에 포함하지 않았다.
 
+Post-implementation progress critic은 Q1~Q8을 모두 `DIRECT`, blocking defect 0으로 PASS했다. 독립 7-pass auditor는 full manifest file `27 passed in 316.49s`, collection 442, focused trust/race slice 5 PASS와 chronology·north-star·M-chain·claim/limitation/언어 감사를 독립 재현해 최종 PASS했다. 상세 기록은 [`03-m1-c-typed-proposal-replication.audit.md`](03-m1-c-typed-proposal-replication.audit.md)다.
+
 ## 03.5 발견된 부수 이슈
 
 구현 전 탐색에서 scope가 contract digest 밖에서는 전혀 소비되지 않고, 기존 `replicate`가 candidate 변경을 요구하며, projection이 persisted candidate hash/experiment ID를 재계산하지 않는 seam을 발견했다. 이는 M1-C 요구 자체이며 결과로 선점하지 않는다.
@@ -168,7 +170,7 @@ Post-implementation critic은 제품 결함이 아닌 두 evidence wiring 결함
 
 ## 03.6.4 마일스톤 진척 청구 ★
 
-**영향 받은 M_i.j**: `M1-C` · **계획 라벨**: _IMPLEMENTATION GATE PASS / CLOSE PENDING_
+**영향 받은 M_i.j**: `M1-C` · **계획 라벨**: _CLOSE_
 
 | conjunct | 현재 | close gate |
 |---|---|---|
@@ -177,7 +179,7 @@ Post-implementation critic은 제품 결함이 아닌 두 evidence wiring 결함
 | `evaluation_scope_id` identity/replay tests PASS | ✅ | E3/E6/E7/E10/E12 + additive projection migration |
 | frozen candidate + new preregistered scope만 replication; retry/reuse/change 거절 | ✅ | E5/E8/E9/E13; forced `_run_once` race winner/reject `1/1` |
 
-네 conjunct와 implementation evidence gate는 모두 ✅다. progress critic·독립 7-pass auditor가 PASS하기 전에는 M1-C를 닫지 않는다. parent M1은 M1-D/E가 남으므로 계속 open이다.
+네 conjunct와 implementation evidence gate는 모두 ✅이고 progress critic·독립 7-pass auditor도 PASS해 M1-C를 닫는다. Parent M1은 M1-D/E가 남으므로 계속 open이다.
 
 ## 03.6.5 종착지 비전 갱신 ★
 
@@ -229,5 +231,5 @@ Product/test/docs implementation은 commit `a783a88c08f6bc2b543325e9dfb6094e617f
 
 ## 03.10 다음 1행동
 
-- 구현 checkpoint를 고정하고 Q1~Q8 progress critic response를 `DIRECT`/`LIMITATION`으로 판정한다.
-- status core/pipeline을 evidence와 동기화한 뒤 독립 7-pass audit로 M1-C CLOSE 여부를 판정한다.
+- Active `M1-D` Diagnosis·ClassState·semantic frontier의 exact transition table과 immutable oracle을 phase plan/critic으로 먼저 고정한다.
+- 특히 authoritative control 정의, conclusive rejection allowlist, pending-diagnosis successor-generation gate와 semantic frontier positive ordering을 구현 전에 해소한다.
