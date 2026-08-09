@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "kind": "research_os.m1b_v1_compatibility_oracle",
+  "project_id": "fixture-m1c-v1-compat",
+  "events_fixture": "m1b-v1-generation-events.jsonl",
+  "digest_algorithm": "sha256_json_sorted_compact",
+  "digest_domains": {
+    "science_state": "reduce_scientific_state(events, project_id).to_dict()",
+    "projection": "{'status': ProjectionStore.project_status(project_id), 'lineage': ProjectionStore.lineage(project_id)}",
+    "study_status": "ResearchService.study_status()",
+    "replay": "ResearchService.replay()",
+    "public_shape": "recursive_key_kind_shape_v1"
+  },
+  "expected": {
+    "event_count": 8,
+    "event_bytes": 8098,
+    "event_bytes_sha256": "9624d76d3d95c02b50fb4f4aeecff97de4bb7e86333ec5630b0aedf42b2f4c13",
+    "event_head": "c70c0e8dbdc17e108357c44582a49497bf451675eda837cb1deed9b03f0221dc",
+    "event_hashes": [
+      "56b9901a5eb7834c2df7c7e4c01ca0f5c54671f5c354fa9717df42f4303625fe",
+      "30f48d709aff5249065f6777e230ed02649f6db7ca839fa1b55256d5313d0051",
+      "f97787af3698bcd43090c297cd791c4ab8900a39f3345f381db77cb45a0b962d",
+      "852e04a6c9cbea80777baa3cc26ec94d28081869168b713be129f8d937758293",
+      "bf13a4aff551a4c19e19b760c8645fd793a106c11560eebba2638c69c7f2be60",
+      "509344ac3d5ebe8a94af5813baa8446003e6d7ece683fc26f78c3397ab60981f",
+      "d801b09ba52fd18ae1fc73dc544b5daf99dcfddeaf3219c2bfe88437025407f3",
+      "c70c0e8dbdc17e108357c44582a49497bf451675eda837cb1deed9b03f0221dc"
+    ],
+    "contract_digest": "00029b4eae18e71513001bdee36bd8a3333b58720b1f27f78b1ab80d68ca1320",
+    "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
+    "generation_id": "generation_dd2834318e9de5dafd17f21d28b4e6fa",
+    "candidate_digest": "5e2b030a4a0f1582d78c0fd9924511cd6b1f2df9879e574f5ea1406c94052418",
+    "experiment_ids": [
+      "exp_c24bad54f95357a70ee722c5cb77a899",
+      "exp_ac28d4e3e372d77d825aabc6d123d0a6"
+    ],
+    "finding_ids": [
+      "find_5129e34bc44ba6a331444a70fb932a95",
+      "find_bb9d4012ecb1a26c183487d717bb7d2f"
+    ],
+    "science_state_sorted_compact_digest": "caf38dffc747818dd1d04e80e3bf65e69dd76d18532deb6f35a64ac02ccb5942",
+    "projection_sorted_compact_digest": "a7efa9d03083f3c865633fa08258630bada7376c6add9d9d6c5864349d0e8439",
+    "study_status_sorted_compact_digest": "0bf1f7557e1655c0e59873923845d82d088341f92a3a7098934c8c65a740da99",
+    "replay_sorted_compact_digest": "ba6e97c9993c6c2bdfd3482c50b4f9ed9ee4eeb2d7cad185c07739bf7ecd088f",
+    "replay_events": 8,
+    "replay_findings": 2,
+    "event_bytes_preserved_after_replay": true,
+    "event_head_preserved_after_replay": true,
+    "typed_key_occurrences": 0
+  },
+  "exact_v1_registration_keyset": [
+    "attempt",
+    "authorized_action",
+    "baseline_id",
+    "budget_debit",
+    "candidate",
+    "candidate_digest",
+    "compatibility_digest",
+    "evaluation_seal_digest",
+    "experiment_id",
+    "generation_id",
+    "parent_id",
+    "primary_metric",
+    "retry_of",
+    "science_state_version",
+    "source_tree_digest",
+    "status",
+    "study_contract_digest"
+  ],
+  "public_surface_keysets": {
+    "generation_event_payload": [
+      "authorized_action",
+      "change_reason",
+      "contract",
+      "evaluation_seal",
+      "evaluation_seal_digest",
+      "generation_id",
+      "predecessor_generation_id",
+      "science_state_version",
+      "study_contract_digest"
+    ],
+    "open_generation": [
+      "appended",
+      "appended_events",
+      "authorized_action",
+      "change_reason",
+      "evaluation_seal_digest",
+      "event_sequence",
+      "event_type",
+      "generation_id",
+      "predecessor_generation_id",
+      "project_id",
+      "study_contract_digest"
+    ],
+    "baseline": [
+      "adapter_fingerprint",
+      "artifacts",
+      "authorized_action",
+      "baseline_id",
+      "compatibility_digest",
+      "digest",
+      "event_sequence",
+      "fingerprints",
+      "metrics",
+      "observations",
+      "primary_metric",
+      "primary_value",
+      "repetitions",
+      "spread",
+      "tolerance",
+      "verifications"
+    ],
+    "run_once": [
+      "attempt",
+      "authorized_action",
+      "decision",
+      "event_sequence",
+      "experiment_id",
+      "primary_metric",
+      "project_id",
+      "reason_code",
+      "result",
+      "retry_of",
+      "retryable",
+      "status",
+      "verified"
+    ],
+    "study_status": [
+      "active_generation_id",
+      "authorized_action",
+      "budget",
+      "contract",
+      "evaluation_seal",
+      "evaluation_seal_digest",
+      "generation_count",
+      "legacy_unstructured_registrations",
+      "project_id",
+      "science_state_version",
+      "study_contract_digest"
+    ],
+    "replay": [
+      "artifacts_verified",
+      "authorized_action",
+      "events_replayed",
+      "project_id",
+      "science",
+      "status"
+    ],
+    "replay_science": [
+      "active_generation_id",
+      "budget",
+      "contract",
+      "evaluation_seal",
+      "evaluation_seal_digest",
+      "generation_count",
+      "legacy_unstructured_registrations",
+      "science_state_version",
+      "study_contract_digest"
+    ],
+    "projection_experiment": [
+      "attempt",
+      "candidate_digest",
+      "compatibility_digest",
+      "created_sequence",
+      "experiment_id",
+      "generation_id",
+      "parent_id",
+      "payload",
+      "project_id",
+      "registered_at",
+      "retry_of",
+      "retryable",
+      "status",
+      "terminated_at",
+      "updated_sequence"
+    ],
+    "project_status": [
+      "artifacts",
+      "baselines",
+      "experiments",
+      "experiments_by_status",
+      "findings",
+      "initialized",
+      "last_hash",
+      "last_sequence",
+      "project_id",
+      "status"
+    ]
+  },
+  "public_surface_shape_oracle": {
+    "algorithm": {
+      "mapping": "sort keys and recurse",
+      "sequence": "require homogeneous item shapes and retain one representative, or [] when empty",
+      "scalar_kinds": [
+        "null",
+        "bool",
+        "int",
+        "number",
+        "string"
+      ],
+      "digest": "sha256_json"
+    },
+    "scenario": "independent certified toy projects; baseline; open StudyContract v1; successful improve candidate; study-status; replay; service and CLI shapes must match",
+    "shape_digests": {
+      "generation_event_payload": "010096b2f866464c9f533d25513d02dd758ca0a785ac4142b37d758d391bd924",
+      "open_generation": "2e96f98c57cebec0c51f2732b13cbf94033f7a5df0537c955e541a88e7222647",
+      "baseline": "3024d07ec3e8944fd0c46872be36d0e0e305d989e95de0b113ee59d1995deefd",
+      "run_once": "f77ace59055bddd25b4795e22462f9d848c86e6eb369c8878f8fe349821c23cc",
+      "study_status": "48a17fd247eb3212b2f2b185cca1385e7b7edb2b595cabdeecade9f3d22b0f63",
+      "replay": "e81798c44e2f9be3aac4a47dc16c84c0d5b2ba03ba9721bf2899798dc2352f5a",
+      "registration_payload": "33037c89342221566b24ff8695736c39972c6f9d4047792de79eb34e02dc946f"
+    }
+  },
+  "m1b_manifest_invariance": {
+    "manifest": "../v1/manifest.json",
+    "cases": 29,
+    "exact_matches": 29,
+    "raw_sha256": "a1ba1a6eccd2a10ead5ef0d2006a0fa850e15c0f73fc8b928e981c74c4e2f659",
+    "sorted_compact_digest": "7ddf837bceedebd2d4dca243e48d2cd734e34db9472f67f1273fcfe30dd11e2e",
+    "contract_digest": "00029b4eae18e71513001bdee36bd8a3333b58720b1f27f78b1ab80d68ca1320",
+    "first_generation_id": "generation_b87daa35b5f8e5593fe0c4f5d245f8a6",
+    "verification_command": ".venv/bin/pytest -q tests/test_m1b_manifest_oracle.py::test_every_manifest_case_has_an_executable_expectation_binding",
+    "verification_result": "29 passed"
+  },
+  "forbidden_typed_keys": [
+    "evaluation_scope",
+    "evaluation_scope_id",
+    "proposal",
+    "proposal_digest",
+    "proposal_id",
+    "proposal_count",
+    "replication_count",
+    "used_candidate_scope_pairs"
+  ]
+}
