@@ -334,6 +334,65 @@ def _observe_v1_public_surfaces(
         ),
         "registration_payload": registration_event.payload,
     }
+    cli_root = root / "cli"
+    cli_root.mkdir()
+    cli_project, cli_service = _m1b_certified_project(cli_root)
+    cli_baseline = _cli_json(
+        ["--project", str(cli_project), "baseline"]
+    )
+    cli_opened = _cli_json(
+        [
+            "--project",
+            str(cli_project),
+            "open-generation",
+            str(M1B_CONTRACT_PATH),
+        ]
+    )
+    cli_run = _cli_json(
+        [
+            "--project",
+            str(cli_project),
+            "run-once",
+            str(cli_project / "candidates" / "improve.json"),
+        ]
+    )
+    cli_study_status = _cli_json(
+        ["--project", str(cli_project), "study-status"]
+    )
+    cli_replay = _cli_json(["--project", str(cli_project), "replay"])
+    cli_generation_event = next(
+        event
+        for event in cli_service.event_log.read()
+        if event.event_type == "research.study_generation_opened.v1"
+    )
+    cli_registration_event = next(
+        event
+        for event in cli_service.event_log.read()
+        if event.event_type == "EXPERIMENT_REGISTERED"
+    )
+    cli_experiment_id = str(cli_run["experiment_id"])
+    cli_surfaces: dict[str, Mapping[str, object]] = {
+        "generation_event_payload": cli_generation_event.payload,
+        "open_generation": cli_opened,
+        "baseline": cli_baseline,
+        "run_once": cli_run,
+        "study_status": cli_study_status,
+        "replay": cli_replay,
+        "replay_science": cli_replay["science"],  # type: ignore[dict-item]
+        "projection_experiment": cli_service.projection.experiment(
+            cli_service.config.project_id,
+            cli_experiment_id,
+        ),
+        "project_status": cli_service.projection.project_status(
+            cli_service.config.project_id
+        ),
+        "registration_payload": cli_registration_event.payload,
+    }
+    assert set(cli_surfaces) == set(surfaces)
+    assert all(
+        _canonical_shape(cli_surfaces[name]) == _canonical_shape(surface)
+        for name, surface in surfaces.items()
+    )
     keyset_matches = sum(
         sorted(surfaces[name]) == expected
         for name, expected in public_keysets.items()
