@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "kind": "research_os.m1d_compatibility_oracle",
+  "frozen_inputs": {
+    "m1b_manifest": "../v1/manifest.json",
+    "m1b_manifest_raw_sha256": "a1ba1a6eccd2a10ead5ef0d2006a0fa850e15c0f73fc8b928e981c74c4e2f659",
+    "legacy_v1_events": "../v1/legacy-v1-events.jsonl",
+    "legacy_v1_events_raw_sha256": "b35e9d74a64c729ceea3c5ca66303a7f4e14043129d4e4686741c5939cf178d6",
+    "legacy_v1_projection": "../v1/legacy-v1-projection.json",
+    "legacy_v1_projection_raw_sha256": "1b168e6eeef42a470dccbac9385366714c4def4f9e0e031c6b005e07bb391800",
+    "legacy_v1_projection_canonical_digest": "9acf4e08a01756d39e4789a7e13f635d891cb426c183abcbfc4793c53d472e88",
+    "m1c_manifest": "../v2/manifest.json",
+    "m1c_manifest_raw_sha256": "4b9c216ea7a6bcbd8aec00a2224e4c41c349c038ea4b1d7c7fafcc8721e31b1d",
+    "m1c_manifest_sorted_compact_sha256": "75d7e1e568f3d42463184544e4b396c6f68cd1ae91fc3d5026dffda8454dca67",
+    "m1c_transition_matrix": "../v2/m1c-transition-negative-matrix.json",
+    "m1c_transition_matrix_raw_sha256": "1e9e8e60a18dfe0d610a4928ecb90933204d43c53796e00d253343093ed96dd0"
+  },
+  "expected": {
+    "m1b_manifest_cases": 29,
+    "m1b_manifest_exact_matches": 29,
+    "m1c_manifest_cases": 20,
+    "m1c_manifest_exact_matches": 20,
+    "m1c_transition_cases": 53,
+    "m1c_transition_exact_matches": 53,
+    "m1c_direct_replay_path_matches": 72,
+    "legacy_event_bytes_preserved_after_replay": true,
+    "legacy_event_head_preserved_after_replay": true,
+    "legacy_science_state_new_keys": 0,
+    "legacy_projection_new_keys": 0,
+    "legacy_study_status_new_keys": 0,
+    "legacy_replay_new_keys": 0,
+    "context_v2_new_keys": 0,
+    "branch_conclusion_v1_new_keys": 0,
+    "legacy_typed_inference_count": 0,
+    "v2_old_proposal_fields_changed": 0,
+    "v2_old_scope_fields_changed": 0,
+    "v2_old_identity_fields_changed": 0,
+    "v2_old_budget_fields_changed": 0,
+    "authorized_action_surface_count": 10,
+    "authorized_action_key_count": 10,
+    "authorized_action_recursive_non_null_count": 0
+  },
+  "public_surfaces": [
+    "diagnosis_input",
+    "diagnosis_event",
+    "diagnosis_service_result",
+    "diagnosis_cli_result",
+    "study_status",
+    "class_state",
+    "semantic_frontier",
+    "retry_frontier",
+    "replay",
+    "projection_rebuild"
+  ],
+  "forbidden_compatibility_shortcuts": [
+    "rewrite_frozen_v1_event_bytes",
+    "infer_diagnosis_from_legacy_finding",
+    "treat_branch_conclusion_v1_as_diagnosis",
+    "ignore_m1c_manifest_failures",
+    "normalize_away_m1d_fields_from_v2_product_observation",
+    "write_external_project_state"
+  ]
+}

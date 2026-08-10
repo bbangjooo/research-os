@@ -1,0 +1,530 @@
+{
+  "schema_version": 2,
+  "kind": "research_os.m1d_valid_diagnosis_corpus",
+  "project_id": "fixture-m1d",
+  "terminal_fixture": "m1d-terminal-corpus.json",
+  "audit_coverage": {
+    "defect_1_canonical_diagnosis_events": "Every diagnosis_event is a literal exact nine-field Event envelope whose prev_hash extends its terminal_record canonical_history.",
+    "defect_2_product_bound_diagnoses": "Retryable timeout and invalid candidate diagnoses bind current ResearchService terminal payloads including their exact error objects.",
+    "defect_3_generic_terminal_diagnoses": "Every generic canonical terminal state and storage-boundary alias has an exact Diagnosis event that clears its pending obligation.",
+    "defect_4_generic_observation_defaults": "Status-only diagnoses freeze canonical status normalization, literal reason fallback, false verification, derived retryability, null metric/numerics, empty gates, and null authority.",
+    "defect_5_nonterminal_exclusion": "The RUNNING control remains outside this diagnosis corpus and creates no pending Diagnosis."
+  },
+  "policy": {
+    "digest_algorithm": "sha256_json(diagnosis)",
+    "id_algorithm": "stable_id(diagnosis,project_id,diagnosis_digest)",
+    "wrapper_exact_fields": [
+      "science_state_version",
+      "generation_id",
+      "study_contract_digest",
+      "evaluation_seal_digest",
+      "compatibility_digest",
+      "diagnosis",
+      "diagnosis_digest",
+      "diagnosis_id",
+      "authorized_action"
+    ],
+    "diagnosis_body_exact_fields": [
+      "diagnosis_schema_version",
+      "generation_id",
+      "compatibility_digest",
+      "experiment_id",
+      "proposal_id",
+      "proposal_digest",
+      "hypothesis_class_id",
+      "evaluation_scope_id",
+      "terminal_evidence",
+      "artifact_evidence",
+      "observation",
+      "interpretation",
+      "failure_type",
+      "falsifier",
+      "recommendation",
+      "authorized_action"
+    ],
+    "terminal_evidence_exact_fields": [
+      "experiment_id",
+      "event_id",
+      "event_hash"
+    ],
+    "artifact_evidence_exact_fields": [
+      "artifact_id",
+      "artifact_digest",
+      "event_id",
+      "event_hash"
+    ],
+    "observation_exact_fields": [
+      "terminal_status",
+      "reason_code",
+      "verified",
+      "retryable",
+      "primary_metric",
+      "candidate_value",
+      "baseline_value",
+      "improvement",
+      "promotion_margin",
+      "gate_evaluations"
+    ],
+    "gate_evaluation_exact_fields": [
+      "id",
+      "metric",
+      "role",
+      "operator",
+      "threshold",
+      "unit",
+      "scale",
+      "observed",
+      "signed_slack",
+      "normalized_slack",
+      "passed"
+    ],
+    "narrative_utf8_max_bytes": 16384,
+    "interpretation_fields_are_authority": false,
+    "kernel_disposition_source": "exact persisted registration, terminal event, Decision, ResultEnvelope, and canonical artifact events",
+    "generic_terminal_event_type": "EXPERIMENT_STATUS_CHANGED",
+    "generic_terminal_alias_normalization": {
+      "SUCCESS": "SUCCEEDED",
+      "PASSED": "SUCCEEDED",
+      "COMPLETE": "COMPLETED",
+      "TIMEOUT": "TIMED_OUT",
+      "TIMEDOUT": "TIMED_OUT",
+      "CANCELED": "CANCELLED",
+      "ERROR": "FAILED"
+    },
+    "generic_reason_fallback": {
+      "EXPERIMENT_STATUS_CHANGED": "STATUS_CHANGED",
+      "EXPERIMENT_TERMINATED": "TERMINATED"
+    },
+    "generic_verified_default": false,
+    "generic_numeric_defaults_are_null": true,
+    "generic_gate_evaluations_default": [],
+    "primary_metric_precedence": [
+      "nonempty terminal primary_metric",
+      "Decision.primary_metric",
+      "historical registration primary_metric",
+      "historical baseline primary_metric",
+      "null"
+    ],
+    "generic_histories_reach_primary_metric_null_fallback": true,
+    "generic_terminal_evidence_binding": "exact raw EXPERIMENT_STATUS_CHANGED event_id and event_hash",
+    "generic_observation_terminal_status_formula": "coerce_state(raw_terminal_status).value",
+    "generic_retryable_is_kernel_derived": true,
+    "generic_authorized_action": null,
+    "nonterminal_control_id": "nonterminal-running"
+  },
+  "cases": [
+    {
+      "id": "supported",
+      "terminal_record_id": "validated-primary",
+      "diagnosis_event": {
+        "event_id": "evt_m1d_supported_diagnosis",
+        "event_type": "research.experiment_diagnosed.v1",
+        "occurred_at": "2026-08-10T12:00:07.000000Z",
+        "payload": {
+          "science_state_version": 1,
+          "generation_id": "generation_5d41220428bdc7434fc3a1be0b8eace4",
+          "study_contract_digest": "bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae",
+          "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
+          "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "diagnosis": {
+            "diagnosis_schema_version": 1,
+            "generation_id": "generation_5d41220428bdc7434fc3a1be0b8eace4",
+            "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "experiment_id": "exp_5a7ac7bd0ea4721e1c4119e3ec2a20f6",
+            "proposal_id": "proposal_6ac31441be3ec977853e764af028b8bd",
+            "proposal_digest": "564c42b8edb35b7327bc7513a70e1928edfeef01f102f326ee8274b7b5eb59aa",
+            "hypothesis_class_id": "class-a",
+            "evaluation_scope_id": "development",
+            "terminal_evidence": {
+              "experiment_id": "exp_5a7ac7bd0ea4721e1c4119e3ec2a20f6",
+              "event_id": "evt_m1d_validated_primary_terminal",
+              "event_hash": "a65d8f8580b9792086a5e2ff32ad4a28391217a6837158b8c2af9baed5595959"
+            },
+            "artifact_evidence": [
+              {
+                "artifact_id": "art_79b8f2330b434e0f31987b930b461097",
+                "artifact_digest": "00b67bd428809adaddbbc535d26090ce727607d5bab9f9e5ed154ac70e5fc912",
+                "event_id": "evt_m1d_validated_primary_artifact_1",
+                "event_hash": "0a8c0b1a58c20cfaf056d10fc717f3f8739c43f8d5194c4ad4c76c1ae452e357"
+              }
+            ],
+            "observation": {
+              "terminal_status": "VALIDATED",
+              "reason_code": "PRIMARY_METRIC_IMPROVED",
+              "verified": true,
+              "retryable": false,
+              "primary_metric": "score",
+              "candidate_value": 108.0,
+              "baseline_value": 100.0,
+              "improvement": 8.0,
+              "promotion_margin": 3.0,
+              "gate_evaluations": []
+            },
+            "interpretation": "The preregistered primary metric improved with verified evidence.",
+            "failure_type": "supported",
+            "falsifier": "A preregistered replication fails to clear the frozen promotion threshold.",
+            "recommendation": "replicate",
+            "authorized_action": null
+          },
+          "diagnosis_digest": "e8965a25c53059b524d13f13571f718cd23ff6c3d29e0110b45ff738e85e337d",
+          "diagnosis_id": "diagnosis_7f2274bba9214219b97b241fc1e0761a",
+          "authorized_action": null
+        },
+        "prev_hash": "a65d8f8580b9792086a5e2ff32ad4a28391217a6837158b8c2af9baed5595959",
+        "project_id": "fixture-m1d",
+        "sequence": 7,
+        "version": 1,
+        "hash": "d97421917a5f298f1289bfe66f329bc8cbb924862bcfaca89c5c9bb9798891d7"
+      },
+      "expected": {
+        "diagnosis_digest": "e8965a25c53059b524d13f13571f718cd23ff6c3d29e0110b45ff738e85e337d",
+        "diagnosis_id": "diagnosis_7f2274bba9214219b97b241fc1e0761a",
+        "kernel_disposition": "supported",
+        "conclusive_rejection": false,
+        "semantic_supported": true,
+        "retry_eligible": false
+      }
+    },
+    {
+      "id": "conclusive-no-meaningful-improvement",
+      "terminal_record_id": "rejected-no-improvement",
+      "diagnosis_event": {
+        "event_id": "evt_m1d_conclusive_no_meaningful_improvement_diagnosis",
+        "event_type": "research.experiment_diagnosed.v1",
+        "occurred_at": "2026-08-10T12:00:07.000000Z",
+        "payload": {
+          "science_state_version": 1,
+          "generation_id": "generation_5d41220428bdc7434fc3a1be0b8eace4",
+          "study_contract_digest": "bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae",
+          "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
+          "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "diagnosis": {
+            "diagnosis_schema_version": 1,
+            "generation_id": "generation_5d41220428bdc7434fc3a1be0b8eace4",
+            "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "experiment_id": "exp_9eff3f2fc89e2d9c4f6dec3418af51d0",
+            "proposal_id": "proposal_ac69a6647ab764ecb6db099550b6b8fb",
+            "proposal_digest": "fe2592de96a35fc6c863305c0e22eb14f05e112b6d62e9d1815f84a4ec7ff9af",
+            "hypothesis_class_id": "class-a",
+            "evaluation_scope_id": "diagnostic-1",
+            "terminal_evidence": {
+              "experiment_id": "exp_9eff3f2fc89e2d9c4f6dec3418af51d0",
+              "event_id": "evt_m1d_rejected_no_improvement_terminal",
+              "event_hash": "e60cb75317dc62e33a8e852a3c2593bcb84b25a475f2ad76c6aa77dabbcbec1a"
+            },
+            "artifact_evidence": [
+              {
+                "artifact_id": "art_7673b58df7e756abe5949cf6de731e59",
+                "artifact_digest": "3e50c20e16316ccd3b2440c4d64f594bbd36196f59c87a48a7a197be2eddc3bc",
+                "event_id": "evt_m1d_rejected_no_improvement_artifact_1",
+                "event_hash": "df6e991aaae02035d0ad50dd316477e2646dae4c952c508b38615b15de90e16b"
+              }
+            ],
+            "observation": {
+              "terminal_status": "REJECTED",
+              "reason_code": "NO_MEANINGFUL_IMPROVEMENT",
+              "verified": true,
+              "retryable": false,
+              "primary_metric": "score",
+              "candidate_value": 101.0,
+              "baseline_value": 100.0,
+              "improvement": 1.0,
+              "promotion_margin": -4.0,
+              "gate_evaluations": []
+            },
+            "interpretation": "The verified candidate did not clear the preregistered promotion margin.",
+            "failure_type": "mechanism",
+            "falsifier": "A new candidate from the same mechanism clears the frozen promotion margin.",
+            "recommendation": "ablate",
+            "authorized_action": null
+          },
+          "diagnosis_digest": "4e9ad9203ea1069969b517eecd649caa9f30b40ed1b6d97a53783a4833543417",
+          "diagnosis_id": "diagnosis_f8dc913b5cf9572a663f85ccf9f5f150",
+          "authorized_action": null
+        },
+        "prev_hash": "e60cb75317dc62e33a8e852a3c2593bcb84b25a475f2ad76c6aa77dabbcbec1a",
+        "project_id": "fixture-m1d",
+        "sequence": 7,
+        "version": 1,
+        "hash": "923ad980fc7161be4f165b2a52564d56817278745ea65e9854b9bc8403c193bd"
+      },
+      "expected": {
+        "diagnosis_digest": "4e9ad9203ea1069969b517eecd649caa9f30b40ed1b6d97a53783a4833543417",
+        "diagnosis_id": "diagnosis_f8dc913b5cf9572a663f85ccf9f5f150",
+        "kernel_disposition": "conclusive_rejection",
+        "conclusive_rejection": true,
+        "semantic_supported": false,
+        "retry_eligible": false
+      }
+    },
+    {
+      "id": "nonconclusive-hard-constraint",
+      "terminal_record_id": "rejected-hard-constraint",
+      "diagnosis_event": {
+        "event_id": "evt_m1d_nonconclusive_hard_constraint_diagnosis",
+        "event_type": "research.experiment_diagnosed.v1",
+        "occurred_at": "2026-08-10T12:00:08.000000Z",
+        "payload": {
+          "science_state_version": 1,
+          "generation_id": "generation_5d41220428bdc7434fc3a1be0b8eace4",
+          "study_contract_digest": "bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae",
+          "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
+          "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "diagnosis": {
+            "diagnosis_schema_version": 1,
+            "generation_id": "generation_5d41220428bdc7434fc3a1be0b8eace4",
+            "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "experiment_id": "exp_779bd494a1730f610dcbb6ddb08729ef",
+            "proposal_id": "proposal_d5a94923f439cf209c5cca6713154e05",
+            "proposal_digest": "1edd06ace5be859605743d4c6aa26c3081b2e44c3869eeba4432c3ec1e0b52e9",
+            "hypothesis_class_id": "class-a",
+            "evaluation_scope_id": "diagnostic-1",
+            "terminal_evidence": {
+              "experiment_id": "exp_779bd494a1730f610dcbb6ddb08729ef",
+              "event_id": "evt_m1d_rejected_hard_constraint_terminal",
+              "event_hash": "8a935a50951765e3c6d8328c231988f81e26a94dc82f408c3024eaf12a1c2f3e"
+            },
+            "artifact_evidence": [
+              {
+                "artifact_id": "art_232cd5f3c4e45bba50c8e7c1eebdd0a2",
+                "artifact_digest": "1f048f166409e148b13281ced2058feb7084f8c1383e7a0b2ff3609a6c453efb",
+                "event_id": "evt_m1d_rejected_hard_constraint_artifact_1",
+                "event_hash": "0254ea320bcf49323e02d07ec67b017226ef30d8696655cddaa93c82589dac23"
+              },
+              {
+                "artifact_id": "art_7ed55f5dd62d1c36ec7cc9b23934164c",
+                "artifact_digest": "ad00c16646396ed4d6797d1cd42422d39c5eaed3ff0e6eceda88a410658e48ee",
+                "event_id": "evt_m1d_rejected_hard_constraint_artifact_2",
+                "event_hash": "1a04050f749080cf9cc8efd1fb31451239b3450fd9b03521f51d5d42f3245975"
+              }
+            ],
+            "observation": {
+              "terminal_status": "REJECTED",
+              "reason_code": "HARD_CONSTRAINT_FAILED",
+              "verified": true,
+              "retryable": false,
+              "primary_metric": "score",
+              "candidate_value": 112.0,
+              "baseline_value": 100.0,
+              "improvement": 12.0,
+              "promotion_margin": 7.0,
+              "gate_evaluations": [
+                {
+                  "id": "latency-limit",
+                  "metric": "latency",
+                  "role": "support",
+                  "operator": "lte",
+                  "threshold": 1.0,
+                  "unit": "seconds",
+                  "scale": 1.0,
+                  "observed": 0.5,
+                  "signed_slack": 0.5,
+                  "normalized_slack": 0.5,
+                  "passed": true
+                },
+                {
+                  "id": "risk-limit",
+                  "metric": "risk",
+                  "role": "hard",
+                  "operator": "lte",
+                  "threshold": 1.0,
+                  "unit": "ratio",
+                  "scale": 1.0,
+                  "observed": 2.0,
+                  "signed_slack": -1.0,
+                  "normalized_slack": -1.0,
+                  "passed": false
+                }
+              ]
+            },
+            "interpretation": "The score improved, but the candidate violated the preregistered typed hard gate.",
+            "failure_type": "constraint",
+            "falsifier": "A verified candidate under the same evidence contract passes risk-limit.",
+            "recommendation": "explore",
+            "authorized_action": null
+          },
+          "diagnosis_digest": "97ca67908efce2f3deb641e92a0d8a833ea9bf1fc72a5fb7b2fcebbd6481f4a9",
+          "diagnosis_id": "diagnosis_471185d5fecbe81caf74735b58ea2c43",
+          "authorized_action": null
+        },
+        "prev_hash": "8a935a50951765e3c6d8328c231988f81e26a94dc82f408c3024eaf12a1c2f3e",
+        "project_id": "fixture-m1d",
+        "sequence": 8,
+        "version": 1,
+        "hash": "eb417a0f792fb15e2c6dd3951e2ea7a30eb8f999cddfd1a911059cffe08399ac"
+      },
+      "expected": {
+        "diagnosis_digest": "97ca67908efce2f3deb641e92a0d8a833ea9bf1fc72a5fb7b2fcebbd6481f4a9",
+        "diagnosis_id": "diagnosis_471185d5fecbe81caf74735b58ea2c43",
+        "kernel_disposition": "nonconclusive_rejection",
+        "conclusive_rejection": false,
+        "semantic_supported": false,
+        "retry_eligible": false
+      }
+    },
+    {
+      "id": "retryable-timeout",
+      "terminal_record_id": "timed-out",
+      "diagnosis_event": {
+        "event_id": "evt_m1d_retryable_timeout_diagnosis",
+        "event_type": "research.experiment_diagnosed.v1",
+        "occurred_at": "2026-08-10T12:00:06.000000Z",
+        "payload": {
+          "science_state_version": 1,
+          "generation_id": "generation_5d41220428bdc7434fc3a1be0b8eace4",
+          "study_contract_digest": "bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae",
+          "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
+          "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "diagnosis": {
+            "diagnosis_schema_version": 1,
+            "generation_id": "generation_5d41220428bdc7434fc3a1be0b8eace4",
+            "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "experiment_id": "exp_62d2ca79f0d7e35b1b9b92cd19a2dad5",
+            "proposal_id": "proposal_0919a4d0d9ee63a3956561526eaf24e4",
+            "proposal_digest": "986bc2c2de4b70b3f0a4083b7b8ea40f5ab41d1ad9a51ae44a9eab136fe98491",
+            "hypothesis_class_id": "class-b",
+            "evaluation_scope_id": "diagnostic-1",
+            "terminal_evidence": {
+              "experiment_id": "exp_62d2ca79f0d7e35b1b9b92cd19a2dad5",
+              "event_id": "evt_m1d_timed_out_terminal",
+              "event_hash": "568717d105b2d583536d17edf8b5872aacbb85266a762f3049d919e71299cff5"
+            },
+            "artifact_evidence": [],
+            "observation": {
+              "terminal_status": "TIMED_OUT",
+              "reason_code": "ADAPTER_TIMEOUT",
+              "verified": false,
+              "retryable": true,
+              "primary_metric": "score",
+              "candidate_value": null,
+              "baseline_value": null,
+              "improvement": null,
+              "promotion_margin": null,
+              "gate_evaluations": []
+            },
+            "interpretation": "The adapter timed out before producing quantitative decision evidence.",
+            "failure_type": "operational",
+            "falsifier": "An exact retry completes under the same frozen registration and evidence contract.",
+            "recommendation": "retry",
+            "authorized_action": null
+          },
+          "diagnosis_digest": "085372374993986111fe75b2d0a005752a9ea487c6d6900f0ef920e6124f9dc5",
+          "diagnosis_id": "diagnosis_3f7a3b8424ced2322e8142b7486d4c7b",
+          "authorized_action": null
+        },
+        "prev_hash": "568717d105b2d583536d17edf8b5872aacbb85266a762f3049d919e71299cff5",
+        "project_id": "fixture-m1d",
+        "sequence": 6,
+        "version": 1,
+        "hash": "0b11985c2a9f545facbea5aa191db8907e3bc3b8b7e1e597ded9fa9fb77d4770"
+      },
+      "expected": {
+        "diagnosis_digest": "085372374993986111fe75b2d0a005752a9ea487c6d6900f0ef920e6124f9dc5",
+        "diagnosis_id": "diagnosis_3f7a3b8424ced2322e8142b7486d4c7b",
+        "kernel_disposition": "retryable_operational",
+        "conclusive_rejection": false,
+        "semantic_supported": false,
+        "retry_eligible": true
+      }
+    },
+    {
+      "id": "inconclusive-invalid",
+      "terminal_record_id": "invalid-experiment",
+      "diagnosis_event": {
+        "event_id": "evt_m1d_inconclusive_invalid_diagnosis",
+        "event_type": "research.experiment_diagnosed.v1",
+        "occurred_at": "2026-08-10T12:00:06.000000Z",
+        "payload": {
+          "science_state_version": 1,
+          "generation_id": "generation_5d41220428bdc7434fc3a1be0b8eace4",
+          "study_contract_digest": "bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae",
+          "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
+          "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "diagnosis": {
+            "diagnosis_schema_version": 1,
+            "generation_id": "generation_5d41220428bdc7434fc3a1be0b8eace4",
+            "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "experiment_id": "exp_9560f366f039f5f3289a922e21081731",
+            "proposal_id": "proposal_9b65d1b946c54c9ea14ff9e1ad48331c",
+            "proposal_digest": "3e4b28e1007d82f5d9c5ae771787a8b0d20e2fb59262d6b9fcde06826b201241",
+            "hypothesis_class_id": "class-b",
+            "evaluation_scope_id": "development",
+            "terminal_evidence": {
+              "experiment_id": "exp_9560f366f039f5f3289a922e21081731",
+              "event_id": "evt_m1d_invalid_experiment_terminal",
+              "event_hash": "c8764d5132f8d035f5c693feb94dbe15a0435ce6bf5e8f6dcd2fd85fe97e47c5"
+            },
+            "artifact_evidence": [],
+            "observation": {
+              "terminal_status": "INVALID_EXPERIMENT",
+              "reason_code": "INVALID_CANDIDATE",
+              "verified": false,
+              "retryable": false,
+              "primary_metric": "score",
+              "candidate_value": null,
+              "baseline_value": null,
+              "improvement": null,
+              "promotion_margin": null,
+              "gate_evaluations": []
+            },
+            "interpretation": "The adapter rejected the candidate before quantitative decision evidence existed.",
+            "failure_type": "implementation",
+            "falsifier": "A newly registered corrected candidate passes the adapter preconditions.",
+            "recommendation": "change_control",
+            "authorized_action": null
+          },
+          "diagnosis_digest": "c0ee8a51d6106fad430e43355e13c702babcdcc8a826732dffe4dba6b6222a24",
+          "diagnosis_id": "diagnosis_ed50afae2cbfd5d547f8682b233e6d05",
+          "authorized_action": null
+        },
+        "prev_hash": "c8764d5132f8d035f5c693feb94dbe15a0435ce6bf5e8f6dcd2fd85fe97e47c5",
+        "project_id": "fixture-m1d",
+        "sequence": 6,
+        "version": 1,
+        "hash": "e8976966463f2456e9e45031b8fa910a26fdb427d3384e40b8ee06a23213f8bb"
+      },
+      "expected": {
+        "diagnosis_digest": "c0ee8a51d6106fad430e43355e13c702babcdcc8a826732dffe4dba6b6222a24",
+        "diagnosis_id": "diagnosis_ed50afae2cbfd5d547f8682b233e6d05",
+        "kernel_disposition": "inconclusive",
+        "conclusive_rejection": false,
+        "semantic_supported": false,
+        "retry_eligible": false
+      }
+    },
+    {"id":"generic-accepted","terminal_record_id":"generic-accepted","diagnosis_event":{"event_id":"evt_m1d_generic_accepted_diagnosis_06","event_type":"research.experiment_diagnosed.v1","occurred_at":"2026-08-10T15:01:06.000000Z","payload":{"science_state_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","study_contract_digest":"bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae","evaluation_seal_digest":"4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","diagnosis":{"diagnosis_schema_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","experiment_id":"exp_b2d6acaacb9ccccd6582507381c31d58","proposal_id":"proposal_1258ca787f86a5f6453109dd9ceabc19","proposal_digest":"d4145bddb90650fcc2df1d279541cf6aaaacd8da82ac1ea0e79764a91dd77196","hypothesis_class_id":"class-b","evaluation_scope_id":"development","terminal_evidence":{"experiment_id":"exp_b2d6acaacb9ccccd6582507381c31d58","event_id":"evt_m1d_generic_accepted_05","event_hash":"a4db75eaca21e4f1e29c4a69d93a694b4b8f5c5331bc53da06b72f8fce8286e8"},"artifact_evidence":[],"observation":{"terminal_status":"ACCEPTED","reason_code":"STATUS_CHANGED","verified":false,"retryable":false,"primary_metric":null,"candidate_value":null,"baseline_value":null,"improvement":null,"promotion_margin":null,"gate_evaluations":[]},"interpretation":"The generic success-like status has no verified quantitative decision evidence.","failure_type":"evidence","falsifier":"A new experiment supplies a verified typed Decision under the frozen evidence contract.","recommendation":"explore","authorized_action":null},"diagnosis_digest":"2690c84eff1e95803b9b8e291f6d62d28ee6ee5b291c35cb03285b1cce6a37b5","diagnosis_id":"diagnosis_73261e2d6f0eb471cc69dd4778514072","authorized_action":null},"prev_hash":"a4db75eaca21e4f1e29c4a69d93a694b4b8f5c5331bc53da06b72f8fce8286e8","project_id":"fixture-m1d","sequence":6,"version":1,"hash":"9aa951bdbfd72dd1c6bf50ce687833ca758f11d81ae9a4416c3101f32d6b881f"},"expected":{"diagnosis_digest":"2690c84eff1e95803b9b8e291f6d62d28ee6ee5b291c35cb03285b1cce6a37b5","diagnosis_id":"diagnosis_73261e2d6f0eb471cc69dd4778514072","kernel_disposition":"inconclusive","conclusive_rejection":false,"semantic_supported":false,"retry_eligible":false,"pending_before":["exp_b2d6acaacb9ccccd6582507381c31d58"],"pending_after":[],"raw_terminal_status":"ACCEPTED","canonical_terminal_status":"ACCEPTED","reason_code":"STATUS_CHANGED","verified":false,"primary_metric":null,"numeric_fields_null":true,"gate_evaluations":[],"authorized_action":null}},
+    {"id":"generic-succeeded","terminal_record_id":"generic-succeeded","diagnosis_event":{"event_id":"evt_m1d_generic_succeeded_diagnosis_06","event_type":"research.experiment_diagnosed.v1","occurred_at":"2026-08-10T15:02:06.000000Z","payload":{"science_state_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","study_contract_digest":"bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae","evaluation_seal_digest":"4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","diagnosis":{"diagnosis_schema_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","experiment_id":"exp_88b75c4e701d7f6262ff308895e7c88b","proposal_id":"proposal_6cebceef6c117f2f50e981838dce32a7","proposal_digest":"6972fb872283640c1b16239ba235ba971237c5f94e35b8c50cd7d2a5729ad461","hypothesis_class_id":"class-b","evaluation_scope_id":"development","terminal_evidence":{"experiment_id":"exp_88b75c4e701d7f6262ff308895e7c88b","event_id":"evt_m1d_generic_succeeded_05","event_hash":"e6185163e1c1fe5e132f88ce93b7ec1ed0ee020a5f08af5c4a801e8f1cd3b42a"},"artifact_evidence":[],"observation":{"terminal_status":"SUCCEEDED","reason_code":"STATUS_CHANGED","verified":false,"retryable":false,"primary_metric":null,"candidate_value":null,"baseline_value":null,"improvement":null,"promotion_margin":null,"gate_evaluations":[]},"interpretation":"The generic success-like status has no verified quantitative decision evidence.","failure_type":"evidence","falsifier":"A new experiment supplies a verified typed Decision under the frozen evidence contract.","recommendation":"explore","authorized_action":null},"diagnosis_digest":"05c2c2cf245cd78d55feb2bb2797b18a9a4c3ae7d230f402b38feb1a6aae6370","diagnosis_id":"diagnosis_9272827703c8d71c7f87a346afa65ff4","authorized_action":null},"prev_hash":"e6185163e1c1fe5e132f88ce93b7ec1ed0ee020a5f08af5c4a801e8f1cd3b42a","project_id":"fixture-m1d","sequence":6,"version":1,"hash":"a486d1df5bd5de9c9253150074e11d5ffdbf1422f501564db68766cb34800b9c"},"expected":{"diagnosis_digest":"05c2c2cf245cd78d55feb2bb2797b18a9a4c3ae7d230f402b38feb1a6aae6370","diagnosis_id":"diagnosis_9272827703c8d71c7f87a346afa65ff4","kernel_disposition":"inconclusive","conclusive_rejection":false,"semantic_supported":false,"retry_eligible":false,"pending_before":["exp_88b75c4e701d7f6262ff308895e7c88b"],"pending_after":[],"raw_terminal_status":"SUCCEEDED","canonical_terminal_status":"SUCCEEDED","reason_code":"STATUS_CHANGED","verified":false,"primary_metric":null,"numeric_fields_null":true,"gate_evaluations":[],"authorized_action":null}},
+    {"id":"generic-completed","terminal_record_id":"generic-completed","diagnosis_event":{"event_id":"evt_m1d_generic_completed_diagnosis_06","event_type":"research.experiment_diagnosed.v1","occurred_at":"2026-08-10T15:03:06.000000Z","payload":{"science_state_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","study_contract_digest":"bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae","evaluation_seal_digest":"4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","diagnosis":{"diagnosis_schema_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","experiment_id":"exp_de89e184905853b4da63307a78e27dee","proposal_id":"proposal_11fd56cc8e0e74ad0b930973652802db","proposal_digest":"717f110ff1821c77c0acb0552b23fd4d98c047277cfa20d249f948f63e271fe8","hypothesis_class_id":"class-b","evaluation_scope_id":"development","terminal_evidence":{"experiment_id":"exp_de89e184905853b4da63307a78e27dee","event_id":"evt_m1d_generic_completed_05","event_hash":"23776a486d104ebf976de625857697149d511c8451a890eeb819f9a4d3b398df"},"artifact_evidence":[],"observation":{"terminal_status":"COMPLETED","reason_code":"STATUS_CHANGED","verified":false,"retryable":false,"primary_metric":null,"candidate_value":null,"baseline_value":null,"improvement":null,"promotion_margin":null,"gate_evaluations":[]},"interpretation":"The generic success-like status has no verified quantitative decision evidence.","failure_type":"evidence","falsifier":"A new experiment supplies a verified typed Decision under the frozen evidence contract.","recommendation":"explore","authorized_action":null},"diagnosis_digest":"2ae2d080a5704a252b99a9de674ccf50621b48d9f6e9d88f902bdf8bc0245180","diagnosis_id":"diagnosis_e7537616aea9a44e0b0ef0062abae317","authorized_action":null},"prev_hash":"23776a486d104ebf976de625857697149d511c8451a890eeb819f9a4d3b398df","project_id":"fixture-m1d","sequence":6,"version":1,"hash":"6889d85ee76d7bd69bf84bff719da7a18d4924e14e29525ef7f3835fa81797ca"},"expected":{"diagnosis_digest":"2ae2d080a5704a252b99a9de674ccf50621b48d9f6e9d88f902bdf8bc0245180","diagnosis_id":"diagnosis_e7537616aea9a44e0b0ef0062abae317","kernel_disposition":"inconclusive","conclusive_rejection":false,"semantic_supported":false,"retry_eligible":false,"pending_before":["exp_de89e184905853b4da63307a78e27dee"],"pending_after":[],"raw_terminal_status":"COMPLETED","canonical_terminal_status":"COMPLETED","reason_code":"STATUS_CHANGED","verified":false,"primary_metric":null,"numeric_fields_null":true,"gate_evaluations":[],"authorized_action":null}},
+    {"id":"generic-invalid","terminal_record_id":"generic-invalid","diagnosis_event":{"event_id":"evt_m1d_generic_invalid_diagnosis_06","event_type":"research.experiment_diagnosed.v1","occurred_at":"2026-08-10T15:04:06.000000Z","payload":{"science_state_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","study_contract_digest":"bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae","evaluation_seal_digest":"4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","diagnosis":{"diagnosis_schema_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","experiment_id":"exp_e9fb2a3c52fcc967106b147621690a52","proposal_id":"proposal_fafb6a4abebecce41d1e455ae40cbd8a","proposal_digest":"9202b03429d4f731a36244a2f2eb97e88b2550601d2cd57dc3f7bdcf25318572","hypothesis_class_id":"class-b","evaluation_scope_id":"development","terminal_evidence":{"experiment_id":"exp_e9fb2a3c52fcc967106b147621690a52","event_id":"evt_m1d_generic_invalid_05","event_hash":"c3d9e855c14ee6bb8b05d57d90c7dd79af473b0c1489eccd8e546427f06a6dd5"},"artifact_evidence":[],"observation":{"terminal_status":"INVALID","reason_code":"STATUS_CHANGED","verified":false,"retryable":false,"primary_metric":null,"candidate_value":null,"baseline_value":null,"improvement":null,"promotion_margin":null,"gate_evaluations":[]},"interpretation":"The generic invalid status has no quantitative decision evidence.","failure_type":"implementation","falsifier":"A newly registered corrected candidate reaches a verified quantitative decision.","recommendation":"change_control","authorized_action":null},"diagnosis_digest":"1d8d9e44652bcdbc1d1d14d7a807b418541b89e48023d04d599c38c701843eec","diagnosis_id":"diagnosis_0d2148aba7eb9c9e251404942f9f1871","authorized_action":null},"prev_hash":"c3d9e855c14ee6bb8b05d57d90c7dd79af473b0c1489eccd8e546427f06a6dd5","project_id":"fixture-m1d","sequence":6,"version":1,"hash":"d6268e65c1b3eb56c2ff8294550018af595ce8598bef35fc4ac96f3449d7e64b"},"expected":{"diagnosis_digest":"1d8d9e44652bcdbc1d1d14d7a807b418541b89e48023d04d599c38c701843eec","diagnosis_id":"diagnosis_0d2148aba7eb9c9e251404942f9f1871","kernel_disposition":"inconclusive","conclusive_rejection":false,"semantic_supported":false,"retry_eligible":false,"pending_before":["exp_e9fb2a3c52fcc967106b147621690a52"],"pending_after":[],"raw_terminal_status":"INVALID","canonical_terminal_status":"INVALID","reason_code":"STATUS_CHANGED","verified":false,"primary_metric":null,"numeric_fields_null":true,"gate_evaluations":[],"authorized_action":null}},
+    {"id":"generic-failed","terminal_record_id":"generic-failed","diagnosis_event":{"event_id":"evt_m1d_generic_failed_diagnosis_06","event_type":"research.experiment_diagnosed.v1","occurred_at":"2026-08-10T15:05:06.000000Z","payload":{"science_state_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","study_contract_digest":"bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae","evaluation_seal_digest":"4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","diagnosis":{"diagnosis_schema_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","experiment_id":"exp_66293b299b55935d49698c329ed45a60","proposal_id":"proposal_c60e6f8d067dffd8e2ef7e7adc881ded","proposal_digest":"31351a6998ee75065b18fa6a09101bc8758bd8c5c6b2ea7eb49c4299b0d8859f","hypothesis_class_id":"class-b","evaluation_scope_id":"development","terminal_evidence":{"experiment_id":"exp_66293b299b55935d49698c329ed45a60","event_id":"evt_m1d_generic_failed_05","event_hash":"066d1dfba86c9adb91a5add878834503e2634192104c4c6b946c5b7fb3fe4678"},"artifact_evidence":[],"observation":{"terminal_status":"FAILED","reason_code":"STATUS_CHANGED","verified":false,"retryable":false,"primary_metric":null,"candidate_value":null,"baseline_value":null,"improvement":null,"promotion_margin":null,"gate_evaluations":[]},"interpretation":"The generic failure status has no quantitative decision evidence.","failure_type":"operational","falsifier":"A newly registered corrected attempt reaches a verified quantitative decision.","recommendation":"change_control","authorized_action":null},"diagnosis_digest":"792df1d7d8a4ad6741aa8729c06239527e2f9f5dc36c9682ba8e80e8505ff09c","diagnosis_id":"diagnosis_4432c727818f4d8bdae0a41732b446f3","authorized_action":null},"prev_hash":"066d1dfba86c9adb91a5add878834503e2634192104c4c6b946c5b7fb3fe4678","project_id":"fixture-m1d","sequence":6,"version":1,"hash":"2b3973e3a8090a64489a5be924fe02f9eae180d4582e53cab535f75089efce94"},"expected":{"diagnosis_digest":"792df1d7d8a4ad6741aa8729c06239527e2f9f5dc36c9682ba8e80e8505ff09c","diagnosis_id":"diagnosis_4432c727818f4d8bdae0a41732b446f3","kernel_disposition":"inconclusive","conclusive_rejection":false,"semantic_supported":false,"retry_eligible":false,"pending_before":["exp_66293b299b55935d49698c329ed45a60"],"pending_after":[],"raw_terminal_status":"FAILED","canonical_terminal_status":"FAILED","reason_code":"STATUS_CHANGED","verified":false,"primary_metric":null,"numeric_fields_null":true,"gate_evaluations":[],"authorized_action":null}},
+    {"id":"generic-crashed","terminal_record_id":"generic-crashed","diagnosis_event":{"event_id":"evt_m1d_generic_crashed_diagnosis_06","event_type":"research.experiment_diagnosed.v1","occurred_at":"2026-08-10T15:06:06.000000Z","payload":{"science_state_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","study_contract_digest":"bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae","evaluation_seal_digest":"4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","diagnosis":{"diagnosis_schema_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","experiment_id":"exp_b16a217435c0604950472ffa53438629","proposal_id":"proposal_2cda35d50e24032985f971df327fae76","proposal_digest":"d426067ecaf6f4cf2f6c0c3c2acb9f7c1ee9750b13a6c0cc75f03d93917c911f","hypothesis_class_id":"class-b","evaluation_scope_id":"development","terminal_evidence":{"experiment_id":"exp_b16a217435c0604950472ffa53438629","event_id":"evt_m1d_generic_crashed_05","event_hash":"69ee477e3ce0d5ff4a2125c4e50df27ddcdd15fdcb3ba437150e830c611283bb"},"artifact_evidence":[],"observation":{"terminal_status":"CRASHED","reason_code":"STATUS_CHANGED","verified":false,"retryable":false,"primary_metric":null,"candidate_value":null,"baseline_value":null,"improvement":null,"promotion_margin":null,"gate_evaluations":[]},"interpretation":"The generic failure status has no quantitative decision evidence.","failure_type":"operational","falsifier":"A newly registered corrected attempt reaches a verified quantitative decision.","recommendation":"change_control","authorized_action":null},"diagnosis_digest":"f6b2fac6c33d60f0da0be8c5fb7884a8aec995f13313d8348d0c73daa731dff8","diagnosis_id":"diagnosis_768e8f06a4871564c18e30b996f525f6","authorized_action":null},"prev_hash":"69ee477e3ce0d5ff4a2125c4e50df27ddcdd15fdcb3ba437150e830c611283bb","project_id":"fixture-m1d","sequence":6,"version":1,"hash":"043ab22a6ff8bf9fa293f0f82a6a6522d4ae90b0bce5c047a5a721cd5507a6c5"},"expected":{"diagnosis_digest":"f6b2fac6c33d60f0da0be8c5fb7884a8aec995f13313d8348d0c73daa731dff8","diagnosis_id":"diagnosis_768e8f06a4871564c18e30b996f525f6","kernel_disposition":"inconclusive","conclusive_rejection":false,"semantic_supported":false,"retry_eligible":false,"pending_before":["exp_b16a217435c0604950472ffa53438629"],"pending_after":[],"raw_terminal_status":"CRASHED","canonical_terminal_status":"CRASHED","reason_code":"STATUS_CHANGED","verified":false,"primary_metric":null,"numeric_fields_null":true,"gate_evaluations":[],"authorized_action":null}},
+    {"id":"alias-success","terminal_record_id":"alias-success","diagnosis_event":{"event_id":"evt_m1d_alias_success_diagnosis_06","event_type":"research.experiment_diagnosed.v1","occurred_at":"2026-08-10T15:07:06.000000Z","payload":{"science_state_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","study_contract_digest":"bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae","evaluation_seal_digest":"4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","diagnosis":{"diagnosis_schema_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","experiment_id":"exp_a51adb32d35b6d8156533810b28b1cf0","proposal_id":"proposal_5129960adfe446352ca5eef8b5fa6103","proposal_digest":"87f7cc9331ac76a389b2bfba4a509862262d392d3c91d32b634735c9143bc340","hypothesis_class_id":"class-b","evaluation_scope_id":"development","terminal_evidence":{"experiment_id":"exp_a51adb32d35b6d8156533810b28b1cf0","event_id":"evt_m1d_alias_success_05","event_hash":"e6f23fe672d36fe86ac509c3fed58de28e31e431282fd9486d237afa221c1665"},"artifact_evidence":[],"observation":{"terminal_status":"SUCCEEDED","reason_code":"STATUS_CHANGED","verified":false,"retryable":false,"primary_metric":null,"candidate_value":null,"baseline_value":null,"improvement":null,"promotion_margin":null,"gate_evaluations":[]},"interpretation":"The generic success-like status has no verified quantitative decision evidence.","failure_type":"evidence","falsifier":"A new experiment supplies a verified typed Decision under the frozen evidence contract.","recommendation":"explore","authorized_action":null},"diagnosis_digest":"09a8e7b01a1bb50d4c9dc1c6e6e55176ff50368c1d81662d884231c4fa66c583","diagnosis_id":"diagnosis_aefbde7954f19c11d3fb5a071229d851","authorized_action":null},"prev_hash":"e6f23fe672d36fe86ac509c3fed58de28e31e431282fd9486d237afa221c1665","project_id":"fixture-m1d","sequence":6,"version":1,"hash":"e90060e384d65fd51c45a43c5335f361e6867fa2b8e6507727b036095c6e5994"},"expected":{"diagnosis_digest":"09a8e7b01a1bb50d4c9dc1c6e6e55176ff50368c1d81662d884231c4fa66c583","diagnosis_id":"diagnosis_aefbde7954f19c11d3fb5a071229d851","kernel_disposition":"inconclusive","conclusive_rejection":false,"semantic_supported":false,"retry_eligible":false,"pending_before":["exp_a51adb32d35b6d8156533810b28b1cf0"],"pending_after":[],"raw_terminal_status":"SUCCESS","canonical_terminal_status":"SUCCEEDED","reason_code":"STATUS_CHANGED","verified":false,"primary_metric":null,"numeric_fields_null":true,"gate_evaluations":[],"authorized_action":null}},
+    {"id":"alias-passed","terminal_record_id":"alias-passed","diagnosis_event":{"event_id":"evt_m1d_alias_passed_diagnosis_06","event_type":"research.experiment_diagnosed.v1","occurred_at":"2026-08-10T15:08:06.000000Z","payload":{"science_state_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","study_contract_digest":"bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae","evaluation_seal_digest":"4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","diagnosis":{"diagnosis_schema_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","experiment_id":"exp_4f5bf2b7a7ebc74051435801badba29c","proposal_id":"proposal_22a8adc0c139872500b35755d3eb76c5","proposal_digest":"99f6941c8086da840007674356699b88e16f8a4d7363ed084a1cfbe14156635f","hypothesis_class_id":"class-b","evaluation_scope_id":"development","terminal_evidence":{"experiment_id":"exp_4f5bf2b7a7ebc74051435801badba29c","event_id":"evt_m1d_alias_passed_05","event_hash":"d67fb040d1ec83b1c1ab1122b9c1b498aa124a737afcaf4477abbb13a386e809"},"artifact_evidence":[],"observation":{"terminal_status":"SUCCEEDED","reason_code":"STATUS_CHANGED","verified":false,"retryable":false,"primary_metric":null,"candidate_value":null,"baseline_value":null,"improvement":null,"promotion_margin":null,"gate_evaluations":[]},"interpretation":"The generic success-like status has no verified quantitative decision evidence.","failure_type":"evidence","falsifier":"A new experiment supplies a verified typed Decision under the frozen evidence contract.","recommendation":"explore","authorized_action":null},"diagnosis_digest":"ceafba13a3ba98111097a885b63b036792885f5da58f65d862b69a1f3ac3e2ea","diagnosis_id":"diagnosis_61cc04f7fb1dbe8a107a6be232b892c6","authorized_action":null},"prev_hash":"d67fb040d1ec83b1c1ab1122b9c1b498aa124a737afcaf4477abbb13a386e809","project_id":"fixture-m1d","sequence":6,"version":1,"hash":"03e06419189d4641399f70938ee5f027c31d3161f7e132f6e82c9da738131e6b"},"expected":{"diagnosis_digest":"ceafba13a3ba98111097a885b63b036792885f5da58f65d862b69a1f3ac3e2ea","diagnosis_id":"diagnosis_61cc04f7fb1dbe8a107a6be232b892c6","kernel_disposition":"inconclusive","conclusive_rejection":false,"semantic_supported":false,"retry_eligible":false,"pending_before":["exp_4f5bf2b7a7ebc74051435801badba29c"],"pending_after":[],"raw_terminal_status":"PASSED","canonical_terminal_status":"SUCCEEDED","reason_code":"STATUS_CHANGED","verified":false,"primary_metric":null,"numeric_fields_null":true,"gate_evaluations":[],"authorized_action":null}},
+    {"id":"alias-complete","terminal_record_id":"alias-complete","diagnosis_event":{"event_id":"evt_m1d_alias_complete_diagnosis_06","event_type":"research.experiment_diagnosed.v1","occurred_at":"2026-08-10T15:09:06.000000Z","payload":{"science_state_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","study_contract_digest":"bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae","evaluation_seal_digest":"4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","diagnosis":{"diagnosis_schema_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","experiment_id":"exp_a49f5d6c6d3e0335e29b2d9c68e50588","proposal_id":"proposal_487b9af1da2d097c14bdae352386b565","proposal_digest":"20e5e455794c13e1407d69c531763c6402a7ea1affe7b7d90ec58cbc169f4b00","hypothesis_class_id":"class-b","evaluation_scope_id":"development","terminal_evidence":{"experiment_id":"exp_a49f5d6c6d3e0335e29b2d9c68e50588","event_id":"evt_m1d_alias_complete_05","event_hash":"1653070a2f1c9b86dd9130035e4606b5f338dd8e0048415d524b6308459a8c46"},"artifact_evidence":[],"observation":{"terminal_status":"COMPLETED","reason_code":"STATUS_CHANGED","verified":false,"retryable":false,"primary_metric":null,"candidate_value":null,"baseline_value":null,"improvement":null,"promotion_margin":null,"gate_evaluations":[]},"interpretation":"The generic success-like status has no verified quantitative decision evidence.","failure_type":"evidence","falsifier":"A new experiment supplies a verified typed Decision under the frozen evidence contract.","recommendation":"explore","authorized_action":null},"diagnosis_digest":"7a377e5f34bb2af43b2ffaa5246caee6a3cae66492ab7db547177aa438be5c86","diagnosis_id":"diagnosis_f07a8b4052b42d0fbfab231939437ddf","authorized_action":null},"prev_hash":"1653070a2f1c9b86dd9130035e4606b5f338dd8e0048415d524b6308459a8c46","project_id":"fixture-m1d","sequence":6,"version":1,"hash":"a9cdc2b6cf9c56185c29524845b561fb75445b5058e4de76e2961f4696c04983"},"expected":{"diagnosis_digest":"7a377e5f34bb2af43b2ffaa5246caee6a3cae66492ab7db547177aa438be5c86","diagnosis_id":"diagnosis_f07a8b4052b42d0fbfab231939437ddf","kernel_disposition":"inconclusive","conclusive_rejection":false,"semantic_supported":false,"retry_eligible":false,"pending_before":["exp_a49f5d6c6d3e0335e29b2d9c68e50588"],"pending_after":[],"raw_terminal_status":"COMPLETE","canonical_terminal_status":"COMPLETED","reason_code":"STATUS_CHANGED","verified":false,"primary_metric":null,"numeric_fields_null":true,"gate_evaluations":[],"authorized_action":null}},
+    {"id":"alias-timeout","terminal_record_id":"alias-timeout","diagnosis_event":{"event_id":"evt_m1d_alias_timeout_diagnosis_06","event_type":"research.experiment_diagnosed.v1","occurred_at":"2026-08-10T15:10:06.000000Z","payload":{"science_state_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","study_contract_digest":"bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae","evaluation_seal_digest":"4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","diagnosis":{"diagnosis_schema_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","experiment_id":"exp_7a00cc77cd4a7561741a80c92cb4cfbd","proposal_id":"proposal_9ffffad8a3d20526190e5ee1e0ebb3e2","proposal_digest":"ec9051c42d5bd56a32bb9d61499ed4eb7817db14ba57556bfb2e15916bcc5c18","hypothesis_class_id":"class-b","evaluation_scope_id":"development","terminal_evidence":{"experiment_id":"exp_7a00cc77cd4a7561741a80c92cb4cfbd","event_id":"evt_m1d_alias_timeout_05","event_hash":"60a25fcdc2438f6a5a7bb77c21b6cbcbf623ac99ed4751544c15246aa9295c90"},"artifact_evidence":[],"observation":{"terminal_status":"TIMED_OUT","reason_code":"STATUS_CHANGED","verified":false,"retryable":true,"primary_metric":null,"candidate_value":null,"baseline_value":null,"improvement":null,"promotion_margin":null,"gate_evaluations":[]},"interpretation":"The generic terminal status is retryable but has no quantitative decision evidence.","failure_type":"operational","falsifier":"An exact retry completes under the same frozen registration and evidence contract.","recommendation":"retry","authorized_action":null},"diagnosis_digest":"0106bf0510a3790e8054f2bae38605201554480fdc4ed4b7cb4aa4b0d4b2f957","diagnosis_id":"diagnosis_d1621ced237ad07c918ea35c0e6bbd56","authorized_action":null},"prev_hash":"60a25fcdc2438f6a5a7bb77c21b6cbcbf623ac99ed4751544c15246aa9295c90","project_id":"fixture-m1d","sequence":6,"version":1,"hash":"cc29c3207de7c0af1956dc77902e972cde09987669a0d9a763424f539dde60bf"},"expected":{"diagnosis_digest":"0106bf0510a3790e8054f2bae38605201554480fdc4ed4b7cb4aa4b0d4b2f957","diagnosis_id":"diagnosis_d1621ced237ad07c918ea35c0e6bbd56","kernel_disposition":"retryable_operational","conclusive_rejection":false,"semantic_supported":false,"retry_eligible":true,"pending_before":["exp_7a00cc77cd4a7561741a80c92cb4cfbd"],"pending_after":[],"raw_terminal_status":"TIMEOUT","canonical_terminal_status":"TIMED_OUT","reason_code":"STATUS_CHANGED","verified":false,"primary_metric":null,"numeric_fields_null":true,"gate_evaluations":[],"authorized_action":null}},
+    {"id":"alias-timedout","terminal_record_id":"alias-timedout","diagnosis_event":{"event_id":"evt_m1d_alias_timedout_diagnosis_06","event_type":"research.experiment_diagnosed.v1","occurred_at":"2026-08-10T15:11:06.000000Z","payload":{"science_state_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","study_contract_digest":"bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae","evaluation_seal_digest":"4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","diagnosis":{"diagnosis_schema_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","experiment_id":"exp_0baec898b7badafb5730eb81a4413b37","proposal_id":"proposal_3fe78821ce182741c00b63609051ef6d","proposal_digest":"c95fd60b1730d735c6783b261b13027d82e16740bc580670205f36dbc169d2e0","hypothesis_class_id":"class-b","evaluation_scope_id":"development","terminal_evidence":{"experiment_id":"exp_0baec898b7badafb5730eb81a4413b37","event_id":"evt_m1d_alias_timedout_05","event_hash":"f7188c56f6cc3633f12c7467726f52005c032fe2d2454f6c38207fc841e4d328"},"artifact_evidence":[],"observation":{"terminal_status":"TIMED_OUT","reason_code":"STATUS_CHANGED","verified":false,"retryable":true,"primary_metric":null,"candidate_value":null,"baseline_value":null,"improvement":null,"promotion_margin":null,"gate_evaluations":[]},"interpretation":"The generic terminal status is retryable but has no quantitative decision evidence.","failure_type":"operational","falsifier":"An exact retry completes under the same frozen registration and evidence contract.","recommendation":"retry","authorized_action":null},"diagnosis_digest":"17b60c24ee6e6988e8ede529682cc3a0053227db48454c3f58784d3f7a6c490f","diagnosis_id":"diagnosis_5c55db13e8051fd71e580d54e4e60a38","authorized_action":null},"prev_hash":"f7188c56f6cc3633f12c7467726f52005c032fe2d2454f6c38207fc841e4d328","project_id":"fixture-m1d","sequence":6,"version":1,"hash":"5deeae05aa25789af6871eec018a28c16682a0404633ab11e70079d56577e545"},"expected":{"diagnosis_digest":"17b60c24ee6e6988e8ede529682cc3a0053227db48454c3f58784d3f7a6c490f","diagnosis_id":"diagnosis_5c55db13e8051fd71e580d54e4e60a38","kernel_disposition":"retryable_operational","conclusive_rejection":false,"semantic_supported":false,"retry_eligible":true,"pending_before":["exp_0baec898b7badafb5730eb81a4413b37"],"pending_after":[],"raw_terminal_status":"TIMEDOUT","canonical_terminal_status":"TIMED_OUT","reason_code":"STATUS_CHANGED","verified":false,"primary_metric":null,"numeric_fields_null":true,"gate_evaluations":[],"authorized_action":null}},
+    {"id":"alias-canceled","terminal_record_id":"alias-canceled","diagnosis_event":{"event_id":"evt_m1d_alias_canceled_diagnosis_06","event_type":"research.experiment_diagnosed.v1","occurred_at":"2026-08-10T15:12:06.000000Z","payload":{"science_state_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","study_contract_digest":"bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae","evaluation_seal_digest":"4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","diagnosis":{"diagnosis_schema_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","experiment_id":"exp_0b033fe16010ff130374e57c7f8b9a4e","proposal_id":"proposal_676aa4e6adf62ab92affaa5f5f17b250","proposal_digest":"32379b5b8a70293db77cdf8ec02919852d470c32b07de6a4c0e74af1bb8c6535","hypothesis_class_id":"class-b","evaluation_scope_id":"development","terminal_evidence":{"experiment_id":"exp_0b033fe16010ff130374e57c7f8b9a4e","event_id":"evt_m1d_alias_canceled_05","event_hash":"8ac18031dbe38b2fd09e51391abc8816ab7dfb546970f8a955f1d9d86ffa2f1b"},"artifact_evidence":[],"observation":{"terminal_status":"CANCELLED","reason_code":"STATUS_CHANGED","verified":false,"retryable":true,"primary_metric":null,"candidate_value":null,"baseline_value":null,"improvement":null,"promotion_margin":null,"gate_evaluations":[]},"interpretation":"The generic terminal status is retryable but has no quantitative decision evidence.","failure_type":"operational","falsifier":"An exact retry completes under the same frozen registration and evidence contract.","recommendation":"retry","authorized_action":null},"diagnosis_digest":"ef92722c2ba6bc414b1694187398e7528e9da183deb3ff704c2ae5923ac5d80e","diagnosis_id":"diagnosis_200d68ffca5d755520ce711c49bd24b7","authorized_action":null},"prev_hash":"8ac18031dbe38b2fd09e51391abc8816ab7dfb546970f8a955f1d9d86ffa2f1b","project_id":"fixture-m1d","sequence":6,"version":1,"hash":"3cb83d9cf0845f6a15aca1a467f48643980a02aafe04fbe7dc89d9c6c1f2c2a7"},"expected":{"diagnosis_digest":"ef92722c2ba6bc414b1694187398e7528e9da183deb3ff704c2ae5923ac5d80e","diagnosis_id":"diagnosis_200d68ffca5d755520ce711c49bd24b7","kernel_disposition":"retryable_operational","conclusive_rejection":false,"semantic_supported":false,"retry_eligible":true,"pending_before":["exp_0b033fe16010ff130374e57c7f8b9a4e"],"pending_after":[],"raw_terminal_status":"CANCELED","canonical_terminal_status":"CANCELLED","reason_code":"STATUS_CHANGED","verified":false,"primary_metric":null,"numeric_fields_null":true,"gate_evaluations":[],"authorized_action":null}},
+    {"id":"alias-error","terminal_record_id":"alias-error","diagnosis_event":{"event_id":"evt_m1d_alias_error_diagnosis_06","event_type":"research.experiment_diagnosed.v1","occurred_at":"2026-08-10T15:13:06.000000Z","payload":{"science_state_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","study_contract_digest":"bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae","evaluation_seal_digest":"4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","diagnosis":{"diagnosis_schema_version":1,"generation_id":"generation_5d41220428bdc7434fc3a1be0b8eace4","compatibility_digest":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","experiment_id":"exp_9523d9ccdaf52c24504e23823dc21aa3","proposal_id":"proposal_f27727a13e8c9e57e54725ceb2d07779","proposal_digest":"b03e99d8e62888c41511d9ac70b89f05ea84a01f7cc86ee2c5671a283a1c27bc","hypothesis_class_id":"class-b","evaluation_scope_id":"development","terminal_evidence":{"experiment_id":"exp_9523d9ccdaf52c24504e23823dc21aa3","event_id":"evt_m1d_alias_error_05","event_hash":"80929465a66fdb6705596f8721a920f86aaf7db020f7596b56207abc631bb4a0"},"artifact_evidence":[],"observation":{"terminal_status":"FAILED","reason_code":"STATUS_CHANGED","verified":false,"retryable":false,"primary_metric":null,"candidate_value":null,"baseline_value":null,"improvement":null,"promotion_margin":null,"gate_evaluations":[]},"interpretation":"The generic failure status has no quantitative decision evidence.","failure_type":"operational","falsifier":"A newly registered corrected attempt reaches a verified quantitative decision.","recommendation":"change_control","authorized_action":null},"diagnosis_digest":"8fe30cf088ccf6d86faae78d3a81ff44c0a6883b16ddedd42b9bce3e9c5456a2","diagnosis_id":"diagnosis_3700f33a452d0111c01d76abb71b1f0b","authorized_action":null},"prev_hash":"80929465a66fdb6705596f8721a920f86aaf7db020f7596b56207abc631bb4a0","project_id":"fixture-m1d","sequence":6,"version":1,"hash":"f560b7ce51ffd0c546e9803df61f883832ee7973f85d80cff5f45ac2a203d418"},"expected":{"diagnosis_digest":"8fe30cf088ccf6d86faae78d3a81ff44c0a6883b16ddedd42b9bce3e9c5456a2","diagnosis_id":"diagnosis_3700f33a452d0111c01d76abb71b1f0b","kernel_disposition":"inconclusive","conclusive_rejection":false,"semantic_supported":false,"retry_eligible":false,"pending_before":["exp_9523d9ccdaf52c24504e23823dc21aa3"],"pending_after":[],"raw_terminal_status":"ERROR","canonical_terminal_status":"FAILED","reason_code":"STATUS_CHANGED","verified":false,"primary_metric":null,"numeric_fields_null":true,"gate_evaluations":[],"authorized_action":null}}
+  ],
+  "expected": {
+    "cases": 18,
+    "diagnosis_event_parser_acceptances": 18,
+    "extended_history_verifier_acceptances": 18,
+    "product_feasible_terminal_bindings": 18,
+    "terminal_source_history_events": 94,
+    "diagnosis_events": 18,
+    "extended_history_events": 112,
+    "generic_terminal_bindings": 13,
+    "generic_normalized_status_observations": 13,
+    "generic_canonical_terminal_bindings": 6,
+    "generic_alias_terminal_bindings": 7,
+    "generic_retryable_operational_dispositions": 3,
+    "generic_inconclusive_dispositions": 10,
+    "generic_pending_obligations_cleared": 13,
+    "nonterminal_controls_without_diagnosis": 1,
+    "generic_null_primary_metric_observations": 13,
+    "generic_null_numeric_observations": 13,
+    "generic_empty_gate_evaluation_observations": 13,
+    "nonnull_authorized_action_values": 0
+  }
+}

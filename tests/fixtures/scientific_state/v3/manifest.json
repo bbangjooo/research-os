@@ -1,0 +1,694 @@
+{
+  "schema_version": 1,
+  "kind": "research_os.diagnosis_class_frontier_oracle",
+  "observer_contract": {
+    "dispatch_input": [
+      "operation",
+      "input"
+    ],
+    "case_id_is_display_only": true,
+    "expected_is_unavailable_to_observer": true,
+    "expected_comparison": "exact canonical JSON equality",
+    "forbidden_dispatch": [
+      "case id",
+      "expected value",
+      "hidden scenario",
+      "template",
+      "$ref",
+      "case selector",
+      "gate ids",
+      "race selector",
+      "required operations",
+      "display id or label"
+    ],
+    "static_case_id_dispatches": 0,
+    "semantic_selector_inputs": 0,
+    "display_id_label_dispatches": 0
+  },
+  "fixtures": {
+    "project_id": "fixture-m1d",
+    "contract": "m1d-contract.json",
+    "contract_raw_sha256": "58d3c416c9ce98c336fe888bccf19859a6e5c789d85306b93492a7cabd0a30f3",
+    "contract_digest": "bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae",
+    "terminal_corpus": "m1d-terminal-corpus.json",
+    "terminal_corpus_raw_sha256": "e3623748815bdba58feb399a1dab55399917e80e11894eb981572af9a08cc20f",
+    "diagnosis_valid": "m1d-diagnosis-valid.json",
+    "diagnosis_valid_raw_sha256": "3c9394d0ee2ccc06b6e21dbca403dfc6b4e0e3264ffc43e13cc39c5673462336",
+    "diagnosis_negative_matrix": "m1d-diagnosis-negative-matrix.json",
+    "diagnosis_negative_matrix_raw_sha256": "112a77493182354637ece0dd405dcca8a4093aee876f75af58f1bde437ae4fb4",
+    "transition_matrix": "m1d-transition-matrix.json",
+    "transition_matrix_raw_sha256": "e526f2c2aab968cdd1d0777719ecf992216ac9469864354b4b51586987a15951",
+    "frontier_oracle": "m1d-frontier-oracle.json",
+    "frontier_oracle_raw_sha256": "66c34953a9f2e0259e4be3c00fe24c92e8213685fff3f00f02ba93e97fa75cc5",
+    "compatibility_oracle": "m1d-compat-oracle.json",
+    "compatibility_oracle_raw_sha256": "4f3f79cc593a51b5f1f33b3501f966496bc91f37cde33f2f745f26518c64b597",
+    "generation_id": "generation_5d41220428bdc7434fc3a1be0b8eace4",
+    "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
+    "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  "covered_capabilities": [
+    "terminal-bound canonical Diagnosis",
+    "strict Decision ResultEnvelope ArtifactRef ArtifactRecord binding",
+    "pending Diagnosis transition gate",
+    "kernel-derived ClassState and immutable closure",
+    "active-generation study stop and changed successor",
+    "shared qualifying support predicate",
+    "semantic and retry frontiers",
+    "locked race serialization",
+    "v1 and M1-C compatibility",
+    "recursive null authority"
+  ],
+  "cases": [
+    {
+      "id": "fixture-integrity",
+      "operation": "verify_fixture_integrity",
+      "input": {
+        "fixture_directory": "."
+      },
+      "expected": {
+        "supporting_fixture_count": 7,
+        "total_json_files_including_manifest": 8,
+        "raw_digest_matches": 7,
+        "manifest_cases": 28,
+        "duplicate_case_ids": 0,
+        "case_id_dispatches": 0
+      }
+    },
+    {
+      "id": "contract-generation",
+      "operation": "parse_m1d_contract",
+      "input": {
+        "fixture": "m1d-contract.json"
+      },
+      "expected": {
+        "schema_version": 2,
+        "study_contract_digest": "bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae",
+        "generation_id": "generation_5d41220428bdc7434fc3a1be0b8eace4",
+        "evaluation_scope_ids": [
+          "development",
+          "diagnostic-1",
+          "holdout-1",
+          "replication-1",
+          "replication-2"
+        ],
+        "hypothesis_class_ids": [
+          "class-a",
+          "class-b"
+        ],
+        "max_active_branches": 3
+      }
+    },
+    {
+      "id": "terminal-canonical-corpus",
+      "operation": "verify_terminal_corpus",
+      "input": {
+        "fixture": "m1d-terminal-corpus.json"
+      },
+      "expected": {
+        "records": 23,
+        "canonical_histories": 23,
+        "event_parser_acceptances": 119,
+        "history_verifier_acceptances": 23,
+        "artifact_record_parser_acceptances": 4,
+        "result_envelope_round_trips": 3,
+        "decision_round_trips": 3,
+        "gate_evaluation_round_trips": 2,
+        "product_feasible_terminal_payloads": 22,
+        "pending_diagnosis_exact_matches": 23,
+        "generic_canonical_terminal_records": 6,
+        "generic_alias_terminal_records": 7,
+        "generic_retryable_terminal_records": 3,
+        "generic_nonretryable_terminal_records": 10,
+        "nonterminal_status_changed_controls": 1,
+        "generic_null_primary_metric_fallback_histories": 14,
+        "authorized_action_non_null": 0
+      }
+    },
+    {
+      "id": "diagnosis-canonical",
+      "operation": "verify_canonical_diagnoses",
+      "input": {
+        "terminal_fixture": "m1d-terminal-corpus.json",
+        "fixture": "m1d-diagnosis-valid.json"
+      },
+      "expected": {
+        "cases": 18,
+        "diagnosis_event_parser_acceptances": 18,
+        "extended_history_verifier_acceptances": 18,
+        "product_feasible_terminal_bindings": 18,
+        "diagnosis_ids": [
+          "diagnosis_7f2274bba9214219b97b241fc1e0761a",
+          "diagnosis_f8dc913b5cf9572a663f85ccf9f5f150",
+          "diagnosis_471185d5fecbe81caf74735b58ea2c43",
+          "diagnosis_3f7a3b8424ced2322e8142b7486d4c7b",
+          "diagnosis_ed50afae2cbfd5d547f8682b233e6d05",
+          "diagnosis_73261e2d6f0eb471cc69dd4778514072",
+          "diagnosis_9272827703c8d71c7f87a346afa65ff4",
+          "diagnosis_e7537616aea9a44e0b0ef0062abae317",
+          "diagnosis_0d2148aba7eb9c9e251404942f9f1871",
+          "diagnosis_4432c727818f4d8bdae0a41732b446f3",
+          "diagnosis_768e8f06a4871564c18e30b996f525f6",
+          "diagnosis_aefbde7954f19c11d3fb5a071229d851",
+          "diagnosis_61cc04f7fb1dbe8a107a6be232b892c6",
+          "diagnosis_f07a8b4052b42d0fbfab231939437ddf",
+          "diagnosis_d1621ced237ad07c918ea35c0e6bbd56",
+          "diagnosis_5c55db13e8051fd71e580d54e4e60a38",
+          "diagnosis_200d68ffca5d755520ce711c49bd24b7",
+          "diagnosis_3700f33a452d0111c01d76abb71b1f0b"
+        ],
+        "generic_terminal_bindings": 13,
+        "generic_normalized_status_observations": 13,
+        "generic_retryable_dispositions": 3,
+        "generic_inconclusive_dispositions": 10,
+        "generic_pending_obligations_cleared": 13,
+        "generic_null_primary_metric_observations": 13,
+        "generic_null_numeric_observations": 13,
+        "generic_empty_gate_evaluation_observations": 13,
+        "authorized_action_non_null": 0
+      }
+    },
+    {
+      "id": "terminal-decision-result-artifact-exactness",
+      "operation": "verify_terminal_exactness_attacks",
+      "input": {
+        "fixture": "m1d-diagnosis-negative-matrix.json"
+      },
+      "expected": {
+        "decision_exactness_cases": 3,
+        "decision_terminal_binding_cases": 3,
+        "observation_exact_binding_cases": 10,
+        "artifact_evidence_single_field_binding_cases": 4,
+        "terminal_authority_cases": 1,
+        "result_envelope_exactness_cases": 2,
+        "result_artifact_attack_cases": 12,
+        "same_digest_result_artifact_attribute_cases": 5,
+        "result_artifact_nested_exactness_cases": 2,
+        "artifact_record_attack_cases": 12,
+        "gate_order_attack_cases": 2,
+        "narrative_text_exactness_cases": 6,
+        "bool_integer_boundary_cases": 5,
+        "prehash_surrogate_cases": 2,
+        "structural_parser_boundary_cases": 11,
+        "accepted_attacks": 0
+      }
+    },
+    {
+      "id": "diagnosis-negative-matrix",
+      "operation": "execute_diagnosis_negative_matrix",
+      "input": {
+        "terminal_fixture": "m1d-terminal-corpus.json",
+        "valid_fixture": "m1d-diagnosis-valid.json",
+        "fixture": "m1d-diagnosis-negative-matrix.json"
+      },
+      "expected": {
+        "cases": 115,
+        "rejections": 115,
+        "execution_paths": 4,
+        "path_matches": 460,
+        "acceptance_controls": 2,
+        "service_idempotency_controls": 1,
+        "precedence_cases": 10,
+        "event_valid_materialized_mutations": 113,
+        "prehash_surrogate_rejections": 2,
+        "materialized_event_envelopes": 832,
+        "all_declared_deltas_zero": true,
+        "case_id_dispatches": 0
+      }
+    },
+    {
+      "id": "supported-disposition",
+      "operation": "observe_all_valid_diagnosis_dispositions",
+      "input": {
+        "fixture": "m1d-diagnosis-valid.json"
+      },
+      "expected": {
+        "cases": 18,
+        "supported": 1,
+        "conclusive_rejection": 1,
+        "nonconclusive_rejection": 1,
+        "retryable_operational": 4,
+        "inconclusive": 11,
+        "semantic_supported": 1,
+        "retry_eligible": 4,
+        "exact_rows_digest": "b90f05681211d6b19e7b178421a1e96b5cc7ee7a4e75fad2534de27df6910c87"
+      }
+    },
+    {
+      "id": "conclusive-disposition",
+      "operation": "verify_generic_terminal_normalization",
+      "input": {
+        "terminal_fixture": "m1d-terminal-corpus.json",
+        "diagnosis_fixture": "m1d-diagnosis-valid.json"
+      },
+      "expected": {
+        "generic_and_nonterminal_histories": 14,
+        "generic_terminal_histories": 13,
+        "canonical_terminal_statuses": 6,
+        "alias_terminal_statuses": 7,
+        "retryable_terminal_statuses": 3,
+        "nonretryable_terminal_statuses": 10,
+        "diagnosed_terminal_histories": 13,
+        "normalization_rows_digest": "a8dcd05aeee158fac6f0680a192f9f9f69cb242d29c75fb9812557a3cb580902"
+      }
+    },
+    {
+      "id": "nonconclusive-and-operational-dispositions",
+      "operation": "verify_nonterminal_status_boundary",
+      "input": {
+        "fixture": "m1d-terminal-corpus.json"
+      },
+      "expected": {
+        "nonterminal_status_changed_controls": 1,
+        "diagnosis_required": 0,
+        "pending_diagnosis_ids": 0,
+        "normalized_status": "RUNNING",
+        "reason_code": "STATUS_CHANGED",
+        "exact_control_digest": "387f79c086fb0d5d0277aaa77936fdfdf9843f7d7df2cf39da48b094f0540afb"
+      }
+    },
+    {
+      "id": "counting-taxonomy",
+      "operation": "execute_counting_taxonomy",
+      "input": {
+        "fixture": "m1d-transition-matrix.json"
+      },
+      "expected": {
+        "cases": 26,
+        "exact_matches": 26,
+        "positive_rows": 7,
+        "zero_rows": 19,
+        "added_boundary_rows": 12,
+        "margin_zero_positive_rows": 1,
+        "nonempty_all_passed_gate_positive_rows": 1,
+        "diagnostic_scope_counts": true,
+        "agent_control_label_counts": true,
+        "top_level_error_null_counts": false,
+        "hard_constraint_counts": false,
+        "maximum_count_per_proposal_chain": 1
+      }
+    },
+    {
+      "id": "full-state-reduction",
+      "operation": "reduce_literal_full_states",
+      "input": {
+        "fixture": "m1d-transition-matrix.json"
+      },
+      "expected": {
+        "cases": 54,
+        "event_envelopes": 452,
+        "exact_state_matches": 54,
+        "state_key_count": 19,
+        "generic_status_changed_cases": 29,
+        "generic_terminal_observation_cases": 14,
+        "generic_minimal_pending_cases": 13,
+        "generic_minimal_diagnosed_cases": 13,
+        "generic_nonterminal_controls": 1,
+        "post_close_positive_diagnosis_cases": 2,
+        "nonempty_all_passed_supported_cases": 1,
+        "class_limit_four_boundary_cases": 3,
+        "replicated_support_persistence_cases": 3,
+        "inherited_expected_states": 0,
+        "subset_expected_states": 0,
+        "scenario_inputs": 0
+      }
+    },
+    {
+      "id": "pending-gates",
+      "operation": "execute_all_transition_gates",
+      "input": {
+        "fixture": "m1d-transition-matrix.json"
+      },
+      "expected": {
+        "cases": 37,
+        "accepted": 7,
+        "rejected": 30,
+        "full_final_state_matches": 37,
+        "full_final_state_digest_matches": 37,
+        "final_log_head_matches": 37,
+        "zero_write_rejections": 30,
+        "history_event_envelopes": 284,
+        "appended_event_envelopes": 7,
+        "prederived_predicate_inputs": 0,
+        "observer_expected_accesses": 0,
+        "error_histogram": {
+          "ACCEPT": 7,
+          "STUDY_ACTIVE_EXPERIMENTS": 1,
+          "DIAGNOSIS_ALREADY_RECORDED": 1,
+          "DIAGNOSIS_REQUIRED": 5,
+          "HYPOTHESIS_CLASS_CLOSED": 3,
+          "PROPOSAL_PARENT_MISMATCH": 1,
+          "PROPOSAL_PARENT_NOT_SUPPORTED": 11,
+          "PROPOSAL_PARENT_NOT_TERMINAL": 1,
+          "STUDY_STOPPED": 7
+        }
+      }
+    },
+    {
+      "id": "stop-and-closure-gates",
+      "operation": "verify_stop_reason_and_precedence_matrix",
+      "input": {
+        "fixture": "m1d-transition-matrix.json"
+      },
+      "expected": {
+        "study_stopped": 7,
+        "hypothesis_class_closed": 3,
+        "diagnosis_required": 5,
+        "budget_only_registration_stops": 2,
+        "budget_plus_pending_priority": 1,
+        "all_classes_closed_retry_stops": 1,
+        "stopped_diagnoses_accepted": 3,
+        "stopped_untrusted_diagnoses_accepted": 1,
+        "stopped_budget_diagnoses_accepted": 1,
+        "stopped_all_classes_diagnoses_accepted": 1,
+        "stopped_pending_active_successor_diagnosis_priority": 1,
+        "rejection_deltas_nonzero": 0
+      }
+    },
+    {
+      "id": "successor-generation-gates",
+      "operation": "verify_successor_generation_matrix",
+      "input": {
+        "fixture": "m1d-transition-matrix.json"
+      },
+      "expected": {
+        "cases": 6,
+        "accepted": 3,
+        "diagnosis_required": 2,
+        "study_active_experiments": 1,
+        "full_final_state_matches": 6,
+        "new_generation_resets_active_state": true
+      }
+    },
+    {
+      "id": "replication-parent-gate-matrix",
+      "operation": "execute_replication_parent_gate_matrix",
+      "input": {
+        "fixture": "m1d-transition-matrix.json"
+      },
+      "expected": {
+        "cases": 16,
+        "accepted": 1,
+        "rejected": 15,
+        "semantic_not_supported": 11,
+        "structural_parent_errors": 2,
+        "pending_priority": 1,
+        "closed_class_priority": 1,
+        "canonical_history_unreachable_axes": 1,
+        "preserved_m1c_injected_compatibility_axes": 1,
+        "full_final_state_matches": 16,
+        "all_rejection_deltas_zero": true
+      }
+    },
+    {
+      "id": "class-state-partitions-and-support",
+      "operation": "verify_class_state_partitions",
+      "input": {
+        "fixture": "m1d-transition-matrix.json"
+      },
+      "expected": {
+        "full_state_cases": 54,
+        "diagnosis_wrappers": 76,
+        "class_state_wrappers": 108,
+        "class_local_exhaustive_partitions": 108,
+        "partition_overlaps": 0,
+        "provisional_state_cases": 11,
+        "replicated_state_cases": 4,
+        "nonempty_all_passed_supported_cases": 1,
+        "replicated_support_persistence_cases": 3,
+        "post_close_successful_replication_cases": 1
+      }
+    },
+    {
+      "id": "class-closure-origin",
+      "operation": "verify_class_closure_origin",
+      "input": {
+        "fixture": "m1d-transition-matrix.json"
+      },
+      "expected": {
+        "closed_state_cases": 9,
+        "exact_threshold_transition_cases": 3,
+        "post_closure_followup_cases": 4,
+        "all_classes_closed_cases": 2,
+        "class_b_limit_three_boundary_cases": 3,
+        "class_b_limit_four_boundary_cases": 3,
+        "limit_four_immutable_origin_comparisons": 1,
+        "closure_origin_changes_after_followup": 0
+      }
+    },
+    {
+      "id": "retry-frontier",
+      "operation": "verify_retry_frontiers",
+      "input": {
+        "transition_fixture": "m1d-transition-matrix.json",
+        "frontier_fixture": "m1d-frontier-oracle.json"
+      },
+      "expected": {
+        "canonical_retry_full_state_cases": 4,
+        "canonical_retry_latest_attempt": 2,
+        "canonical_retry_eligible": 1,
+        "frontier_fixture_retry_eligible": 2,
+        "non_allowlist_retry_positive_cases": 2,
+        "non_allowlist_retry_positive_statuses": [
+          "INSUFFICIENT_EVIDENCE",
+          "CANCELLED"
+        ],
+        "retry_budget_raw_nodes": 2,
+        "retry_class_gate_cases": 1,
+        "retry_class_closed_exclusions": 1,
+        "retry_frontier_exclusion_cases": 4,
+        "retry_frontier_exclusion_axes_with_closed_class": 5,
+        "retry_frontier_exclusion_retained_entries": 4
+      }
+    },
+    {
+      "id": "semantic-frontier-positive",
+      "operation": "derive_semantic_frontier",
+      "input": {
+        "fixture": "m1d-frontier-oracle.json"
+      },
+      "expected": {
+        "raw_nodes": 12,
+        "derived_supported_nodes": 7,
+        "consumed_supported_parents": 2,
+        "derived_semantic_leaves": 5,
+        "eligible_total": 5,
+        "returned": 3,
+        "ordered_experiment_ids": [
+          "exp_ra",
+          "exp_b2",
+          "exp_a2"
+        ],
+        "truncated": true,
+        "frontier_cap_counterfactuals": 5,
+        "frontier_cap_property_caps": [
+          1,
+          2,
+          3,
+          4,
+          7
+        ],
+        "frontier_cap_returned_by_cap": {
+          "1": 1,
+          "2": 2,
+          "3": 3,
+          "4": 4,
+          "7": 5
+        },
+        "cap_two_eligible_total": 5,
+        "cap_two_returned": 2,
+        "cap_two_ordered_experiment_ids": [
+          "exp_ra",
+          "exp_b2"
+        ],
+        "action_derivation_cases": 2,
+        "action_derivation_registered_replication_attempts": 5,
+        "action_derivation_qualifying_successful_replications": 0,
+        "action_derivation_provisional_support_classes": 1,
+        "action_derivation_replication_required_classes": 0,
+        "action_derivation_public_replicate_actions": 0,
+        "action_derivation_retry_registrations": 1,
+        "action_derivation_registration_only_fresh_scopes": 1,
+        "action_derivation_distinct_candidate_scope_pairs": 4,
+        "action_derivation_used_replication_scopes": 4,
+        "action_derivation_unused_replication_scopes": 0,
+        "decisive_supported_nodes_with_passed_hard_and_support_gates": 1,
+        "selector_free_observer_rows": 46,
+        "display_id_rename_invariance_rows": 46
+      }
+    },
+    {
+      "id": "semantic-frontier-exclusions",
+      "operation": "execute_frontier_exclusions",
+      "input": {
+        "fixture": "m1d-frontier-oracle.json"
+      },
+      "expected": {
+        "exclusion_axes": 20,
+        "exclusion_subcases": 21,
+        "shared_support_predicate_exclusion_axes": 6,
+        "excluded": 21,
+        "unexpectedly_eligible": 0
+      }
+    },
+    {
+      "id": "semantic-child-consumption",
+      "operation": "execute_frontier_consumption_counterfactuals",
+      "input": {
+        "fixture": "m1d-frontier-oracle.json"
+      },
+      "expected": {
+        "counterfactuals": 4,
+        "qualifying_direct_child_consumes": 1,
+        "failed_direct_child_consumes": 0,
+        "grandchild_consumes": 0,
+        "unrelated_child_consumes": 0
+      }
+    },
+    {
+      "id": "study-stop-frontiers",
+      "operation": "execute_frontier_stop_cases",
+      "input": {
+        "frontier_fixture": "m1d-frontier-oracle.json",
+        "transition_fixture": "m1d-transition-matrix.json"
+      },
+      "expected": {
+        "frontier_stop_cases": 9,
+        "canonical_stop_full_state_cases": 4,
+        "untrusted_stop_cases": 2,
+        "budget_exhausted_stop_cases": 4,
+        "positive_remaining_insufficient_reservation_cases": 3,
+        "reservation_equality_feasible_cases": 1,
+        "all_classes_closed_stop_cases": 1,
+        "retry_budget_only_cases": 1,
+        "alternate_attempt_limit_cases": 5,
+        "alternate_retry_limit_cases": 5
+      }
+    },
+    {
+      "id": "duplicate-diagnosis-race",
+      "operation": "execute_all_literal_races",
+      "input": {
+        "fixture": "m1d-transition-matrix.json"
+      },
+      "expected": {
+        "schedules": 7,
+        "literal_schedule_rows": 14,
+        "operation_successes": 10,
+        "operation_failures": 4,
+        "appended_events": 9,
+        "exact_outcome_count_assertions": 7,
+        "display_id_label_rename_invariance_assertions": 7,
+        "semantic_lock_operation_labels": 0,
+        "generic_operation_verbs": [
+          "open_successor_generation",
+          "record_diagnosis",
+          "register_first_attempt"
+        ],
+        "diagnosis_successes": 2,
+        "diagnosis_events": 1,
+        "duplicate_errors": 0,
+        "idempotent_reuses": 1,
+        "final_states_exact": 7
+      }
+    },
+    {
+      "id": "diagnosis-registration-races",
+      "operation": "verify_race_serialization_groups",
+      "input": {
+        "fixture": "m1d-transition-matrix.json"
+      },
+      "expected": {
+        "schedules": 7,
+        "literal_schedule_rows": 14,
+        "final_states_exact": 7,
+        "diagnosis_first_registration_successes": 1,
+        "registration_first_diagnosis_required": 1,
+        "closure_first_class_closed": 1,
+        "registration_first_closure_diagnosis_required": 1,
+        "diagnosis_first_successor_events": 1,
+        "successor_first_diagnosis_required": 1
+      }
+    },
+    {
+      "id": "closure-registration-races",
+      "operation": "verify_race_label_invariance",
+      "input": {
+        "fixture": "m1d-transition-matrix.json"
+      },
+      "expected": {
+        "schedules": 7,
+        "observer_input_hash_assertions": 7,
+        "display_renamed_observer_input_hash_assertions": 7,
+        "display_id_label_rename_invariance_assertions": 7,
+        "semantic_lock_operation_labels": 0
+      }
+    },
+    {
+      "id": "diagnosis-successor-races",
+      "operation": "verify_race_operation_coverage",
+      "input": {
+        "fixture": "m1d-transition-matrix.json"
+      },
+      "expected": {
+        "schedules": 7,
+        "generic_operation_verbs": [
+          "open_successor_generation",
+          "record_diagnosis",
+          "register_first_attempt"
+        ],
+        "semantic_lock_operation_labels": 0,
+        "literal_schedule_rows": 14,
+        "string_schedule_rows": 0,
+        "operation_successes": 10,
+        "operation_failures": 4,
+        "appended_events": 9
+      }
+    },
+    {
+      "id": "compatibility-and-authority",
+      "operation": "verify_m1d_compatibility_authority",
+      "input": {
+        "fixture": "m1d-compat-oracle.json"
+      },
+      "expected": {
+        "m1b_manifest_cases": 29,
+        "m1b_manifest_exact_matches": 29,
+        "m1c_manifest_cases": 20,
+        "m1c_manifest_exact_matches": 20,
+        "m1c_transition_cases": 53,
+        "m1c_transition_exact_matches": 53,
+        "m1c_direct_replay_path_matches": 72,
+        "legacy_event_bytes_preserved_after_replay": true,
+        "legacy_event_head_preserved_after_replay": true,
+        "legacy_science_state_new_keys": 0,
+        "legacy_projection_new_keys": 0,
+        "legacy_study_status_new_keys": 0,
+        "legacy_replay_new_keys": 0,
+        "context_v2_new_keys": 0,
+        "branch_conclusion_v1_new_keys": 0,
+        "legacy_typed_inference_count": 0,
+        "v2_old_proposal_fields_changed": 0,
+        "v2_old_scope_fields_changed": 0,
+        "v2_old_identity_fields_changed": 0,
+        "v2_old_budget_fields_changed": 0,
+        "authorized_action_surface_count": 10,
+        "authorized_action_key_count": 10,
+        "authorized_action_recursive_non_null_count": 0
+      }
+    },
+    {
+      "id": "m1d-regression-floor",
+      "operation": "verify_regression_floor",
+      "input": {
+        "python": "3.12"
+      },
+      "expected": {
+        "tests_minimum": 442,
+        "subtests_minimum": 111,
+        "ruff": "PASS",
+        "ty_src": "PASS",
+        "diff_check": "PASS"
+      }
+    }
+  ]
+}

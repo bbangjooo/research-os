@@ -1,0 +1,3769 @@
+{
+  "schema_version": 2,
+  "kind": "research_os.m1d_diagnosis_negative_matrix",
+  "base_fixture": "m1d-diagnosis-valid.json",
+  "terminal_fixture": "m1d-terminal-corpus.json",
+  "execution_paths": [
+    "locked_event_append",
+    "cold_scientific_reducer",
+    "fresh_projection_rebuild",
+    "research_service_replay"
+  ],
+  "case_id_is_display_only": true,
+  "audit_coverage": {
+    "defect_1_canonical_event_envelopes": "All bases are literal Event histories and every materialized mutation is rehashed into a valid contiguous chain before domain validation.",
+    "defect_2_product_feasible_terminal_shapes": "The timeout and invalid bases bind current product terminal status/reason/retryability/error shapes.",
+    "defect_3_history_mutation_rehash_and_idempotency": "Mutation semantics rehash envelopes; public same-body idempotency is a positive control, while duplicate replay uses two unique event IDs in one valid chain.",
+    "defect_4_multi_axis_precedence": "Ten multi-axis rows cover every adjacent transition in structural > contract > digest > ID > generation > seal > compatibility > experiment/Proposal > terminal > observation/artifact > duplicate.",
+    "defect_5_result_artifact_fail_closed": "Decision exact shape/authority (3) plus status/reason/primary-metric binding to the terminal payload (3), observation exact binding (10 total, including the 7 appended axes), and every ArtifactEvidenceRef field independently (4) are explicit. Every captured ArtifactRef field, cardinality/digest, and raw ARTIFACT_RECORDED exact keys, null role/authority, exact retention/sensitivity metadata, canonical identity, and project/experiment ownership are independently attacked; all 115 rejects require the same code/path and zero deltas on all 4 execution paths (460 matches).",
+    "defect_6_exact_schema_order_utf8": "Wrapper/body/nested missing-extra, duplicate artifact refs, artifact-after-terminal, two-gate noncanonical/duplicate IDs, exact 16,384/16,385 UTF-8 boundaries, trimmed nonblank narrative text, lone-surrogate pre-hash rejection, and strict bool-versus-int boundaries are immutable cases."
+  },
+  "mutation_policy": {
+    "default_base_case": "conclusive-no-meaningful-improvement",
+    "base_case_selector": "input.base_case",
+    "mutation_root": "the selected diagnosis_event.payload unless an event_selector or history operation is declared",
+    "application_order": "Apply input.mutations left-to-right to a deep copy of terminal_record canonical_history plus diagnosis_event.",
+    "derived_recompute_order": [
+      "canonical ArtifactRecord identity when explicitly requested",
+      "pre-Diagnosis Event envelopes",
+      "artifact_evidence and terminal_evidence when listed",
+      "diagnosis_digest",
+      "diagnosis_id",
+      "Diagnosis Event and any tail Event envelopes"
+    ],
+    "event_rehash": "After domain mutations, retain event IDs unless new_event_id is declared, renumber the ordered list from 1, set prev_hash to the preceding recomputed hash, and recompute hash as sha256(canonical_bytes(unsigned_event_envelope)). occurred_at remains unchanged; timestamp monotonicity is not an Event invariant.",
+    "evidence_rebind": "Only fields named by input.recompute are rebound. Deliberate evidence mismatch attacks retain the attacked value while all Event envelopes are still rehashed.",
+    "pre_diagnosis_dependency_rule": "Rehash all events before a Diagnosis first; then bind their new hashes when requested, recompute Diagnosis digest/ID, and hash the Diagnosis. A terminal deliberately moved after Diagnosis is not rebound because the validator must reject its absence at the Diagnosis sequence.",
+    "postcondition": "Event.from_mapping accepts every materialized envelope and verify_events accepts the complete mutated chain before any declared Diagnosis error is asserted.",
+    "public_idempotency": "Submitting an identical body through the Diagnosis service returns the existing event and appends zero events.",
+    "corrupted_replay": "A second persisted Diagnosis uses a unique event_id and a recomputed valid chain; replay rejects DIAGNOSIS_ALREADY_RECORDED even when payloads are identical.",
+    "digest_dependency_order": [
+      "diagnosis_digest",
+      "diagnosis_id"
+    ],
+    "case_id_dispatch": false,
+    "artifact_event_selector": "artifact_event_index selects the Nth ARTIFACT_RECORDED event in current history order and its path is relative to that event payload.",
+    "artifact_record_identity_recompute": "artifact_record_identity reparses all immutable record fields and recomputes artifact_id = stable_id(artifact, project_id, experiment_id, relative_path, digest, role, media_type, metadata); it never repairs malformed storage_path or unknown/authority fields.",
+    "registered_decoy_reassignment": "reassign_artifact_to_registered_decoy injects deep copies of the named source record BASELINE_RECORDED and EXPERIMENT_REGISTERED envelopes immediately before the first artifact, changes only the selected ArtifactRecord experiment_id to that now-registered experiment, recomputes artifact_id, then follows the common rehash/evidence rules.",
+    "terminal_nested_mutations": "Mutating terminal Decision, ResultEnvelope, or captured ArtifactRef rehashes the terminal and rebinds only terminal_evidence when listed; the attacked terminal value is never normalized or repaired.",
+    "artifact_event_raw_exactness": "ARTIFACT_RECORDED payload must have exactly ArtifactRecord fields artifact_id,project_id,experiment_id,digest,algorithm,size,relative_path,storage_path,role,media_type,metadata,captured_at plus authorized_action; role and authorized_action must be literal null; metadata must be exactly {retention,sensitivity}. ArtifactRecord.from_mapping normalization is not acceptance authority.",
+    "prehash_surrogate_validation": "Raw JSON submission recipes carrying an escaped lone U+D800 code unit must fail Diagnosis structural validation before UTF-8 encoding, canonical hashing, diagnosis ID derivation, Event construction, or append is attempted.",
+    "structural_type_precedence": "Whitespace-only or non-trimmed narrative text and bool-versus-int/literal-boolean substitutions fail with DIAGNOSIS_INVALID before stale diagnosis digest or ID checks; therefore those encodable attacks rehash Event envelopes but deliberately do not recompute Diagnosis identity."
+  },
+  "acceptance_controls": [
+    {
+      "id": "interpretation-utf8-boundary",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "supported",
+        "mutations": [
+          {
+            "op": "replace_utf8_recipe",
+            "path": "/diagnosis/interpretation",
+            "code_point": "가",
+            "repeat": 5461,
+            "suffix": "a",
+            "expected_utf8_bytes": 16384
+          }
+        ],
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "accepted": true,
+        "diagnosis_digest": "8f9107489e4083742a377f4b47b5cf7b7eb4198c5dfc4225ecb7f64301f55bda",
+        "diagnosis_id": "diagnosis_7066bf36b4027dae0b108295eeb492a6",
+        "utf8_bytes": 16384
+      }
+    },
+    {
+      "id": "falsifier-utf8-boundary",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "supported",
+        "mutations": [
+          {
+            "op": "replace_utf8_recipe",
+            "path": "/diagnosis/falsifier",
+            "code_point": "가",
+            "repeat": 5461,
+            "suffix": "a",
+            "expected_utf8_bytes": 16384
+          }
+        ],
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "accepted": true,
+        "diagnosis_digest": "4df5ac859167ffdcddaa7371b13e38123af20ab8d61590e5ba98b602e78a4ef0",
+        "diagnosis_id": "diagnosis_355ccb16f0cf8eb6bb4c70e877a9c290",
+        "utf8_bytes": 16384
+      }
+    }
+  ],
+  "service_idempotency_controls": [
+    {
+      "id": "same-body-public-idempotency",
+      "operation": "diagnose_twice_via_public_service",
+      "input": {
+        "base_case": "supported",
+        "submission": "exact_same_body_twice"
+      },
+      "expected": {
+        "first_append_events": 1,
+        "second_append_events": 0,
+        "persisted_diagnosis_events": 1,
+        "returned_diagnosis_id": "diagnosis_7f2274bba9214219b97b241fc1e0761a",
+        "returned_event_id": "evt_m1d_supported_diagnosis",
+        "returned_event_hash": "d97421917a5f298f1289bfe66f329bc8cbb924862bcfaca89c5c9bb9798891d7"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "wrapper-missing-diagnosis",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "remove",
+            "path": "/diagnosis"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "wrapper-unknown-field",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "add",
+            "path": "/unknown",
+            "value": true
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "wrapper-science-state-version",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/science_state_version",
+            "value": 2
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.science_state_version",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "wrapper-non-null-authority",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/authorized_action",
+            "value": "deploy"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.authorized_action",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "body-missing-falsifier",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "remove",
+            "path": "/diagnosis/falsifier"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "body-unknown-field",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "add",
+            "path": "/diagnosis/is_control",
+            "value": true
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "body-schema-version",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/diagnosis_schema_version",
+            "value": 2
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.diagnosis_schema_version",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "body-empty-interpretation",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/interpretation",
+            "value": ""
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.interpretation",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "body-failure-type-enum",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/failure_type",
+            "value": "control"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.failure_type",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "body-recommendation-enum",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/recommendation",
+            "value": "trade"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.recommendation",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "body-non-null-authority",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/authorized_action",
+            "value": false
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.authorized_action",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "terminal-evidence-missing-field",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "remove",
+            "path": "/diagnosis/terminal_evidence/event_hash"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.terminal_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "terminal-evidence-extra-field",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "add",
+            "path": "/diagnosis/terminal_evidence/sequence",
+            "value": 99
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.terminal_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-ref-missing-field",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "remove",
+            "path": "/diagnosis/artifact_evidence/0/event_hash"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.artifact_evidence[0]",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-ref-extra-field",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "add",
+            "path": "/diagnosis/artifact_evidence/0/relative_path",
+            "value": "metrics.json"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.artifact_evidence[0]",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "observation-missing-field",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "remove",
+            "path": "/diagnosis/observation/promotion_margin"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.observation",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "observation-extra-field",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "add",
+            "path": "/diagnosis/observation/control",
+            "value": false
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.observation",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "gate-evaluation-missing-field",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "remove",
+            "path": "/diagnosis/observation/gate_evaluations/0/normalized_slack"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.observation.gate_evaluations[0]",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "gate-evaluation-extra-field",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "add",
+            "path": "/diagnosis/observation/gate_evaluations/0/source",
+            "value": "fixture"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.observation.gate_evaluations[0]",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "interpretation-utf8-overrun",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace_utf8_recipe",
+            "path": "/diagnosis/interpretation",
+            "code_point": "가",
+            "repeat": 5461,
+            "suffix": "ab",
+            "expected_utf8_bytes": 16385
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.interpretation",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "falsifier-utf8-overrun",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace_utf8_recipe",
+            "path": "/diagnosis/falsifier",
+            "code_point": "가",
+            "repeat": 5461,
+            "suffix": "ab",
+            "expected_utf8_bytes": 16385
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.falsifier",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-evidence-duplicate-ref",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "append_copy",
+            "path": "/diagnosis/artifact_evidence",
+            "source_index": 0
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "diagnosis-digest-forged",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis_digest",
+            "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_DIGEST_MISMATCH",
+        "path": "$.diagnosis_digest",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "diagnosis-id-forged",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis_id",
+            "value": "diagnosis_forged"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ID_MISMATCH",
+        "path": "$.diagnosis_id",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "generation-wrapper-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/generation_id",
+            "value": "generation_other"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_GENERATION_MISMATCH",
+        "path": "$.generation_id",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "generation-body-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/generation_id",
+            "value": "generation_other"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_GENERATION_MISMATCH",
+        "path": "$.generation_id",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "contract-digest-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/study_contract_digest",
+            "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "STUDY_CONTRACT_MISMATCH",
+        "path": "$.study_contract_digest",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "evaluation-seal-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/evaluation_seal_digest",
+            "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "STUDY_EVALUATION_SEAL_MISMATCH",
+        "path": "$.evaluation_seal_digest",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "compatibility-wrapper-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/compatibility_digest",
+            "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_COMPATIBILITY_MISMATCH",
+        "path": "$.compatibility_digest",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "compatibility-body-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/compatibility_digest",
+            "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_COMPATIBILITY_MISMATCH",
+        "path": "$.compatibility_digest",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "experiment-unknown",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/experiment_id",
+            "value": "exp_unknown"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_EXPERIMENT_UNKNOWN",
+        "path": "$.experiment_id",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "proposal-id-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/proposal_id",
+            "value": "proposal_other"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_PROPOSAL_MISMATCH",
+        "path": "$.proposal_id",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "proposal-digest-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/proposal_digest",
+            "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_PROPOSAL_MISMATCH",
+        "path": "$.proposal_digest",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "hypothesis-class-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/hypothesis_class_id",
+            "value": "class-b"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_PROPOSAL_MISMATCH",
+        "path": "$.hypothesis_class_id",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "evaluation-scope-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/evaluation_scope_id",
+            "value": "development"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_PROPOSAL_MISMATCH",
+        "path": "$.evaluation_scope_id",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "terminal-experiment-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/terminal_evidence/experiment_id",
+            "value": "exp_other"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_TERMINAL_EVIDENCE_MISMATCH",
+        "path": "$.terminal_evidence.experiment_id",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "terminal-event-id-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/terminal_evidence/event_id",
+            "value": "evt_other"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_TERMINAL_EVIDENCE_MISMATCH",
+        "path": "$.terminal_evidence.event_id",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "terminal-event-hash-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/terminal_evidence/event_hash",
+            "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_TERMINAL_EVIDENCE_MISMATCH",
+        "path": "$.terminal_evidence.event_hash",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "terminal-event-after-diagnosis",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "move_event_after_diagnosis",
+            "selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            }
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_TERMINAL_REQUIRED",
+        "path": "$.terminal_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "observation-status-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/observation/terminal_status",
+            "value": "VALIDATED"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_OBSERVATION_MISMATCH",
+        "path": "$.observation.terminal_status",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "observation-reason-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/observation/reason_code",
+            "value": "CUSTOM"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_OBSERVATION_MISMATCH",
+        "path": "$.observation.reason_code",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "observation-number-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/observation/promotion_margin",
+            "value": 8.0
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_OBSERVATION_MISMATCH",
+        "path": "$.observation.promotion_margin",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "observation-gate-slack-inconsistent",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/observation/gate_evaluations/0/normalized_slack",
+            "value": 0.0
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.observation.gate_evaluations[0].normalized_slack",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-declared-member-omitted",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "remove",
+            "path": "/diagnosis/artifact_evidence/1"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-undeclared-member-added",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "append",
+            "path": "/diagnosis/artifact_evidence",
+            "value": {
+              "artifact_id": "art_undeclared",
+              "artifact_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "event_id": "evt_undeclared",
+              "event_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            }
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-empty-with-canonical-result",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/artifact_evidence",
+            "value": []
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-full-set-noncanonical-order",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "reverse",
+            "path": "/diagnosis/artifact_evidence"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-id-or-digest-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/artifact_evidence/0/artifact_id",
+            "value": "art_other"
+          },
+          {
+            "op": "replace",
+            "path": "/diagnosis/artifact_evidence/0/artifact_digest",
+            "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence[0]",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "result-artifacts-omit-canonical",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "remove",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/result/artifacts/1"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "result-artifacts-extra-without-canonical",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "append",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/result/artifacts",
+            "value": {
+              "path": "extra.json",
+              "media_type": "application/json",
+              "retention": "run",
+              "sensitivity": "internal",
+              "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "size_bytes": 1
+            }
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "result-artifact-digest-mismatch",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "replace",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/result/artifacts/0/sha256",
+            "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-event-after-terminal",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "move_selected_artifact_after_terminal",
+            "artifact_index": 0
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "artifact_evidence",
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "duplicate-diagnosis-replay",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "append_diagnosis_copy",
+            "new_event_id": "evt_m1d_duplicate_diagnosis_replay",
+            "same_payload": true
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ALREADY_RECORDED",
+        "path": "$.experiment_id",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "precedence-structural-over-contract",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "remove",
+            "path": "/diagnosis/falsifier"
+          },
+          {
+            "op": "replace",
+            "path": "/study_contract_digest",
+            "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "rehash_history": true,
+        "precedence_transition": "structural>contract"
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "precedence-contract-over-digest",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/study_contract_digest",
+            "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "op": "replace",
+            "path": "/diagnosis_digest",
+            "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        ],
+        "rehash_history": true,
+        "precedence_transition": "contract>digest"
+      },
+      "expected": {
+        "error_code": "STUDY_CONTRACT_MISMATCH",
+        "path": "$.study_contract_digest",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "precedence-digest-over-id",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis_digest",
+            "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "op": "replace",
+            "path": "/diagnosis_id",
+            "value": "diagnosis_forged"
+          }
+        ],
+        "rehash_history": true,
+        "precedence_transition": "digest>id"
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_DIGEST_MISMATCH",
+        "path": "$.diagnosis_digest",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "precedence-id-over-generation",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis_id",
+            "value": "diagnosis_forged"
+          },
+          {
+            "op": "replace",
+            "path": "/generation_id",
+            "value": "generation_other"
+          }
+        ],
+        "rehash_history": true,
+        "precedence_transition": "id>generation"
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ID_MISMATCH",
+        "path": "$.diagnosis_id",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "precedence-generation-over-seal",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/generation_id",
+            "value": "generation_other"
+          },
+          {
+            "op": "replace",
+            "path": "/evaluation_seal_digest",
+            "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "rehash_history": true,
+        "precedence_transition": "generation>seal"
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_GENERATION_MISMATCH",
+        "path": "$.generation_id",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "precedence-seal-over-compatibility",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/evaluation_seal_digest",
+            "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "op": "replace",
+            "path": "/compatibility_digest",
+            "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "rehash_history": true,
+        "precedence_transition": "seal>compatibility"
+      },
+      "expected": {
+        "error_code": "STUDY_EVALUATION_SEAL_MISMATCH",
+        "path": "$.evaluation_seal_digest",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "precedence-compatibility-over-proposal",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/compatibility_digest",
+            "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "op": "replace",
+            "path": "/diagnosis/proposal_id",
+            "value": "proposal_other"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ],
+        "precedence_transition": "compatibility>experiment/proposal"
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_COMPATIBILITY_MISMATCH",
+        "path": "$.compatibility_digest",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "precedence-proposal-over-terminal",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/proposal_id",
+            "value": "proposal_other"
+          },
+          {
+            "op": "replace",
+            "path": "/diagnosis/terminal_evidence/event_id",
+            "value": "evt_other"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ],
+        "precedence_transition": "experiment/proposal>terminal"
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_PROPOSAL_MISMATCH",
+        "path": "$.proposal_id",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "precedence-terminal-over-observation",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/terminal_evidence/event_id",
+            "value": "evt_other"
+          },
+          {
+            "op": "replace",
+            "path": "/diagnosis/observation/reason_code",
+            "value": "CUSTOM"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ],
+        "precedence_transition": "terminal>observation/artifact"
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_TERMINAL_EVIDENCE_MISMATCH",
+        "path": "$.terminal_evidence.event_id",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "precedence-observation-over-duplicate",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "append_diagnosis_copy",
+            "new_event_id": "evt_m1d_precedence_duplicate",
+            "same_payload": false
+          },
+          {
+            "op": "replace_on_appended_copy",
+            "path": "/diagnosis/observation/reason_code",
+            "value": "CUSTOM"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ],
+        "precedence_transition": "observation/artifact>duplicate"
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_OBSERVATION_MISMATCH",
+        "path": "$.observation.reason_code",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "decision-missing-field",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "remove",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/decision/promotion_margin"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_TERMINAL_EVIDENCE_MISMATCH",
+        "path": "$.terminal_evidence.decision",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "decision-extra-field",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "add",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/decision/control",
+            "value": false
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_TERMINAL_EVIDENCE_MISMATCH",
+        "path": "$.terminal_evidence.decision",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "decision-non-null-authority",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "replace",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/decision/authorized_action",
+            "value": "deploy"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_TERMINAL_EVIDENCE_MISMATCH",
+        "path": "$.terminal_evidence.decision.authorized_action",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "terminal-non-null-authority",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "replace",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/authorized_action",
+            "value": "deploy"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_TERMINAL_EVIDENCE_MISMATCH",
+        "path": "$.terminal_evidence.authorized_action",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "result-envelope-missing-field",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "remove",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/result/diagnostics"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_TERMINAL_EVIDENCE_MISMATCH",
+        "path": "$.terminal_evidence.result",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "result-envelope-extra-field",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "add",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/result/unknown",
+            "value": true
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_TERMINAL_EVIDENCE_MISMATCH",
+        "path": "$.terminal_evidence.result",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "result-artifact-path-mismatch",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "replace",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/result/artifacts/0/path",
+            "value": "same-digest-other.json"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "result-artifact-size-mismatch",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "replace",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/result/artifacts/0/size_bytes",
+            "value": 999
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "result-artifact-media-type-mismatch",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "replace",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/result/artifacts/0/media_type",
+            "value": "text/plain"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "result-artifact-retention-mismatch",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "replace",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/result/artifacts/0/retention",
+            "value": "session"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "result-artifact-sensitivity-mismatch",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "replace",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/result/artifacts/0/sensitivity",
+            "value": "public"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "result-artifact-nested-missing-field",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "remove",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/result/artifacts/0/sensitivity"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_TERMINAL_EVIDENCE_MISMATCH",
+        "path": "$.terminal_evidence.result.artifacts[0]",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "result-artifact-nested-extra-field",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "add",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/result/artifacts/0/unknown",
+            "value": true
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_TERMINAL_EVIDENCE_MISMATCH",
+        "path": "$.terminal_evidence.result.artifacts[0]",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-record-malformed-storage-path",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "replace",
+            "artifact_event_index": 0,
+            "path": "/storage_path",
+            "value": "blobs/sha256/invalid"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "artifact_evidence",
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-record-wrong-project-owner",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "replace",
+            "artifact_event_index": 0,
+            "path": "/project_id",
+            "value": "fixture-m1d-other"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "artifact_record_identity",
+          "artifact_evidence",
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-record-wrong-experiment-owner",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "reassign_artifact_to_registered_decoy",
+            "artifact_event_index": 0,
+            "source_terminal_record_id": "invalid-experiment",
+            "inject_event_types": [
+              "BASELINE_RECORDED",
+              "EXPERIMENT_REGISTERED"
+            ]
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "artifact_record_identity",
+          "artifact_evidence",
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-event-non-null-authority",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "replace",
+            "artifact_event_index": 0,
+            "path": "/authorized_action",
+            "value": "deploy"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "artifact_evidence",
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-record-unknown-field",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "add",
+            "artifact_event_index": 0,
+            "path": "/unknown",
+            "value": true
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "artifact_evidence",
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "gate-evaluation-noncanonical-id-order",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "reverse",
+            "path": "/diagnosis/observation/gate_evaluations"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.observation.gate_evaluations",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "gate-evaluation-duplicate-id",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/observation/gate_evaluations/1/id",
+            "value": "latency-limit"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.observation.gate_evaluations",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-record-valid-non-null-role",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "replace",
+            "artifact_event_index": 0,
+            "path": "/role",
+            "value": "metrics"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "artifact_record_identity",
+          "artifact_evidence",
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-record-metadata-extra-key",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "add",
+            "artifact_event_index": 0,
+            "path": "/metadata/source",
+            "value": "fixture"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "artifact_record_identity",
+          "artifact_evidence",
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-record-missing-role",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "remove",
+            "artifact_event_index": 0,
+            "path": "/role"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "artifact_evidence",
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-record-missing-media-type",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "remove",
+            "artifact_event_index": 0,
+            "path": "/media_type"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "artifact_evidence",
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-record-metadata-missing-retention",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "remove",
+            "artifact_event_index": 0,
+            "path": "/metadata/retention"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "artifact_evidence",
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-record-metadata-missing-sensitivity",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "remove",
+            "artifact_event_index": 0,
+            "path": "/metadata/sensitivity"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "artifact_evidence",
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-event-missing-authority",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "remove",
+            "artifact_event_index": 0,
+            "path": "/authorized_action"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "artifact_evidence",
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "interpretation-whitespace-only",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/interpretation",
+            "value": " \t "
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.interpretation",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "interpretation-non-trimmed",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/interpretation",
+            "value": " leading interpretation"
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.interpretation",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "falsifier-whitespace-only",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/falsifier",
+            "value": "\t  "
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.falsifier",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "falsifier-non-trimmed",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/falsifier",
+            "value": "trailing falsifier "
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.falsifier",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "interpretation-lone-surrogate",
+      "operation": "mutate_diagnosis_submission",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace_raw_json_string",
+            "path": "/diagnosis/interpretation",
+            "json_string_token": "\"\\ud800\"",
+            "decoded_code_unit": 55296
+          }
+        ],
+        "prehash_structural_validation": true,
+        "rehash_history": false,
+        "recompute": [],
+        "forbid_operations": [
+          "utf8_encode",
+          "sha256_json",
+          "diagnosis_id",
+          "Event.from_mapping",
+          "Event.append"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.interpretation",
+        "hash_attempts": 0,
+        "event_construction_attempts": 0,
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "falsifier-lone-surrogate",
+      "operation": "mutate_diagnosis_submission",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace_raw_json_string",
+            "path": "/diagnosis/falsifier",
+            "json_string_token": "\"\\ud800\"",
+            "decoded_code_unit": 55296
+          }
+        ],
+        "prehash_structural_validation": true,
+        "rehash_history": false,
+        "recompute": [],
+        "forbid_operations": [
+          "utf8_encode",
+          "sha256_json",
+          "diagnosis_id",
+          "Event.from_mapping",
+          "Event.append"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.falsifier",
+        "hash_attempts": 0,
+        "event_construction_attempts": 0,
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "observation-verified-int-one",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/observation/verified",
+            "value": 1
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.observation.verified",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "observation-retryable-int-zero",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/observation/retryable",
+            "value": 0
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.observation.retryable",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "body-schema-version-boolean-true",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/diagnosis_schema_version",
+            "value": true
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.diagnosis_schema_version",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "wrapper-science-state-version-boolean-true",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/science_state_version",
+            "value": true
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.science_state_version",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "gate-passed-int-zero",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "nonconclusive-hard-constraint",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/observation/gate_evaluations/1/passed",
+            "value": 0
+          }
+        ],
+        "rehash_history": true
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_INVALID",
+        "path": "$.observation.gate_evaluations[1].passed",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "decision-status-terminal-binding-mismatch",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/decision/status",
+            "value": "VALIDATED"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_TERMINAL_EVIDENCE_MISMATCH",
+        "path": "$.terminal_evidence.decision.status",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "decision-reason-terminal-binding-mismatch",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/decision/reason_code",
+            "value": "PRIMARY_METRIC_IMPROVED"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_TERMINAL_EVIDENCE_MISMATCH",
+        "path": "$.terminal_evidence.decision.reason_code",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "decision-primary-metric-terminal-binding-mismatch",
+      "operation": "mutate_history",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "event_selector": {
+              "event_type": "EXPERIMENT_TERMINATED"
+            },
+            "path": "/payload/decision/primary_metric",
+            "value": "other_score"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "terminal_evidence",
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_TERMINAL_EVIDENCE_MISMATCH",
+        "path": "$.terminal_evidence.decision.primary_metric",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "observation-primary-metric-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/observation/primary_metric",
+            "value": "other_score"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_OBSERVATION_MISMATCH",
+        "path": "$.observation.primary_metric",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "observation-candidate-value-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/observation/candidate_value",
+            "value": 102.0
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_OBSERVATION_MISMATCH",
+        "path": "$.observation.candidate_value",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "observation-baseline-value-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/observation/baseline_value",
+            "value": 99.0
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_OBSERVATION_MISMATCH",
+        "path": "$.observation.baseline_value",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "observation-improvement-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/observation/improvement",
+            "value": 2.0
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_OBSERVATION_MISMATCH",
+        "path": "$.observation.improvement",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "observation-verified-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/observation/verified",
+            "value": false
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_OBSERVATION_MISMATCH",
+        "path": "$.observation.verified",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "observation-retryable-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/observation/retryable",
+            "value": true
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_OBSERVATION_MISMATCH",
+        "path": "$.observation.retryable",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "observation-valid-different-gate-list",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/observation/gate_evaluations",
+            "value": [
+              {
+                "id": "latency-limit",
+                "metric": "latency",
+                "role": "support",
+                "operator": "lte",
+                "threshold": 1.0,
+                "unit": "seconds",
+                "scale": 1.0,
+                "observed": 0.5,
+                "signed_slack": 0.5,
+                "normalized_slack": 0.5,
+                "passed": true
+              }
+            ]
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_OBSERVATION_MISMATCH",
+        "path": "$.observation.gate_evaluations",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-evidence-artifact-id-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/artifact_evidence/0/artifact_id",
+            "value": "art_232cd5f3c4e45bba50c8e7c1eebdd0a2"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence[0].artifact_id",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-evidence-artifact-digest-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/artifact_evidence/0/artifact_digest",
+            "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence[0].artifact_digest",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-evidence-event-id-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/artifact_evidence/0/event_id",
+            "value": "evt_other"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence[0].event_id",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    },
+    {
+      "id": "artifact-evidence-event-hash-mismatch",
+      "operation": "mutate_diagnosis_event",
+      "input": {
+        "base_case": "conclusive-no-meaningful-improvement",
+        "mutations": [
+          {
+            "op": "replace",
+            "path": "/diagnosis/artifact_evidence/0/event_hash",
+            "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ],
+        "rehash_history": true,
+        "recompute": [
+          "diagnosis_digest",
+          "diagnosis_id"
+        ]
+      },
+      "expected": {
+        "error_code": "DIAGNOSIS_ARTIFACT_EVIDENCE_MISMATCH",
+        "path": "$.artifact_evidence[0].event_hash",
+        "deltas": {
+          "events": 0,
+          "budget": 0,
+          "diagnoses": 0,
+          "class_state": 0,
+          "frontier": 0,
+          "projection_cursor": 0
+        }
+      }
+    }
+  ],
+  "expected": {
+    "cases": 115,
+    "rejections": 115,
+    "execution_paths": 4,
+    "path_matches": 460,
+    "acceptance_controls": 2,
+    "service_idempotency_controls": 1,
+    "precedence_cases": 10,
+    "result_artifact_attack_cases": 12,
+    "case_id_dispatches": 0,
+    "all_declared_deltas_zero": true,
+    "decision_exactness_cases": 3,
+    "decision_terminal_binding_cases": 3,
+    "observation_exact_binding_cases": 10,
+    "artifact_evidence_single_field_binding_cases": 4,
+    "terminal_authority_cases": 1,
+    "same_digest_result_artifact_attribute_cases": 5,
+    "result_artifact_nested_exactness_cases": 2,
+    "artifact_record_attack_cases": 12,
+    "gate_order_attack_cases": 2,
+    "artifact_raw_exactness_cases": 7,
+    "narrative_text_exactness_cases": 6,
+    "bool_integer_boundary_cases": 5,
+    "prehash_surrogate_cases": 2,
+    "structural_parser_boundary_cases": 11
+  }
+}
