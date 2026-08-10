@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -26,17 +27,12 @@ AUTHORITY_TESTS = (
     "tests/test_m1e_release_gate.py",
 )
 DOC_REQUIREMENTS = {
-    "README.md": ("Context v3", "--schema-version 2", "managed Research OS 0.2.0", "--upgrade", "recovery_backup"),
-    "docs/architecture.md": ("Context v3", "tokenless", "managed 0.2.0", "--upgrade", "recovery_backup"),
-    "docs/agent-usage.md": ("Context v3", "--schema-version 2", "managed 0.2.0", "--upgrade", "recovery_backup"),
-    "src/research_os/resources/research-os/SKILL.md": ("Context v3", "--schema-version 2", "managed 0.2.0", "--upgrade", "recovery_backup"),
+    "README.md": ("0.3.0", "Context v3", "--schema-version 2", "managed Research OS 0.2.0", "--upgrade", "recovery_backup"),
+    "docs/architecture.md": ("0.3.0", "Context v3", "tokenless", "managed 0.2.0", "--upgrade", "recovery_backup"),
+    "docs/agent-usage.md": ("0.3.0", "Context v3", "--schema-version 2", "managed 0.2.0", "--upgrade", "recovery_backup"),
+    "src/research_os/resources/research-os/SKILL.md": ("0.3.0", "Context v3", "--schema-version 2", "managed 0.2.0", "--upgrade", "recovery_backup"),
 }
 PRODUCT_MULTI_AGENT_MARKERS = ("multi_agent", "multi-agent", "agent_swarm", "role_swarm")
-EXTERNAL_PROJECT_PATH_MARKERS = (
-    "/Users/bbangjo/crypto-new",
-    "/Users/bbangjo/manager",
-    "/Users/bbangjo/BinancePredictionStrategy",
-)
 
 
 class ReleaseGateError(RuntimeError):
@@ -98,6 +94,54 @@ def _pytest_counts(output: str) -> tuple[int, int]:
     return int(passed[-1]), int(subtests[-1])
 
 
+def _python_tree() -> dict[str, object]:
+    root = ROOT / "src/research_os"
+    files = sorted(root.rglob("*.py"))
+    digest = hashlib.sha256()
+    for path in files:
+        relative = path.relative_to(root).as_posix().encode()
+        content = path.read_bytes()
+        digest.update(len(relative).to_bytes(8, "big") + relative)
+        digest.update(len(content).to_bytes(8, "big") + content)
+    return {"file_count": len(files), "sha256": digest.hexdigest()}
+
+
+def _control_tree(path: Path) -> dict[str, object]:
+    if not path.exists():
+        return {"exists": False, "entry_count": 0, "sha256": hashlib.sha256(b"absent").hexdigest()}
+    _require(path.is_dir() and not path.is_symlink(), f"unsafe external control root: {path}")
+    digest = hashlib.sha256()
+    entries = 0
+    for current, directories, files in os.walk(path, followlinks=False):
+        directories.sort()
+        files.sort()
+        for name in [*directories, *files]:
+            item = Path(current) / name
+            _require(not item.is_symlink(), f"external control symlink is forbidden: {item}")
+            relative = item.relative_to(path).as_posix().encode()
+            kind = b"d" if item.is_dir() else b"f"
+            _require(kind == b"d" or item.is_file(), f"unsupported external entry: {item}")
+            content = b"" if kind == b"d" else item.read_bytes()
+            digest.update(kind + len(relative).to_bytes(8, "big") + relative)
+            digest.update(len(content).to_bytes(8, "big") + content)
+            entries += 1
+    return {"exists": True, "entry_count": entries, "sha256": digest.hexdigest()}
+
+
+def _external_snapshots(manifest: dict[str, Any]) -> dict[str, dict[str, object]]:
+    gate = manifest["release_gate"]
+    names = gate.get("external_projects")
+    _require(names == ["crypto-new", "manager", "BinancePredictionStrategy"], "external project set drifted")
+    surface = gate.get("external_snapshot_surface")
+    _require(surface == ".research-os", "external snapshot surface drifted")
+    snapshots: dict[str, dict[str, object]] = {}
+    for name in names:
+        project = ROOT.parent / name
+        _require(project.is_dir() and not project.is_symlink(), f"external project missing: {name}")
+        snapshots[name] = _control_tree(project / surface)
+    return snapshots
+
+
 def _version_surfaces(manifest: dict[str, Any]) -> dict[str, str]:
     release = manifest.get("release")
     _require(isinstance(release, str) and bool(release), "release must be text")
@@ -149,25 +193,15 @@ def _static_gate(manifest: dict[str, Any]) -> dict[str, object]:
         source = path.read_text(encoding="utf-8").lower()
         found = [marker for marker in PRODUCT_MULTI_AGENT_MARKERS if marker in source]
         _require(not found, f"product multi-agent marker in {path.relative_to(ROOT)}: {found}")
-
-    code_paths = [
-        *(ROOT / "src").rglob("*.py"),
-        *(ROOT / "tests").rglob("*.py"),
-        *(ROOT / "scripts").rglob("*.py"),
-    ]
-    for path in code_paths:
-        if path.resolve() == Path(__file__).resolve():
-            continue
-        source = path.read_text(encoding="utf-8")
-        found = [marker for marker in EXTERNAL_PROJECT_PATH_MARKERS if marker in source]
-        _require(not found, f"external project path referenced by {path.relative_to(ROOT)}")
+    product_tree = _python_tree()
+    _require(product_tree["file_count"] == gate.get("product_python_file_count"), "product Python file count drifted")
+    _require(product_tree["sha256"] == gate.get("product_python_tree_sha256"), "product Python tree drifted")
 
     return {
         "python": current_python,
         "versions": _version_surfaces(manifest),
         "documentation_surfaces": len(DOC_REQUIREMENTS),
-        "product_python_files_scanned": len(product_sources),
-        "external_project_path_references": 0,
+        "product_python_tree": product_tree,
         "external_projects_mode": gate["external_projects_mode"],
         "product_multi_agent": False,
     }
@@ -217,20 +251,24 @@ def verify(manifest_path: Path) -> dict[str, object]:
     manifest = _strict_json(manifest_path)
     static = _static_gate(manifest)
     gate = manifest["release_gate"]
-
-    focused_output = _run([sys.executable, "-m", "pytest", "-q", *AUTHORITY_TESTS])
-    full_output = _run([sys.executable, "-m", "pytest", "-q"])
-    passed, subtests = _pytest_counts(full_output)
-    _require(passed >= int(gate["minimum_collected_tests"]), "passed-test floor not met")
-    _require(subtests >= int(gate["minimum_subtests"]), "subtest floor not met")
-    _run([sys.executable, "-m", "ruff", "check", "src", "tests", "scripts"])
-    _run(["uvx", "--offline", "ty", "check", "src"])
-    _run(["git", "diff", "--check"])
-    _require(not _run(["git", "status", "--porcelain"]), "release checkpoint is not clean")
-    commit = _run(["git", "rev-parse", "HEAD"]).strip()
-    wheel = _wheel_gate(str(manifest["release"]))
-    _run(["git", "diff", "--check"])
-    _require(not _run(["git", "status", "--porcelain"]), "release build dirtied checkpoint")
+    external_before = _external_snapshots(manifest)
+    try:
+        focused_output = _run([sys.executable, "-m", "pytest", "-q", *AUTHORITY_TESTS])
+        full_output = _run([sys.executable, "-m", "pytest", "-q"])
+        passed, subtests = _pytest_counts(full_output)
+        _require(passed >= int(gate["minimum_collected_tests"]), "passed-test floor not met")
+        _require(subtests >= int(gate["minimum_subtests"]), "subtest floor not met")
+        _run([sys.executable, "-m", "ruff", "check", "src", "tests", "scripts"])
+        _run(["uvx", "--offline", "ty", "check", "src"])
+        _run(["git", "diff", "--check"])
+        _require(not _run(["git", "status", "--porcelain"]), "release checkpoint is not clean")
+        commit = _run(["git", "rev-parse", "HEAD"]).strip()
+        wheel = _wheel_gate(str(manifest["release"]))
+        _run(["git", "diff", "--check"])
+        _require(not _run(["git", "status", "--porcelain"]), "release build dirtied checkpoint")
+    finally:
+        external_after = _external_snapshots(manifest)
+        _require(external_after == external_before, "external Research OS state changed")
 
     return {
         "schema_version": 1,
@@ -241,6 +279,7 @@ def verify(manifest_path: Path) -> dict[str, object]:
         "full_suite": {"passed": passed, "subtests_passed": subtests},
         "focused_authority_and_manifest": "PASS" if focused_output else "PASS",
         "authorized_action_non_null": gate["authorized_action_non_null"],
+        "external_project_snapshots": external_before,
         "static": static,
         "wheel": wheel,
     }

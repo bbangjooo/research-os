@@ -190,7 +190,7 @@ narrative—derives class status, immutable closure, and the semantic/retry
 frontier. Context v3 and the Diagnosis template expose that state without
 changing the canonical event contract.
 
-Research OS 0.3 emits Context v3 by default. After a typed terminal result, run
+Research OS 0.3.0 emits Context v3 by default. After a typed terminal result, run
 `agent-context`, then `diagnosis-template`
 (add `--experiment ID` if more than one is pending). The generated body is
 fail-closed until the agent replaces only `interpretation`, `failure_type`,

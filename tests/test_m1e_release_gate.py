@@ -12,13 +12,14 @@ from research_os import __version__, agent_install
 from research_os.agent import build_agent_context
 from research_os.contracts import canonical_json_bytes
 from research_os.errors import ScientificStateError
-from research_os.science import StudyContract, reserve_registration
+from research_os.science import StudyContract, reduce_scientific_state, reserve_registration
 from tests.m1d_support.transition_observer import observe_transition_gate_rows
 from tests.test_m1b_manifest_oracle import (
     _load_object,
     _observe_manifest_case,
     _opened_state,
     _registration,
+    _science_event,
 )
 from tests.test_m1d_service_cli import _fixture_diagnosis, _service_with_history
 
@@ -108,7 +109,12 @@ def _transition_observations() -> dict[str, dict[str, object]]:
             "deltas": expected["deltas"],
         }
         assert _canonical_equal(exact_observed, exact_expected)
-        result[str(row["id"])] = outcome
+        inputs = row["input"]
+        assert isinstance(inputs, dict)
+        result[str(row["id"])] = {
+            **outcome,
+            "executed_path": str(inputs["operation"]).replace("_", "-"),
+        }
     return result
 
 
@@ -172,6 +178,22 @@ def _budget_reservation_observation(case: dict[str, object]) -> dict[str, object
     }
 
 
+def _legacy_replay_observation() -> dict[str, object]:
+    legacy = _science_event(
+        "EXPERIMENT_REGISTERED",
+        {"experiment_id": "exp_release_legacy", "authorized_action": None},
+    )
+    state = reduce_scientific_state([legacy], project_id="fixture-m1b")
+    return {
+        "active_generation_id": state.active_generation_id,
+        "legacy_unstructured_registrations": state.legacy_unstructured_registrations,
+        "typed_registration_count": len(state.registrations),
+        "proposal_count": state.proposal_count,
+        "diagnosis_count": state.diagnosis_count,
+        "class_state_count": len(state.class_states),
+    }
+
+
 def test_v03_release_manifest_binds_versions_context_and_published_v02_skill() -> None:
     release = _json(RELEASE_MANIFEST)
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
@@ -230,6 +252,7 @@ def test_v03_release_manifest_binds_v1_bytes_and_tokenless_gate_oracles(
     transition_observed = _transition_observations()
     v1_manifest = _json(ROOT / "tests" / "fixtures" / "scientific_state" / "v1" / "manifest.json")
     observed_by_release_id: dict[str, dict[str, object]] = {}
+    executed_path_by_release_id: dict[str, str] = {}
     for case in cases:
         observer = case["observer"]
         release_id = str(case["id"])
@@ -237,26 +260,37 @@ def test_v03_release_manifest_binds_v1_bytes_and_tokenless_gate_oracles(
             observed_by_release_id[release_id] = _proposal_required_observation(
                 tmp_path / release_id
             )
+            executed_path_by_release_id[release_id] = "register-first-attempt"
         elif observer == "m1d-transition":
             source_case_id = str(case["source_case_id"])
+            transition_outcome = transition_observed[source_case_id]
             observed_by_release_id[release_id] = _release_transition_observation(
-                transition_observed[source_case_id]
+                transition_outcome
+            )
+            executed_path_by_release_id[release_id] = str(
+                transition_outcome["executed_path"]
             )
         else:
             source_case_id = str(case["source_case_id"])
             source_case = _case_by_id(v1_manifest, source_case_id)
             source_observed = _observe_manifest_case(source_case, tmp_path / release_id)
             assert _canonical_equal(source_observed, source_case["expected"])
+            executed_path_by_release_id[release_id] = str(
+                source_case["operation"]
+            ).replace("_", "-")
             if observer == "m1b-budget-reservation":
                 observed_by_release_id[release_id] = _budget_reservation_observation(source_case)
             elif observer == "m1b-legacy-replay":
-                observed_by_release_id[release_id] = source_observed
+                observed_by_release_id[release_id] = _legacy_replay_observation()
             else:
                 raise AssertionError(f"unknown release observer: {observer}")
 
     expected_by_release_id = {str(case["id"]): case["expected"] for case in cases}
     assert set(observed_by_release_id) == set(expected_by_release_id)
     assert _canonical_equal(observed_by_release_id, expected_by_release_id)
+    assert executed_path_by_release_id == {
+        str(case["id"]): case["path"] for case in cases
+    }
 
     assert set(tokenless["required_no_write_codes"]) == {
         "BUDGET_ATTEMPTS_EXCEEDED",
