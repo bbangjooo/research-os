@@ -430,6 +430,7 @@ _TYPED_BASELINE_KEYS = frozenset(
         "evaluation_scope",
     }
 )
+_DIAGNOSIS_EVENT_TYPE = "research.experiment_diagnosed.v1"
 
 _T = TypeVar("_T")
 
@@ -443,6 +444,8 @@ def _normalized_event_type(value: str) -> str:
 
 
 def _requires_scientific_history(event: Event) -> bool:
+    if event.event_type == _DIAGNOSIS_EVENT_TYPE:
+        return True
     event_type = _normalized_event_type(event.event_type)
     payload_keys = set(event.payload)
     if event_type == "EXPERIMENT_REGISTERED":
