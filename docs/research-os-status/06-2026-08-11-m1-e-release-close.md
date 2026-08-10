@@ -1,10 +1,10 @@
 # §06 — M1-E v0.3 release close (2026-08-11)
 
-> Status: **AUDIT FAIL — executable release-gate correction pre-specified**
+> Status: **CORRECTION VERIFIED — independent re-audit pending**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§05](05-2026-08-11-m1-e-usable-context.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §5, §7~§10
-> Active milestone: `M1-E` at `3/5`; A3/A5 evidence invalidated; M1-D prerequisite closed
+> Active milestone: `M1-E` at verified `5/5`; independent re-audit pending
 
 ## 06.0 TL;DR
 
@@ -145,15 +145,15 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 
 | Evidence | Corrected result | 판정 |
 |---|---:|---|
-| Release/default/v2/tokenless/installer focused bundle | `34 passed, 12 subtests passed` | history; A3/A5 claim invalid |
+| Release/default/v2/tokenless/installer focused bundle | fresh executable binding + authority bundle `7 PASS` | PASS |
 | Scientific agent compatibility | `17 passed` | PASS |
-| Frozen tokenless boundary | IDs/code-set only; not all case outcomes executable-bound | RESULT-INVALID |
+| Frozen tokenless boundary | structured `7/7`; case-level observer/source/path/code/event+budget delta exact | PASS |
 | Frozen installer matrix | `6/6`; actual published 0.2 tree two-target upgrade, retained backup 2, drift writer delta 0 | PASS |
 | Base suite without recursive M1-C/M1-D meta-oracles (diagnostic) | `508 passed, 115 subtests passed` | PASS |
-| Corrected full Python 3.12 suite | `597 passed, 115 subtests passed in 2579.27s` | PASS |
-| Static checks | ruff PASS; offline ty `src` PASS; `git diff --check` PASS | history; not single-gate bound |
-| Wheel/install | wheel metadata `0.3.0`; temp install PASS; generated managed manifest release `0.3.0`, packaged files 4 | history; not single-gate bound |
-| Authority/live boundary | recursive non-null `authorized_action=0`; external project reads/writes `0`; product multi-agent additions `0` | RESULT-INVALID aggregate claim |
+| Corrected full Python 3.12 suite | single verifier `601 passed, 115 subtests passed` | PASS |
+| Static checks | single verifier ruff/ty/diff/clean-tree | PASS |
+| Wheel/install | installed metadata `0.3.0`; packaged skill; wheel SHA-256 `6c3450…3679` | PASS |
+| Authority/live boundary | recursive non-null `0`; external path refs `0`; product multi-agent false | PASS |
 
 ### 06.6.3 Invalid and diagnostic runs
 
@@ -177,14 +177,13 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 |---|---|---|
 | Context v3 scientific state | default v3 = explicit v3; explicit v2 exact; cold no-write; focused PASS | PASS |
 | v1 event / Context v2 / branch conclusion v1 compatibility | frozen bytes/digest, explicit v2, snapshot v2, full suite PASS | PASS |
-| tokenless v2 legacy boundary | prior ID/code-set proof lacked seven case-level executable binding | RESULT-INVALID |
+| tokenless v2 legacy boundary | structured `7/7` actual outcomes exact; reject event/budget delta 0 | PASS |
 | managed 0.2→0.3 upgrade/rollback | exact published tree, `6/6`, actual two-target upgrade/backup/drift rejection | PASS |
-| docs/version 0.3.0 + full release | individual results exist but no single fail-closed verifier | RESULT-INVALID |
+| docs/version 0.3.0 + full release | receipt `1aa9c58`: `601+115`, static, clean tree, wheel/temp install | PASS |
 
-Independent critic이 A3의 case별 executable binding과 A5의 단일 fail-closed verifier가
-없음을 발견했으므로 현재 판정은 **ADVANCE (`3/5`)**다. A1, A2, A4 evidence는 유지하지만
-A3/A5의 기존 PASS와 parent M1 close eligibility는 RESULT-INVALID다. Correction checkpoint
-뒤 새 focused/full/single-verifier 결과와 independent audit가 모두 PASS해야 `CLOSE`할 수 있다.
+Correction checkpoint 뒤 A3/A5 fresh evidence까지 `5/5`다. 현재 decision은 **ADVANCE
+(`5/5` verified; independent re-audit pending)**다. Parent M1 close eligibility는 복구됐지만
+progress critic과 independent re-audit가 PASS하기 전에는 `CLOSE`로 승격하지 않는다.
 
 ### 06.6.5 End-state positioning
 
@@ -205,10 +204,10 @@ graph reducer, provider SDK, autonomous loop를 추가하지 않았다.
 
 ### 06.6.7 Claim mode and chronology
 
-**Claim mode: CONFIRMATORY.** 기존 A3/A5 출력은 결과 분자에서 제거한다. Independent critic이
-지적한 measurement binding을 새 correction pre-spec commit에서 먼저 고정하며, case 수·public
-code·product semantics·release threshold는 바꾸지 않는다. 그 commit 뒤 처음 실행한 결과만
-corrected confirmatory evidence로 사용할 수 있다.
+**Claim mode: CONFIRMATORY.** Correction pre-spec `3eaba21` (`06:15:48+09:00`)이 direct
+parent인 implementation `1aa9c58` (`06:26:16+09:00`)보다 먼저다. Case 수·public code·product
+semantics·threshold를 바꾸지 않고, 그 clean implementation commit에서 처음 실행한 single
+verifier receipt만 corrected confirmatory evidence로 사용한다.
 
 `3ca2115` corrected pre-spec의 parent/tree/timestamp는
 `27423b1` / `3fb3cac…` / `2026-08-11T04:11:43+09:00`이다. First result-bearing
@@ -221,7 +220,8 @@ corrected confirmatory evidence로 사용할 수 있다.
 
 Initial full/harness outputs와 critic이 무효화한 A3/A5 aggregate PASS는 close 분자에서 제외한다.
 기존 `597+115`는 regression 실행 사실로만 보존하고 A5 single-gate PASS로 대리하지 않는다.
-새 structured manifest와 single-verifier pre-spec 뒤 fresh 결과만 A3/A5 close evidence다.
+새 structured manifest와 single-verifier pre-spec 뒤 fresh receipt `1aa9c58`, `601+115`,
+authority non-null 0, wheel/install 0.3.0만 A3/A5 close evidence다.
 
 ### 06.6.9 Residuals and north-star movement
 
@@ -262,5 +262,5 @@ focused/full/build 결과를 얻은 뒤 progress critic과 independent 7-pass au
 - Q5는 개별 수동 command를 한 표에 모은 것을 단일 release gate로 잘못 청구했으므로 A5
   PASS를 무효화했다. 새 verifier는 version/docs/full thresholds/manifest/recursive authority/
   static/wheel/temp install/policy boundary를 한 fail-closed command로 묶는다.
-- 이 section과 structured manifest가 구현·fresh result보다 먼저 local checkpoint에
-  고정되어야 한다. 이전 `597+115`와 wheel 결과는 regression history이며 새 A3/A5 분자가 아니다.
+- 이 section과 structured manifest는 implementation보다 먼저 `3eaba21`에 고정됐다. Fresh
+  verifier가 `1aa9c58`에서 PASS했고 durable receipt는 `v0.3.0-release-receipt.json`이다.

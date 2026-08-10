@@ -10,8 +10,8 @@ M1-E를 open으로 유지하도록 §06.6.4에 고정했는가?
 
 **Response:**
 
-FAIL. §06.6.4가 conjunct를 유지했지만 mandatory decision label이 없었다. Independent critic
-뒤 A3/A5가 무효화되었으므로 §06.6.4의 현재 explicit decision은 `ADVANCE (3/5)`다.
+DIRECT after correction. §06.6.4가 five conjunct를 유지하고 explicit decision을 `ADVANCE
+(5/5 verified; independent re-audit pending)`로 고정한다. Re-audit PASS 전에는 CLOSE가 아니다.
 
 ## Q2 [boundary]
 
@@ -23,11 +23,10 @@ manifest가 증명하는가?
 
 **Response:**
 
-FAIL. 기존 manifest는 일곱 ID와 code 집합만 선언했고 네 transition row만 간접 참조했다.
-Proposal/locked-budget/legacy는 실행 결과에 bind되지 않았으며 case별 code와 event/budget
-no-write도 association되지 않았다. §06.9의 structured manifest correction 뒤 fresh 실행으로
-다시 답한다. Class closure와 budget이 의미상 적용되지 않는 successor까지 막는다는 과도한
-주장은 하지 않고, 각 gate가 실제로 지배하는 명시 path만 exact bind한다.
+DIRECT after correction. Structured seven-case manifest가 각 observer/source/path/expected를
+bind하고 fresh test가 live Proposal service, 37-row transition observer, budget reservation,
+legacy replay의 actual outcome을 case별 canonical exact 비교한다. Reject event/budget delta는 0이며
+class/budget이 의미상 지배하지 않는 successor까지 막는다는 과도한 주장은 하지 않는다.
 
 ## Q3 [measurement-gap]
 
@@ -64,10 +63,10 @@ suite·부분 문서 sync가 green이 되지 못하게 하는가?
 
 **Response:**
 
-FAIL. 개별 command 결과를 한 표에 모았지만 manifest의 `release_gate` object를 실행하는 단일
-fail-closed command는 없었다. 따라서 stale docs/metadata, suite floor, recursive authority,
-external-project mode 또는 product multi-agent 부재 중 일부가 빠져도 aggregate claim이 green일
-수 있었다. §06.9의 single-verifier correction 뒤 fresh receipt로 다시 답한다.
+DIRECT after correction. `scripts/verify_release.py`는 bypass argument 없이 release manifest의
+모든 field, docs/version, focused recursive authority, full floor, ruff/ty/diff/clean tree,
+wheel/temp metadata/resource를 순서대로 실행하고 하나라도 실패하면 receipt를 발행하지 않는다.
+Fresh receipt는 commit `1aa9c58`, `601+115`, authority non-null 0, installed 0.3.0이다.
 
 ## Q6 [end-state-positioning]
 
@@ -102,6 +101,6 @@ Acceptance, fixture denominator, upgrade failure matrix, release-manifest 판정
 
 **Response:**
 
-FAIL. 기존 chronology 자체는 유효하지만 mandatory claim-mode label이 없었다. §06.6.7에
-`CONFIRMATORY`를 명시하고 independent critic 뒤 추가한 structured binding/single verifier는
-새 correction pre-spec보다 앞선 결과를 모두 A3/A5 분자에서 제외한다.
+DIRECT after correction. §06.6.7은 explicit `CONFIRMATORY`이고 correction pre-spec `3eaba21`이
+implementation `1aa9c58`의 direct parent다. 그 이전 A3/A5 aggregate 결과는 제외하고 clean
+implementation에서 처음 얻은 single receipt만 분자로 사용한다.
