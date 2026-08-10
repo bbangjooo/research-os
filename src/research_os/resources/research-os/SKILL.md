@@ -156,11 +156,14 @@ not consume experiment budget because no experiment was registered.
 2. **Diagnose:** after every terminal result, run no experiment. Inspect the
    reason code, metrics, constraints, and relevant artifacts; state whether the
    mechanism, implementation, evidence, or constraint failed. For a version-two
-   generation, construct one strict Diagnosis bound to the exact terminal event
-   ID/hash, persisted Proposal/scope, Decision observation, and verified artifact
-   references, then invoke
-   `research-os --project ABS diagnose /ABS/PATH/diagnosis.json`. Refresh
-   `study-status` and `replay` before selecting
+   generation, refresh `agent-context --schema-version 3`, invoke
+   `research-os --project ABS diagnosis-template > /ABS/PATH/diagnosis.json`
+   (add `--experiment exp_ID` when several are pending), and replace only the
+   four `REPLACE_ME` interpretation/failure/falsifier/recommendation fields.
+   The template binds the exact terminal event ID/hash, persisted Proposal/scope,
+   Decision observation, and verified artifact references. Invoke
+   `research-os --project ABS diagnose /ABS/PATH/diagnosis.json`, then refresh
+   `study-status`, `replay`, and Context v3 before selecting
    the next parent and action. Never treat the agent's interpretation or
    recommendation as class-closure or execution authority.
 3. **Ablate or exploit:** use `--graph-action ablate` to isolate an uncertain

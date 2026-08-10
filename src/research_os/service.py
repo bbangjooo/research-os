@@ -11,6 +11,7 @@ import fcntl
 import math
 import os
 import stat
+import tempfile
 from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
@@ -18,7 +19,7 @@ from pathlib import Path
 from statistics import fmean
 from typing import Any, cast
 
-from .agent import build_agent_context, load_agent_spec
+from .agent import build_agent_context, build_agent_context_v3, load_agent_spec
 from .artifacts.catalog import ArtifactCatalog, ArtifactRecord
 from .certification import (
     build_evaluator_review_subject,
@@ -74,6 +75,7 @@ from .science import (
     EvaluationSeal,
     Proposal,
     StudyContract,
+    build_diagnosis_template,
     plan_diagnosis_append,
     plan_generation_open,
     proposal_id,
@@ -1054,6 +1056,29 @@ class ResearchService:
             "authorized_action": None,
         }
         return normalize_json_object(result, field_name="Diagnosis record result")
+
+    def diagnosis_template(
+        self,
+        experiment_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Return one no-write Diagnosis body with agent judgment sentinels."""
+
+        if experiment_id is not None and (
+            not isinstance(experiment_id, str) or not experiment_id
+        ):
+            raise ValueError("experiment_id must be a non-empty string or null")
+        self._assert_config_unchanged()
+        self.event_log.verify()
+        with self.event_log.locked_read() as events:
+            state = reduce_scientific_state(
+                tuple(events),
+                project_id=self.config.project_id,
+            )
+            template = build_diagnosis_template(
+                state,
+                experiment_id=experiment_id,
+            )
+        return normalize_json_object(template, field_name="Diagnosis template")
 
     def _require_evaluation_scope_capability(
         self,
@@ -4074,14 +4099,27 @@ class ResearchService:
                 "agent context is stale; refresh agent-context before proposing"
             ) from exc
 
-    def agent_context(self, *, limit: int = 20) -> dict[str, Any]:
+    def agent_context(
+        self,
+        *,
+        limit: int = 20,
+        schema_version: int = 2,
+    ) -> dict[str, Any]:
         """Return one bounded evidence packet for Codex or Claude Code."""
 
         if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 100:
             raise ValueError("agent context limit must be an integer from 1 to 100")
+        if (
+            isinstance(schema_version, bool)
+            or not isinstance(schema_version, int)
+            or schema_version not in {2, 3}
+        ):
+            raise ValueError("agent context schema version must be 2 or 3")
         with self._workflow_lock():
             self._assert_config_unchanged()
             self.event_log.verify()
+            if schema_version == 3:
+                return self._agent_context_v3_read_only(limit=limit)
             self._recover_incomplete_experiments()
             for _ in range(3):
                 events_before = self.event_log.read()
@@ -4144,6 +4182,95 @@ class ResearchService:
             raise IntegrityError(
                 "canonical history changed repeatedly while building agent context"
             )
+
+    def _agent_context_v3_read_only(self, *, limit: int) -> dict[str, Any]:
+        """Build Context v3 without recovery or writes to the project cache."""
+
+        for _ in range(3):
+            events_before = tuple(self.event_log.read())
+            head_before = (
+                (events_before[-1].sequence, events_before[-1].hash)
+                if events_before
+                else (0, None)
+            )
+            science = reduce_scientific_state(
+                events_before,
+                project_id=self.config.project_id,
+            )
+            with tempfile.TemporaryDirectory(
+                prefix="research-os-context-v3-"
+            ) as temporary:
+                temporary_root = Path(temporary)
+                temporary_log = EventLog(
+                    temporary_root / "events.jsonl",
+                    self.config.project_id,
+                )
+                for event in events_before:
+                    copied = temporary_log.append(
+                        event.event_type,
+                        event.payload,
+                        event_id=event.event_id,
+                        occurred_at=event.occurred_at,
+                    )
+                    if copied.to_dict() != event.to_dict():
+                        raise IntegrityError(
+                            "Context v3 temporary replay changed a canonical event"
+                        )
+                projection = ProjectionStore(temporary_root / "state.db")
+                projection.rebuild(temporary_log)
+                status = projection.project_status(self.config.project_id)
+                lineage = projection.lineage(self.config.project_id)
+                findings = projection.findings(project_id=self.config.project_id)
+                artifacts = projection.artifacts(self.config.project_id)
+            for record in artifacts:
+                self._verify_projected_artifact(record)
+            events_after = tuple(self.event_log.read())
+            head_after = (
+                (events_after[-1].sequence, events_after[-1].hash)
+                if events_after
+                else (0, None)
+            )
+            if head_before != head_after:
+                continue
+            snapshot, agent_spec, certification = self._agent_research_state(
+                events=events_after
+            )
+            bindings = certification.get("bindings")
+            effective_compatibility = (
+                bindings.get("effective_compatibility")
+                if isinstance(bindings, Mapping)
+                else None
+            )
+            baseline_ready = bool(
+                isinstance(effective_compatibility, str)
+                and effective_compatibility
+                and self._compatible_baseline_from_events(
+                    events_after,
+                    effective_compatibility,
+                )
+                is not None
+            )
+            return build_agent_context_v3(
+                project=self.inspect(),
+                status=status,
+                lineage=lineage,
+                findings=findings,
+                artifacts=artifacts,
+                agent_spec=agent_spec,
+                snapshot=snapshot,
+                scientific_state=science.to_dict(),
+                limit=limit,
+                current_compatibility_digest=(
+                    effective_compatibility
+                    if isinstance(effective_compatibility, str)
+                    and effective_compatibility
+                    else None
+                ),
+                compatible_baseline_ready=baseline_ready,
+            )
+        raise IntegrityError(
+            "canonical history changed repeatedly while building agent context"
+        )
 
     def conclude_branch(
         self,

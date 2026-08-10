@@ -490,6 +490,107 @@ def build_agent_context(
     return context
 
 
+def build_agent_context_v3(
+    *,
+    project: Mapping[str, Any],
+    status: Mapping[str, Any],
+    lineage: Sequence[Mapping[str, Any]],
+    findings: Sequence[Mapping[str, Any]],
+    artifacts: Sequence[Mapping[str, Any]],
+    agent_spec: Mapping[str, Any],
+    snapshot: Mapping[str, Any],
+    scientific_state: Mapping[str, Any],
+    limit: int,
+    current_compatibility_digest: str | None = None,
+    compatible_baseline_ready: bool | None = None,
+) -> dict[str, Any]:
+    """Add replay-derived scientific state without changing context v2."""
+
+    context = build_agent_context(
+        project=project,
+        status=status,
+        lineage=lineage,
+        findings=findings,
+        artifacts=artifacts,
+        agent_spec=agent_spec,
+        snapshot=snapshot,
+        limit=limit,
+        current_compatibility_digest=current_compatibility_digest,
+        compatible_baseline_ready=compatible_baseline_ready,
+    )
+    science = dict(scientific_state)
+    raw_pending = science.get("pending_diagnosis_experiment_ids", [])
+    pending = (
+        [str(value) for value in raw_pending]
+        if isinstance(raw_pending, Sequence)
+        and not isinstance(raw_pending, (str, bytes, bytearray))
+        else []
+    )
+    context["schema_version"] = 3
+    context["science"] = science
+    context["diagnosis_authoring"] = {
+        "command": "diagnosis-template",
+        "pending_total": len(pending),
+        "selection_required": len(pending) > 1,
+        "agent_fields": [
+            "interpretation",
+            "failure_type",
+            "falsifier",
+            "recommendation",
+        ],
+        "failure_types": [
+            "mechanism",
+            "implementation",
+            "evidence",
+            "constraint",
+            "operational",
+            "supported",
+        ],
+        "recommendations": [
+            "stop",
+            "change_control",
+            "explore",
+            "ablate",
+            "exploit",
+            "replicate",
+            "retry",
+        ],
+        "authorized_action": None,
+    }
+    study_stop = science.get("study_stop")
+    stopped = (
+        isinstance(study_stop, Mapping)
+        and study_stop.get("stopped") is True
+    )
+    if pending:
+        context["allowed_agent_actions"] = [
+            "RUN_DOCTOR",
+            "AUTHOR_PENDING_DIAGNOSIS",
+            "INSPECT_EVIDENCE",
+            "STOP_AND_REPORT",
+        ]
+    elif stopped:
+        context["allowed_agent_actions"] = [
+            "RUN_DOCTOR",
+            "INSPECT_EVIDENCE",
+            "STOP_AND_REPORT",
+        ]
+    context["packet_size_bytes"] = 0
+    for _ in range(4):
+        size = len(canonical_json_bytes(context))
+        if context["packet_size_bytes"] == size:
+            break
+        context["packet_size_bytes"] = size
+    size = len(canonical_json_bytes(context))
+    context["packet_size_bytes"] = size
+    if size > MAX_AGENT_CONTEXT_BYTES:
+        raise ConfigurationError(
+            "agent context exceeds the 2 MiB packet limit; reduce --limit or "
+            "shorten the research brief/schema"
+        )
+    return context
+
+
 __all__ = [
     "AGENT_BRIEF_RELATIVE",
     "AGENT_JOURNAL_RELATIVE",
@@ -497,5 +598,6 @@ __all__ = [
     "CANDIDATE_SCHEMA_RELATIVE",
     "MAX_AGENT_CONTEXT_BYTES",
     "build_agent_context",
+    "build_agent_context_v3",
     "load_agent_spec",
 ]

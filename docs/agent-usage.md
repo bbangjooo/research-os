@@ -232,6 +232,22 @@ not as execution or closure authority. Current `agent-context` v2 does not
 expose these fields or generate the strict JSON, so the caller must preserve the
 exact IDs until context v3 and the Diagnosis authoring template land.
 
+The opt-in M1-E preview removes that manual evidence copying while preserving
+context v2 as the default:
+
+```text
+research-os --project PATH agent-context --schema-version 3
+research-os --project PATH diagnosis-template > /ABS/PATH/diagnosis.json
+# If several terminal experiments are pending:
+research-os --project PATH diagnosis-template --experiment exp_ID \
+  > /ABS/PATH/diagnosis.json
+```
+
+Replace only the four `REPLACE_ME` fields (`interpretation`, `failure_type`,
+`falsifier`, and `recommendation`), then call `diagnose`. The template command
+is read-only and derives every identity, artifact reference, and quantitative
+observation from canonical replay.
+
 ## Scientific graph workflow
 
 Research follows a phase machine rather than unconstrained sequential parameter

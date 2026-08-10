@@ -109,6 +109,13 @@ def _parser() -> argparse.ArgumentParser:
         default=20,
         help="maximum recent records per context section (1-100)",
     )
+    agent_context.add_argument(
+        "--schema-version",
+        type=int,
+        choices=(2, 3),
+        default=2,
+        help="agent context packet schema (default: 2)",
+    )
 
     baseline = subparsers.add_parser(
         "baseline", help="measure and seal a reproducible baseline"
@@ -178,6 +185,16 @@ def _parser() -> argparse.ArgumentParser:
         "diagnosis",
         type=Path,
         help="strict Diagnosis JSON",
+    )
+
+    diagnosis_template = subparsers.add_parser(
+        "diagnosis-template",
+        help="emit a no-write Diagnosis body with exact kernel evidence",
+    )
+    diagnosis_template.add_argument(
+        "--experiment",
+        dest="experiment_id",
+        help="pending terminal experiment (optional when exactly one is pending)",
     )
 
     open_generation = subparsers.add_parser(
@@ -284,7 +301,10 @@ def _dispatch(args: argparse.Namespace) -> Any:
     if args.command == "certify-evaluator":
         return service.certify_evaluator(args.review, replace=args.replace)
     if args.command == "agent-context":
-        return service.agent_context(limit=args.limit)
+        return service.agent_context(
+            limit=args.limit,
+            schema_version=args.schema_version,
+        )
     if args.command == "baseline":
         if (
             args.repeats is not None
@@ -315,6 +335,8 @@ def _dispatch(args: argparse.Namespace) -> Any:
         )
     if args.command == "diagnose":
         return service.record_diagnosis(args.diagnosis)
+    if args.command == "diagnosis-template":
+        return service.diagnosis_template(args.experiment_id)
     if args.command == "open-generation":
         return service.open_generation(
             args.contract,

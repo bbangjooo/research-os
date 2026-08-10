@@ -1152,6 +1152,101 @@ def plan_diagnosis_append(
     )
 
 
+def build_diagnosis_template(
+    state: ScientificState,
+    *,
+    experiment_id: str | None = None,
+) -> dict[str, Any]:
+    """Build one read-only Diagnosis body with only agent judgment left blank."""
+
+    if (
+        state.active_generation_id is None
+        or state.contract is None
+        or state.evaluation_seal is None
+        or state.contract.schema_version != 2
+    ):
+        raise _error(
+            "DIAGNOSIS_TEMPLATE_UNAVAILABLE",
+            "Diagnosis authoring requires an active version-two generation",
+        )
+    pending = state.pending_diagnosis_experiment_ids
+    if experiment_id is None:
+        if not pending:
+            raise _error(
+                "DIAGNOSIS_TEMPLATE_NONE_PENDING",
+                "no terminal experiment is awaiting Diagnosis",
+            )
+        if len(pending) != 1:
+            raise _error(
+                "DIAGNOSIS_TEMPLATE_EXPERIMENT_REQUIRED",
+                "select one pending experiment explicitly",
+                pending_experiment_ids=list(pending),
+            )
+        experiment_id = pending[0]
+    registration = state.registration(experiment_id)
+    if registration is None:
+        raise _error(
+            "DIAGNOSIS_TEMPLATE_EXPERIMENT_UNKNOWN",
+            "Diagnosis template experiment is not registered in the active generation",
+            experiment_id=experiment_id,
+        )
+    if experiment_id not in pending:
+        raise _error(
+            "DIAGNOSIS_TEMPLATE_EXPERIMENT_NOT_PENDING",
+            "Diagnosis template requires a pending terminal experiment",
+            experiment_id=experiment_id,
+        )
+    if (
+        registration.terminal_event_id is None
+        or registration.terminal_event_hash is None
+        or registration.terminal_payload is None
+    ):  # pragma: no cover - pending invariant
+        raise _error(
+            "DIAGNOSIS_TEMPLATE_EXPERIMENT_NOT_PENDING",
+            "Diagnosis template experiment lacks canonical terminal evidence",
+            experiment_id=experiment_id,
+        )
+    artifact_evidence = [
+        {
+            "artifact_id": record.artifact_id,
+            "artifact_digest": record.digest,
+            "event_id": event.event_id,
+            "event_hash": event.event_hash,
+        }
+        for event, record in _validated_artifact_records(state, registration)
+    ]
+    return {
+        "diagnosis_schema_version": 1,
+        "generation_id": state.active_generation_id,
+        "compatibility_digest": registration.compatibility_digest,
+        "experiment_id": registration.experiment_id,
+        "proposal_id": registration.proposal_id,
+        "proposal_digest": registration.proposal_digest,
+        "hypothesis_class_id": registration.proposal.hypothesis_class_id,
+        "evaluation_scope_id": registration.evaluation_scope_id,
+        "terminal_evidence": {
+            "experiment_id": registration.experiment_id,
+            "event_id": registration.terminal_event_id,
+            "event_hash": registration.terminal_event_hash,
+        },
+        "artifact_evidence": artifact_evidence,
+        "observation": _expected_observation(
+            state,
+            registration,
+            registration.terminal_payload,
+        ),
+        "interpretation": "REPLACE_ME: evidence-bound interpretation",
+        "failure_type": (
+            "REPLACE_ME: mechanism|implementation|evidence|constraint|operational|supported"
+        ),
+        "falsifier": "REPLACE_ME: observation that would falsify this interpretation",
+        "recommendation": (
+            "REPLACE_ME: stop|change_control|explore|ablate|exploit|replicate|retry"
+        ),
+        "authorized_action": None,
+    }
+
+
 def plan_generation_open(
     events: Sequence[Event | Mapping[str, Any]],
     *,

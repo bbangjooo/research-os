@@ -121,6 +121,12 @@ def _namespaced_id(value: Any, namespace: str, *, path: str) -> str:
 
 def _narrative(value: Any, *, path: str) -> str:
     text = _text(value, path=path, code="DIAGNOSIS_INVALID")
+    if text.startswith("REPLACE_ME"):
+        raise _fail(
+            "DIAGNOSIS_INVALID",
+            f"{path} still contains a Diagnosis template sentinel",
+            path=path,
+        )
     if len(text.encode("utf-8")) > MAX_DIAGNOSIS_NARRATIVE_UTF8_BYTES:
         raise _fail(
             "DIAGNOSIS_INVALID",

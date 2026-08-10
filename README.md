@@ -145,10 +145,13 @@ research-os --project /path/to/project open-generation study-contract.json
 research-os --project /path/to/project study-status
 research-os --project /path/to/project baseline
 research-os --project /path/to/project agent-context
+research-os --project /path/to/project agent-context --schema-version 3
 research-os --project /path/to/project run-once candidate.json \
   --graph-action explore --scientific-change "CLASS: ...; CHANGE: ..." \
   --context-token TOKEN
 research-os --project /path/to/project diagnose diagnosis.json
+research-os --project /path/to/project diagnosis-template \
+  > diagnosis.json
 research-os --project /path/to/project conclude-branch conclusion.json \
   --context-token TOKEN
 research-os --project /path/to/project status
@@ -185,6 +188,13 @@ narrative—derives class status, immutable closure, and the semantic/retry
 frontier. The current `agent-context` v2 does not yet author or expose this
 state; context v3 and a Diagnosis template are the next compatibility slice.
 
+The current M1-E preview exposes that slice explicitly. After a typed terminal
+result, run `agent-context --schema-version 3`, then `diagnosis-template`
+(add `--experiment ID` if more than one is pending). The generated body is
+fail-closed until the agent replaces only `interpretation`, `failure_type`,
+`falsifier`, and `recommendation`, after which it can be submitted to
+`diagnose`. Context schema 2 remains the default during this preview.
+
 Codex and Claude Code use `agent-context` plus `--context-token`; that guarded
 path requires a current independent evaluator certificate and an already sealed
 baseline. Tokenless `run-once` remains only as a legacy/manual compatibility path
@@ -208,6 +218,13 @@ same contract cannot reset its budget.
 
 See [agent usage](docs/agent-usage.md) and
 [architecture](docs/architecture.md) for the complete contract.
+
+To preview the opt-in Context v3 and Diagnosis authoring path without touching
+another project, run the disposable local example:
+
+```bash
+.venv/bin/python examples/m1e_context_v3_demo.py
+```
 
 ## Development
 
