@@ -45,8 +45,8 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** M1-E usable Context v3 vertical slice의
-  progress audit를 PASS하고 local checkpoint로 고정한다.
+- [ ] **단일 최우선 행동:** §06 frozen acceptance에 따라 M1-E의 legacy isolation,
+  managed 0.2→0.3 upgrade/rollback, version/full release conjunct를 닫는다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
@@ -56,6 +56,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | 기존+M1-D 테스트 | `tests/` | 동작 | collection 589; composite floor/bounded rows PASS; transition `26/23/54/37/7`; negative `460/460` |
 | 진행 상태 core | `docs/research-os-status.md` | active | M1-D 5/5 closed/audited; M1-E active |
 | M1-E vertical slice | `docs/research-os-status/05-2026-08-11-m1-e-usable-context.md` | complete; independent audit PASS | opt-in Context v3 + Diagnosis template + disposable example PASS |
+| M1-E release close pre-spec | `docs/research-os-status/06-2026-08-11-m1-e-release-close.md` | frozen; implementation pending | five-conjunct acceptance + release manifest + critic Q1~Q8 |
 | 방법론 pipeline core | `docs/research-os-pipeline.md` | active | Cycle 04 closed; Cycle 05 active |
 
 ### 0.5 알려진 잔여 이슈
