@@ -31,8 +31,8 @@
     tokenless legacy boundary, exact managed 0.2→0.3 upgrade/rollback과 version/docs 0.3.0을 구현했다.
     Initial full의 implicit-v3 legacy observer 결과는 RESULT-INVALID로 철회하고 test-only `888cd96`
     뒤 corrected full `597 passed, 115 subtests`, ruff/ty/diff와 wheel/temp install을 PASS했다.
-    Independent critic이 무효화한 A3/A5를 structured manifest/single verifier로 고쳤다. Fresh
-    receipt `1aa9c58`에서 `601+115`, authority 0, wheel/install 0.3.0이 PASS해 re-audit 대기다.
+    First correction receipt는 `601+115`였지만 second re-audit이 Q2 path/legacy typed-zero와 Q5
+    docs/filesystem/product-tree binding을 FAIL했다. M1-E는 다시 `3/5`; correction pre-spec active다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 
@@ -52,19 +52,18 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** §06 corrected `5/5` evidence를 independent re-audit한다. Re-audit
-  PASS 전에는 M1-E/M1을 close하거나 M2-A를 시작하지 않는다.
+- [ ] **단일 최우선 행동:** §06 second correction을 구현·fresh verify한 뒤 re-audit한다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
 | 항목 | 위치 | 상태 | 근거 |
 |---|---|---|---|
-| v0.3 제품 + M1-A~E implementation | `src/research_os/` | verified; re-audit pending | Context v3 default, exact managed upgrade, executable release gate |
+| v0.3 제품 + M1-A~E implementation | `src/research_os/` | implemented; gate correction open | Context v3 default, exact managed upgrade; Q2/Q5 second correction active |
 | 기존+M1-E 테스트 | `tests/` | corrected green | single verifier `601+115`; tokenless structured `7/7`; authority 0 |
-| 진행 상태 core | `docs/research-os-status.md` | active | M1-E `5/5` verified; independent re-audit pending |
+| 진행 상태 core | `docs/research-os-status.md` | active | M1-E `3/5`; Q2/Q5 second correction pre-specified |
 | M1-E vertical slice | `docs/research-os-status/05-2026-08-11-m1-e-usable-context.md` | complete; independent audit PASS | opt-in Context v3 + Diagnosis template + disposable example PASS |
-| M1-E release close | `docs/research-os-status/06-2026-08-11-m1-e-release-close.md` | correction verified; re-audit pending | receipt `1aa9c58`; `601+115`; wheel/install PASS |
-| 방법론 pipeline core | `docs/research-os-pipeline.md` | active | Cycle 06 independent re-audit pending |
+| M1-E release close | `docs/research-os-status/06-2026-08-11-m1-e-release-close.md` | second audit FAIL | receipt retained as history; Q2/Q5 correction active |
+| 방법론 pipeline core | `docs/research-os-pipeline.md` | active | Cycle 06 second correction active |
 
 ### 0.5 알려진 잔여 이슈
 
@@ -175,8 +174,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 - **Active M_i.j**: `M1-E`
 - **직전 close가 가능하게 한 작업**: M1-D가 terminal evidence-bound Diagnosis, derived ClassState와 semantic/retry frontier를 canonical state로 만들고 five conjunct 5/5를 충족했다.
-- **현재 close audit**: Q1/Q2/Q5/Q8 corrections fresh PASS. M1-E는 `5/5` verified지만
-  independent re-audit 전까지 active다.
+- **현재 close audit**: second re-audit Q2/Q5 FAIL; M1-E `3/5`, correction active.
 - **이 M.j가 닫혀야 다음에 가능해지는 작업**: ProgramManifest가 stable M1 identity를 bind하고 M2 ProgramLog가 Diagnosis/ClassState origin을 exact 검증할 수 있다.
 - **M1 parent close까지 남은 sub**: `M1-E`.
 
@@ -188,7 +186,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | M1-B | Study generation과 누적 budget | 4/4 ✅ | closed | 02 | phase §02.4~§02.6.4; manifest `29/29`; checkpoint `df2c900`; critic + auditor PASS |
 | M1-C | Typed Proposal과 replication identity | 4/4 ✅ | closed | 03 | phase §03.4~§03.6.4; manifest `20/20`; critic + auditor PASS |
 | M1-D | Diagnosis·ClassState·semantic frontier | 5/5 ✅ | closed | 04 | phase §04.5~§04.6.4; transition `26/23/54/37/7`; negative `460/460`; critic + auditor PASS |
-| M1-E | Context v3·legacy compatibility·v0.3 release | 5/5 ✅ | active; re-audit pending | — | receipt `1aa9c58`; `601+115`; authority 0; installed 0.3.0 |
+| M1-E | Context v3·legacy compatibility·v0.3 release | 3/5 ✅ | active; second correction | — | Q2/Q5 FAIL; path/typed-zero/filesystem/product-tree pre-spec |
 | M2-A | ProgramManifest·ProgramLog | 0/4 ✅ | open | — | pipeline §9.4 |
 | M2-B | Conditional Claim과 evidence 관계 | 0/5 ✅ | open | — | pipeline §9.4 |
 | M2-C | Deterministic retrieval·Context integration | 0/5 ✅ | open | — | pipeline §9.4 |
@@ -208,7 +206,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | 03 | 2026-08-10 | M1-C | 4/4 | close | manifest `20/20`; transition/direct `53/72`; full `442+111`; critic + auditor PASS |
 | 04 | 2026-08-10~11 | M1-D | 5/5 | close | final corrected manifest/transition, direct `67`, bounded `56`, compatibility `20/20`, single floor PASS; auditor PASS |
 | 05 | 2026-08-11 | M1-E | 1/5 | advance | opt-in v3 + template + disposable E2E PASS; M1-E close는 아님 |
-| 06 | 2026-08-11 | M1-E | 5/5 | advance | executable correction fresh PASS; independent re-audit pending |
+| 06 | 2026-08-11 | M1-E | 3/5 | advance | second re-audit Q2/Q5 FAIL; correction pre-specified |
 
 #### 2.3.5 Gate-bypass 기록
 
@@ -232,14 +230,14 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | 03 | 2026-08-10 / M1-C | [`research-os-status/03-2026-08-10-m1-c-typed-proposal-replication.md`](research-os-status/03-2026-08-10-m1-c-typed-proposal-replication.md) | typed Proposal·scope-bound identity·replication 4/4; critic + independent auditor PASS |
 | 04 | 2026-08-10~11 / M1-D | [`research-os-status/04-2026-08-10-m1-d-diagnosis-class-frontier.md`](research-os-status/04-2026-08-10-m1-d-diagnosis-class-frontier.md) | Diagnosis·ClassState·frontier 5/5 closed; corrected oracle + critic + auditor PASS |
 | 05 | 2026-08-11 / M1-E vertical slice | [`research-os-status/05-2026-08-11-m1-e-usable-context.md`](research-os-status/05-2026-08-11-m1-e-usable-context.md) | Context v3 + Diagnosis template + disposable E2E; independent audit PASS |
-| 06 | 2026-08-11 / M1-E release close | [`research-os-status/06-2026-08-11-m1-e-release-close.md`](research-os-status/06-2026-08-11-m1-e-release-close.md) | correction verified; M1-E `5/5`; re-audit pending |
+| 06 | 2026-08-11 / M1-E release close | [`research-os-status/06-2026-08-11-m1-e-release-close.md`](research-os-status/06-2026-08-11-m1-e-release-close.md) | second audit FAIL; M1-E `3/5`; correction active |
 
 ---
 
 ## 11. 한 페이지 요약 (TL;DR)
 
-- 현재 상태: 제품 version `0.3.0`; M1-E corrected `5/5`, independent re-audit pending이다.
-  Product checkpoint `d1499b3`, executable release checkpoint `1aa9c58`이다.
+- 현재 상태: 제품 version `0.3.0`; M1-E second re-audit 뒤 `3/5`, correction active다.
+  Product checkpoint `d1499b3`, first correction checkpoint `1aa9c58`이다.
 - 마지막 측정: focused `34+12`, tokenless `7/7`, installer `6/6`, corrected full
   `597+115`, ruff/ty/diff와 wheel/temp install PASS. Initial implicit-v3 legacy observer
   full은 RESULT-INVALID로 제외했다.
@@ -292,7 +290,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | Integrity kernel | 평가상 우수 | ○ | observer/fixture도 adversarial audit 대상으로 유지. A3/A5 executable correction과 single receipt가 PASS | phase §06; `601+115`; authority 0; wheel/install PASS |
 | Evidence semantics | arbitrary constraint 중심 | ○ | directional delta·typed slack·verify symmetry 구현; 외부 metric 의미는 아직 contract 밖 | phase §01 E1~E9 |
 | Scientific State | 문서상 일부 존재 | ○ | Proposal/Diagnosis/ClassState/frontier와 legacy isolation `6/6`이 executable. Actual telemetry·lifetime cap과 program Claim은 없음 | NS2 = 6/6; NS3 = 3/4; M1-E `7/7`; corrected full `597+115` |
-| Relevant Context | recent v2 packet | △ | cold writer diff, authoring, default v3, upgrade/release가 fresh PASS. Claim/retrieval reason은 없음 | phase §06; M1-E `5/5`; receipt `1aa9c58` |
+| Relevant Context | recent v2 packet | △ | default v3/upgrade는 PASS; release policy/path binding second correction과 Claim/retrieval reason이 남음 | phase §06; M1-E `3/5` |
 | Program Memory | Finding 존재 | ✗ | Diagnosis/ClassState는 생겼지만 project-bound free-form Finding은 conditional Claim graph가 아님 | NS3 = 3/4, NS4 = 0/4 |
 | Autonomous Loop | agent workflow 존재 | ✗ | 외부 대화가 수동으로 각 단계를 이어주며 resume 가능한 loop state가 없음 | NS5 = 0/7 |
 | 학습 효과 | 미측정 | ✗ | collection 589 composite regression은 PASS했지만 v0.2 comparator와 pre-fixed unseen learning benchmark가 없음 | NS6 측정 전 |
@@ -309,7 +307,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | 03 M1-C | implementation `+7068/-233` + test evidence follow-ups | 21 implementation files; Python 총 LOC `40,954` | checkpoints `a783a88`~`2e14096`; manifest `20/20`; transition/direct `53/72`; full `442+111`; critic + auditor PASS |
 | 04 M1-D | cycle base `a5f232d` 대비 tracked `+126,150/-331` + untracked support `9,955` lines (`git diff --numstat a5f232d`; untracked `wc -l`) | product core보다 frozen JSON fixtures/observer/correction harness가 압도적으로 커진 과잉설계 비용을 명시; `state.py` 3,171 lines, oracle 2,724, rebuild script 2,256 | final transition `92551a…c54`; `26/23/54/37/7`; negative `460/460`; direct `67`; bounded `56`; compatibility `20/20`; floor PASS; auditor PASS |
 | 05 M1-E vertical | pre-spec `38446f1` → product `7fcfd10`: source `+365/-8`, commit 11 files `+686/-8` | 1,200-line cap 이하; 신규 manifest/graph reducer 없음; temp replay O(n) limitation 명시 | vertical `4`; final focused/compatibility `127+23`; demo/ruff/ty/diff와 independent audit PASS |
-| 06 M1-E release close correction | final correction pre-spec `3eaba21` → implementation `1aa9c58`; product+tests additions 598 | cap 650/total 1,150 이하; nested regression latency | fresh receipt `601+115`; structured `7/7`; wheel/install PASS; re-audit pending |
+| 06 M1-E release close correction | first correction `3eaba21→1aa9c58`; second correction pre-spec pending checkpoint | Rule9 PIVOT cap total 1,350; nested latency | first receipt history; Q2/Q5 second audit FAIL |
 
 ---
 

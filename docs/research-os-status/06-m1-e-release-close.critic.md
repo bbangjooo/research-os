@@ -23,10 +23,10 @@ manifest가 증명하는가?
 
 **Response:**
 
-DIRECT after correction. Structured seven-case manifest가 각 observer/source/path/expected를
-bind하고 fresh test가 live Proposal service, 37-row transition observer, budget reservation,
-legacy replay의 actual outcome을 case별 canonical exact 비교한다. Reject event/budget delta는 0이며
-class/budget이 의미상 지배하지 않는 successor까지 막는다는 과도한 주장은 하지 않는다.
+FAIL on second re-audit. `path`가 manifest에 선언됐지만 dispatcher가 소비하지 않았고 legacy
+replay가 Proposal/Diagnosis/ClassState promotion zero를 직접 노출하지 않았다. Next correction은
+executed source operation을 normalized path와 exact bind하고 typed registration/proposal/diagnosis/
+class-state count 0을 manifest expected로 비교한다.
 
 ## Q3 [measurement-gap]
 
@@ -63,10 +63,10 @@ suite·부분 문서 sync가 green이 되지 못하게 하는가?
 
 **Response:**
 
-DIRECT after correction. `scripts/verify_release.py`는 bypass argument 없이 release manifest의
-모든 field, docs/version, focused recursive authority, full floor, ruff/ty/diff/clean tree,
-wheel/temp metadata/resource를 순서대로 실행하고 하나라도 실패하면 receipt를 발행하지 않는다.
-Fresh receipt는 commit `1aa9c58`, `601+115`, authority non-null 0, installed 0.3.0이다.
+FAIL on second re-audit. No-bypass/full/authority/wheel binding은 PASS했지만 docs exact 0.3.0을
+강제하지 않았고 external policy는 absolute-string scan, multi-agent policy는 keyword scan뿐이었다.
+Next correction은 four docs exact 0.3.0, 세 sibling project `.research-os` pre/post byte snapshot,
+reviewed product Python tree exact file-count/digest를 manifest에서 소비한다.
 
 ## Q6 [end-state-positioning]
 

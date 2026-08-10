@@ -1,10 +1,10 @@
 # §06 — M1-E v0.3 release close (2026-08-11)
 
-> Status: **CORRECTION VERIFIED — independent re-audit pending**
+> Status: **SECOND RE-AUDIT FAIL — correction pre-specified**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§05](05-2026-08-11-m1-e-usable-context.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §5, §7~§10
-> Active milestone: `M1-E` at verified `5/5`; independent re-audit pending
+> Active milestone: `M1-E` at `3/5`; Q2/Q5 second correction active
 
 ## 06.0 TL;DR
 
@@ -96,6 +96,9 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
   graph reducer, 새 event schema는 만들지 않는다.
 - Frozen change cap: product+tests `<=650` added lines, fixture+docs `<=500` added lines,
   total `<=1,150` added lines. 초과하면 M1-E close를 중단하고 PIVOT 기록을 남긴다.
+- Second audit에서 실제 filesystem/policy binding 요구가 드러나 original total이 `1,140`에
+  도달했으므로 `PIVOT`: correction cap을 product+tests `<=700`, fixture+docs `<=600`, total
+  `<=1,350`으로 재동결한다. A1~A5 semantics/threshold는 바꾸지 않는다.
 
 ## 06.4 Verification plan
 
@@ -181,9 +184,9 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 | managed 0.2→0.3 upgrade/rollback | exact published tree, `6/6`, actual two-target upgrade/backup/drift rejection | PASS |
 | docs/version 0.3.0 + full release | receipt `1aa9c58`: `601+115`, static, clean tree, wheel/temp install | PASS |
 
-Correction checkpoint 뒤 A3/A5 fresh evidence까지 `5/5`다. 현재 decision은 **ADVANCE
-(`5/5` verified; independent re-audit pending)**다. Parent M1 close eligibility는 복구됐지만
-progress critic과 independent re-audit가 PASS하기 전에는 `CLOSE`로 승격하지 않는다.
+Second re-audit가 Q2/Q5를 다시 무효화했으므로 현재 decision은 **ADVANCE (`3/5`)**다.
+`path`→executed operation, legacy typed-object zero, docs exact 0.3.0, external `.research-os`
+pre/post snapshot, exact product Python tree digest를 correction checkpoint 뒤 fresh 검증해야 한다.
 
 ### 06.6.5 End-state positioning
 
@@ -264,3 +267,7 @@ focused/full/build 결과를 얻은 뒤 progress critic과 independent 7-pass au
   static/wheel/temp install/policy boundary를 한 fail-closed command로 묶는다.
 - 이 section과 structured manifest는 implementation보다 먼저 `3eaba21`에 고정됐다. Fresh
   verifier가 `1aa9c58`에서 PASS했고 durable receipt는 `v0.3.0-release-receipt.json`이다.
+- Second re-audit verdict는 Q1/Q3/Q4/Q6/Q7/Q8 PASS, Q2/Q5 FAIL이다. `path`가 dispatcher에
+  미소비였고 legacy typed-object 0을 직접 노출하지 않았으며 docs exact version, 실제 external
+  filesystem no-write, equivalent multi-agent drift를 keyword보다 강하게 막지 못했다. 위 manifest
+  fields와 PIVOT cap을 다음 implementation/result보다 먼저 local checkpoint에 고정한다.
