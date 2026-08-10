@@ -33,6 +33,14 @@ DOC_REQUIREMENTS = {
     "src/research_os/resources/research-os/SKILL.md": ("0.3.0", "Context v3", "--schema-version 2", "managed 0.2.0", "--upgrade", "recovery_backup"),
 }
 PRODUCT_MULTI_AGENT_MARKERS = ("multi_agent", "multi-agent", "agent_swarm", "role_swarm")
+INSTALLER_CASE_IDS = (
+    "explicit-upgrade-required",
+    "exact-managed-upgrade-retains-prior-backup",
+    "drifted-managed-tree-rejected-no-write",
+    "unknown-managed-release-rejected-no-write",
+    "two-target-commit-failure-restores-both",
+    "publish-then-fail-restores-prior-and-retains-new-recovery",
+)
 
 
 class ReleaseGateError(RuntimeError):
@@ -92,6 +100,29 @@ def _pytest_counts(output: str) -> tuple[int, int]:
     _require(bool(passed), "pytest output has no passed-test count")
     _require(bool(subtests), "pytest output has no passed-subtest count")
     return int(passed[-1]), int(subtests[-1])
+
+
+def _installer_gate(manifest: dict[str, Any]) -> dict[str, object]:
+    upgrade = manifest.get("managed_skill_upgrade")
+    _require(isinstance(upgrade, dict), "managed skill upgrade contract is missing")
+    cases = upgrade.get("cases")
+    _require(isinstance(cases, list), "managed skill upgrade cases are missing")
+    case_ids = [case.get("id") for case in cases if isinstance(case, dict)]
+    _require(case_ids == list(INSTALLER_CASE_IDS), "managed skill upgrade case IDs drifted")
+    _require(
+        all(set(case) == {"id", "operation", "expected"} for case in cases),
+        "managed skill upgrade case shape drifted",
+    )
+    nodes = [
+        "tests/test_m1e_release_gate.py::"
+        f"test_managed_upgrade_manifest_case_executes_exact_outcome[{case_id}]"
+        for case_id in case_ids
+    ]
+    output = _run([sys.executable, "-m", "pytest", "-q", *nodes])
+    passed = re.findall(r"(?<!\d)(\d+) passed", output)
+    _require(bool(passed), "installer matrix output has no passed-test count")
+    _require(int(passed[-1]) == len(case_ids), "installer matrix did not pass exactly six cases")
+    return {"case_ids": case_ids, "passed": int(passed[-1])}
 
 
 def _python_tree() -> dict[str, object]:
@@ -254,6 +285,7 @@ def verify(manifest_path: Path) -> dict[str, object]:
     external_before = _external_snapshots(manifest)
     try:
         focused_output = _run([sys.executable, "-m", "pytest", "-q", *AUTHORITY_TESTS])
+        installer = _installer_gate(manifest)
         full_output = _run([sys.executable, "-m", "pytest", "-q"])
         passed, subtests = _pytest_counts(full_output)
         _require(passed >= int(gate["minimum_collected_tests"]), "passed-test floor not met")
@@ -278,6 +310,7 @@ def verify(manifest_path: Path) -> dict[str, object]:
         "result": "PASS",
         "full_suite": {"passed": passed, "subtests_passed": subtests},
         "focused_authority_and_manifest": "PASS" if focused_output else "PASS",
+        "managed_skill_upgrade": installer,
         "authorized_action_non_null": gate["authorized_action_non_null"],
         "external_project_snapshots": external_before,
         "static": static,

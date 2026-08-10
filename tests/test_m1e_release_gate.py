@@ -11,9 +11,17 @@ import pytest
 from research_os import __version__, agent_install
 from research_os.agent import build_agent_context
 from research_os.contracts import canonical_json_bytes
-from research_os.errors import ScientificStateError
+from research_os.errors import ConfigurationError, ScientificStateError
 from research_os.science import StudyContract, reduce_scientific_state, reserve_registration
 from tests.m1d_support.transition_observer import observe_transition_gate_rows
+from tests.test_agent_install_upgrade import (
+    _TARGETS,
+    _capture_tree,
+    _exception_recovery_paths,
+    _fake_managed_release,
+    _recognize_fake_managed_0_2,
+    _write_files,
+)
 from tests.test_m1b_manifest_oracle import (
     _load_object,
     _observe_manifest_case,
@@ -25,6 +33,14 @@ from tests.test_m1d_service_cli import _fixture_diagnosis, _service_with_history
 
 ROOT = Path(__file__).resolve().parents[1]
 RELEASE_MANIFEST = ROOT / "tests" / "fixtures" / "releases" / "v0.3.0" / "manifest.json"
+INSTALLER_CASE_IDS = (
+    "explicit-upgrade-required",
+    "exact-managed-upgrade-retains-prior-backup",
+    "drifted-managed-tree-rejected-no-write",
+    "unknown-managed-release-rejected-no-write",
+    "two-target-commit-failure-restores-both",
+    "publish-then-fail-restores-prior-and-retains-new-recovery",
+)
 
 
 def _json(path: Path) -> dict[str, object]:
@@ -192,6 +208,137 @@ def _legacy_replay_observation() -> dict[str, object]:
         "diagnosis_count": state.diagnosis_count,
         "class_state_count": len(state.class_states),
     }
+
+
+def _transactions_empty(home: Path) -> bool:
+    root = home / agent_install._BACKUP_ROOT_NAME
+    return not root.exists() or not any(root.iterdir())
+
+
+def _observe_installer_case(operation: str, home: Path) -> dict[str, object]:
+    destination = home / _TARGETS["codex"]
+    if operation == "reject-exact-prior-without-upgrade":
+        with _recognize_fake_managed_0_2() as prior:
+            _write_files(destination, prior)
+            before = _capture_tree(destination)
+            with pytest.raises(ConfigurationError) as caught:
+                agent_install.install_agent_skill("codex", home=home)
+            return {
+                "error_type": type(caught.value).__name__,
+                "destination_unchanged": _capture_tree(destination) == before,
+                "transactions_empty": _transactions_empty(home),
+            }
+    if operation == "upgrade-exact-prior":
+        with _recognize_fake_managed_0_2() as prior:
+            _write_files(destination, prior)
+            records = agent_install.install_agent_skill("codex", home=home, upgrade=True)
+            recovery = Path(records[0]["recovery_backup"])
+            return {
+                "status": records[0]["status"],
+                "from_release": records[0]["from_release"],
+                "to_release": records[0]["to_release"],
+                "destination_is_current": _capture_tree(destination)[0]
+                == agent_install._expected_files(),
+                "recovery_count": 1,
+                "recovery_is_prior": _capture_tree(recovery)[0] == prior,
+            }
+    if operation == "reject-drifted-prior":
+        with _recognize_fake_managed_0_2() as prior:
+            _write_files(destination, prior)
+            (destination / "SKILL.md").write_bytes(b"drifted managed 0.2 tree\n")
+            before = _capture_tree(destination)
+            with pytest.raises(ConfigurationError) as caught:
+                agent_install.install_agent_skill("codex", home=home, upgrade=True)
+            return {
+                "error_type": type(caught.value).__name__,
+                "destination_unchanged": _capture_tree(destination) == before,
+                "transactions_empty": _transactions_empty(home),
+            }
+    if operation == "reject-unknown-managed-release":
+        _write_files(destination, _fake_managed_release("9.9.9"))
+        before = _capture_tree(destination)
+        with pytest.raises(ConfigurationError) as caught:
+            agent_install.install_agent_skill("codex", home=home, upgrade=True)
+        return {
+            "error_type": type(caught.value).__name__,
+            "destination_unchanged": _capture_tree(destination) == before,
+            "transactions_empty": _transactions_empty(home),
+        }
+    if operation == "fail-second-target-commit":
+        with _recognize_fake_managed_0_2() as prior:
+            destinations = {target: home / relative for target, relative in _TARGETS.items()}
+            for target_destination in destinations.values():
+                _write_files(target_destination, prior)
+            before = {
+                target: _capture_tree(target_destination)
+                for target, target_destination in destinations.items()
+            }
+            original_commit = agent_install._commit_one
+
+            def fail_second(prepared, expected):
+                if prepared.state.target == "claude":
+                    raise OSError("release matrix second-target failure")
+                return original_commit(prepared, expected)
+
+            with (
+                mock.patch.object(agent_install, "_commit_one", side_effect=fail_second),
+                pytest.raises(OSError) as caught,
+            ):
+                agent_install.install_agent_skill("all", home=home, upgrade=True)
+            return {
+                "error_type": type(caught.value).__name__,
+                "codex_unchanged": _capture_tree(destinations["codex"]) == before["codex"],
+                "claude_unchanged": _capture_tree(destinations["claude"])
+                == before["claude"],
+            }
+    if operation == "fail-after-new-tree-publish":
+        with _recognize_fake_managed_0_2() as prior:
+            _write_files(destination, prior)
+            original_rename = agent_install._rename_noreplace
+            calls = 0
+
+            def publish_then_fail(source: Path, target: Path) -> None:
+                nonlocal calls
+                calls += 1
+                original_rename(source, target)
+                if calls == 2:
+                    raise OSError("release matrix publish completed before failure")
+
+            with (
+                mock.patch.object(
+                    agent_install,
+                    "_rename_noreplace",
+                    side_effect=publish_then_fail,
+                ),
+                pytest.raises(OSError) as caught,
+            ):
+                agent_install.install_agent_skill("codex", home=home, upgrade=True)
+            recovery_paths = _exception_recovery_paths(caught.value)
+            return {
+                "error_type": type(caught.value).__name__,
+                "destination_is_prior": _capture_tree(destination)[0] == prior,
+                "recovery_count": len(recovery_paths),
+                "recovery_is_current": len(recovery_paths) == 1
+                and _capture_tree(recovery_paths[0])[0] == agent_install._expected_files(),
+            }
+    raise AssertionError(f"unknown installer release operation: {operation}")
+
+
+@pytest.mark.parametrize("case_id", INSTALLER_CASE_IDS, ids=INSTALLER_CASE_IDS)
+def test_managed_upgrade_manifest_case_executes_exact_outcome(
+    case_id: str,
+    tmp_path: Path,
+) -> None:
+    release = _json(RELEASE_MANIFEST)
+    upgrade = release["managed_skill_upgrade"]
+    assert isinstance(upgrade, dict)
+    cases = upgrade["cases"]
+    assert isinstance(cases, list)
+    assert [case["id"] for case in cases] == list(INSTALLER_CASE_IDS)
+    case = next(case for case in cases if case["id"] == case_id)
+    assert isinstance(case, dict)
+    observed = _observe_installer_case(str(case["operation"]), tmp_path)
+    assert _canonical_equal(observed, case["expected"])
 
 
 def test_v03_release_manifest_binds_versions_context_and_published_v02_skill() -> None:

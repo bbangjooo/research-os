@@ -4,10 +4,12 @@ import sys
 
 import pytest
 
+import scripts.verify_release as verifier
 from scripts.verify_release import (
     DEFAULT_MANIFEST,
     ReleaseGateError,
     _external_snapshots,
+    _installer_gate,
     _pytest_counts,
     _run,
     _static_gate,
@@ -66,3 +68,22 @@ def test_release_verifier_rejects_failed_commands_and_incomplete_pytest_output()
 
 def test_release_verifier_parses_only_complete_full_suite_summary() -> None:
     assert _pytest_counts("601 passed, 115 subtests passed in 42:00") == (601, 115)
+
+
+def test_release_verifier_executes_all_six_installer_manifest_ids(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifest = _strict_json(DEFAULT_MANIFEST)
+    observed_commands: list[list[str]] = []
+
+    def pass_six(command: list[str]) -> str:
+        observed_commands.append(command)
+        return "6 passed in 0.10s"
+
+    monkeypatch.setattr(verifier, "_run", pass_six)
+    result = _installer_gate(manifest)
+
+    expected_ids = [case["id"] for case in manifest["managed_skill_upgrade"]["cases"]]
+    assert result == {"case_ids": expected_ids, "passed": 6}
+    assert len(observed_commands) == 1
+    assert all(case_id in " ".join(observed_commands[0]) for case_id in expected_ids)
