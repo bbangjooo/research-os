@@ -1,10 +1,10 @@
 # §06 — M1-E v0.3 release close (2026-08-11)
 
-> Status: **SECOND RE-AUDIT FAIL — correction pre-specified**
+> Status: **SECOND CORRECTION VERIFIED — independent re-audit pending**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§05](05-2026-08-11-m1-e-usable-context.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §5, §7~§10
-> Active milestone: `M1-E` at `3/5`; Q2/Q5 second correction active
+> Active milestone: `M1-E` at `5/5`; independent re-audit pending
 
 ## 06.0 TL;DR
 
@@ -141,8 +141,9 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
   (`2026-08-11T05:09:53+09:00`). Frozen Context v2 compatibility observer가 새
   default v3를 암묵 호출하던 두 곳을 explicit `schema_version=2`로 고쳤다. 제품,
   fixture denominator, public code, acceptance는 바꾸지 않았다.
-- Corrected pre-spec 이후 product+tests added lines는 `303`이고 cap `650` 이하이다.
-  전체 tracked delta도 phase cap `1,150` 이하이다.
+- Original corrected pre-spec 이후 added lines는 product+tests `565` (cap `700`),
+  fixture+docs+README `390` (cap `600`), release tooling `304`, metadata `2`, total `1,261`
+  (cap `1,350`)이다.
 
 ### 06.6.2 Verification evidence
 
@@ -153,10 +154,10 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 | Frozen tokenless boundary | structured `7/7`; case-level observer/source/path/code/event+budget delta exact | PASS |
 | Frozen installer matrix | `6/6`; actual published 0.2 tree two-target upgrade, retained backup 2, drift writer delta 0 | PASS |
 | Base suite without recursive M1-C/M1-D meta-oracles (diagnostic) | `508 passed, 115 subtests passed` | PASS |
-| Corrected full Python 3.12 suite | single verifier `601 passed, 115 subtests passed` | PASS |
+| Corrected full Python 3.12 suite | single verifier `602 passed, 115 subtests passed` | PASS |
 | Static checks | single verifier ruff/ty/diff/clean-tree | PASS |
-| Wheel/install | installed metadata `0.3.0`; packaged skill; wheel SHA-256 `6c3450…3679` | PASS |
-| Authority/live boundary | recursive non-null `0`; external path refs `0`; product multi-agent false | PASS |
+| Wheel/install | installed metadata `0.3.0`; packaged skill; wheel SHA-256 `cdc451…2ad1` | PASS |
+| Authority/live boundary | recursive non-null `0`; three external `.research-os` byte snapshots pre/post exact; reviewed product Python tree `37` files / `52cbf8…277d`; product multi-agent false | PASS |
 
 ### 06.6.3 Invalid and diagnostic runs
 
@@ -182,11 +183,11 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 | v1 event / Context v2 / branch conclusion v1 compatibility | frozen bytes/digest, explicit v2, snapshot v2, full suite PASS | PASS |
 | tokenless v2 legacy boundary | structured `7/7` actual outcomes exact; reject event/budget delta 0 | PASS |
 | managed 0.2→0.3 upgrade/rollback | exact published tree, `6/6`, actual two-target upgrade/backup/drift rejection | PASS |
-| docs/version 0.3.0 + full release | receipt `1aa9c58`: `601+115`, static, clean tree, wheel/temp install | PASS |
+| docs/version 0.3.0 + full release | receipt `58b731e`: `602+115`, exact four-doc/version/product-tree/external snapshots, static, clean tree, wheel/temp install | PASS |
 
-Second re-audit가 Q2/Q5를 다시 무효화했으므로 현재 decision은 **ADVANCE (`3/5`)**다.
-`path`→executed operation, legacy typed-object zero, docs exact 0.3.0, external `.research-os`
-pre/post snapshot, exact product Python tree digest를 correction checkpoint 뒤 fresh 검증해야 한다.
+Second correction의 fresh single verifier가 Q2/Q5 결함을 직접 재측정했으므로 현재 decision은
+**ADVANCE (`5/5` verified; independent re-audit pending)**다. Re-audit PASS 전에는 M1-E나
+parent M1을 `CLOSE`하지 않는다.
 
 ### 06.6.5 End-state positioning
 
@@ -207,10 +208,11 @@ graph reducer, provider SDK, autonomous loop를 추가하지 않았다.
 
 ### 06.6.7 Claim mode and chronology
 
-**Claim mode: CONFIRMATORY.** Correction pre-spec `3eaba21` (`06:15:48+09:00`)이 direct
-parent인 implementation `1aa9c58` (`06:26:16+09:00`)보다 먼저다. Case 수·public code·product
+**Claim mode: CONFIRMATORY.** Second-correction pre-spec `ff608af` (`07:22:40+09:00`)이 direct
+parent인 implementation `58b731e` (`07:26:14+09:00`)보다 먼저다. Case 수·public code·product
 semantics·threshold를 바꾸지 않고, 그 clean implementation commit에서 처음 실행한 single
-verifier receipt만 corrected confirmatory evidence로 사용한다.
+verifier receipt만 second-correction confirmatory evidence로 사용한다. First-correction
+`3eaba21→1aa9c58` receipt는 chronology/history이지 현재 Q2/Q5 분자가 아니다.
 
 `3ca2115` corrected pre-spec의 parent/tree/timestamp는
 `27423b1` / `3fb3cac…` / `2026-08-11T04:11:43+09:00`이다. First result-bearing
@@ -223,8 +225,9 @@ verifier receipt만 corrected confirmatory evidence로 사용한다.
 
 Initial full/harness outputs와 critic이 무효화한 A3/A5 aggregate PASS는 close 분자에서 제외한다.
 기존 `597+115`는 regression 실행 사실로만 보존하고 A5 single-gate PASS로 대리하지 않는다.
-새 structured manifest와 single-verifier pre-spec 뒤 fresh receipt `1aa9c58`, `601+115`,
-authority non-null 0, wheel/install 0.3.0만 A3/A5 close evidence다.
+Second-correction pre-spec 뒤 fresh receipt `58b731e`, `602+115`, executed path와 legacy typed-zero,
+authority non-null 0, exact product tree, external control-tree no-write, wheel/install 0.3.0만 현재
+A3/A5 close evidence다. First receipt `1aa9c58`은 historical correction evidence로만 보존한다.
 
 ### 06.6.9 Residuals and north-star movement
 
@@ -240,9 +243,8 @@ authority non-null 0, wheel/install 0.3.0만 A3/A5 close evidence다.
 
 ## 06.7 Next action
 
-Structured seven-case executable binding과 single fail-closed verifier를 구현하고 fresh
-focused/full/build 결과를 얻은 뒤 progress critic과 independent 7-pass audit를 재실행한다.
-둘 다 PASS할 때만 M1-E와 parent M1을 close하고 M2-A를 시작한다.
+Second-correction receipt를 durable하게 고정한 뒤 progress critic과 independent 7-pass audit를
+재실행한다. 둘 다 PASS할 때만 M1-E와 parent M1을 close하고 M2-A를 시작한다.
 
 ## 06.8 Pre-result specification correction
 
@@ -265,9 +267,16 @@ focused/full/build 결과를 얻은 뒤 progress critic과 independent 7-pass au
 - Q5는 개별 수동 command를 한 표에 모은 것을 단일 release gate로 잘못 청구했으므로 A5
   PASS를 무효화했다. 새 verifier는 version/docs/full thresholds/manifest/recursive authority/
   static/wheel/temp install/policy boundary를 한 fail-closed command로 묶는다.
-- 이 section과 structured manifest는 implementation보다 먼저 `3eaba21`에 고정됐다. Fresh
-  verifier가 `1aa9c58`에서 PASS했고 durable receipt는 `v0.3.0-release-receipt.json`이다.
+- 이 section과 structured manifest는 implementation보다 먼저 `3eaba21`에 고정됐다. First
+  verifier가 `1aa9c58`에서 PASS했지만 그 receipt는 second re-audit 뒤 historical evidence로
+  내려갔고 durable receipt는 second-correction 결과로 교체됐다.
 - Second re-audit verdict는 Q1/Q3/Q4/Q6/Q7/Q8 PASS, Q2/Q5 FAIL이다. `path`가 dispatcher에
   미소비였고 legacy typed-object 0을 직접 노출하지 않았으며 docs exact version, 실제 external
   filesystem no-write, equivalent multi-agent drift를 keyword보다 강하게 막지 못했다. 위 manifest
   fields와 PIVOT cap을 다음 implementation/result보다 먼저 local checkpoint에 고정한다.
+- Second-correction pre-spec `ff608af` 뒤 implementation `58b731e`가 manifest `path`와 실제
+  executed operation을 exact bind하고 legacy Proposal/Diagnosis/ClassState/typed registration
+  count `0`을 직접 비교한다. Single verifier는 four docs exact `0.3.0`, reviewed product Python
+  tree `37`/`52cbf8…277d`, 세 sibling project `.research-os`의 pre/post exact byte snapshot을
+  manifest에서 소비한다. Clean `58b731e`의 fresh verifier는 `602+115`, authority `0`, wheel
+  `cdc451…2ad1`로 PASS했고 durable receipt를 교체했다. Independent re-audit은 아직 pending이다.

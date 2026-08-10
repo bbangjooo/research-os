@@ -23,10 +23,10 @@ manifest가 증명하는가?
 
 **Response:**
 
-FAIL on second re-audit. `path`가 manifest에 선언됐지만 dispatcher가 소비하지 않았고 legacy
-replay가 Proposal/Diagnosis/ClassState promotion zero를 직접 노출하지 않았다. Next correction은
-executed source operation을 normalized path와 exact bind하고 typed registration/proposal/diagnosis/
-class-state count 0을 manifest expected로 비교한다.
+DIRECT after second correction, pending independent re-audit. Manifest 일곱 case의 literal row가
+실제 source operation을 실행하고 observer의 normalized `executed_path`를 각 expected `path`와
+exact 비교한다. Legacy replay observer는 active generation/legacy count뿐 아니라 typed
+registration/Proposal/Diagnosis/ClassState count가 모두 `0`임을 manifest expected와 직접 비교한다.
 
 ## Q3 [measurement-gap]
 
@@ -63,10 +63,12 @@ suite·부분 문서 sync가 green이 되지 못하게 하는가?
 
 **Response:**
 
-FAIL on second re-audit. No-bypass/full/authority/wheel binding은 PASS했지만 docs exact 0.3.0을
-강제하지 않았고 external policy는 absolute-string scan, multi-agent policy는 keyword scan뿐이었다.
-Next correction은 four docs exact 0.3.0, 세 sibling project `.research-os` pre/post byte snapshot,
-reviewed product Python tree exact file-count/digest를 manifest에서 소비한다.
+DIRECT after second correction, pending independent re-audit. Single verifier는 four docs의 exact
+`0.3.0`, three version surfaces, full/authority/static/wheel을 한 경로에서 실행한다. Manifest에
+고정한 세 sibling project의 실제 `.research-os` tree를 pre/post exact byte snapshot해 변경을
+fail-closed로 거절하고, reviewed product Python tree `37` files / `52cbf8…277d`를 exact 비교해
+keyword 우회와 equivalent orchestration drift를 함께 차단한다. Receipt `58b731e`는 `602+115`,
+external snapshots 3/3 unchanged, authority non-null 0, wheel/install 0.3.0을 기록한다.
 
 ## Q6 [end-state-positioning]
 
@@ -101,6 +103,6 @@ Acceptance, fixture denominator, upgrade failure matrix, release-manifest 판정
 
 **Response:**
 
-DIRECT after correction. §06.6.7은 explicit `CONFIRMATORY`이고 correction pre-spec `3eaba21`이
-implementation `1aa9c58`의 direct parent다. 그 이전 A3/A5 aggregate 결과는 제외하고 clean
-implementation에서 처음 얻은 single receipt만 분자로 사용한다.
+DIRECT after second correction. §06.6.7은 explicit `CONFIRMATORY`이고 second-correction pre-spec
+`ff608af`가 implementation `58b731e`의 direct parent다. First correction receipt는 history로
+남기고 clean `58b731e`에서 처음 얻은 `602+115` receipt만 현재 Q2/Q5 분자로 사용한다.
