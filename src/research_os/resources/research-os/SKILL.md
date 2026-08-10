@@ -155,8 +155,14 @@ not consume experiment budget because no experiment was registered.
    permits, examine more than one pre-registered class before concentrating.
 2. **Diagnose:** after every terminal result, run no experiment. Inspect the
    reason code, metrics, constraints, and relevant artifacts; state whether the
-   mechanism, implementation, evidence, or constraint failed. Use that diagnosis
-   to select the next parent and action.
+   mechanism, implementation, evidence, or constraint failed. For a version-two
+   generation, construct one strict Diagnosis bound to the exact terminal event
+   ID/hash, persisted Proposal/scope, Decision observation, and verified artifact
+   references, then invoke
+   `research-os --project ABS diagnose /ABS/PATH/diagnosis.json`. Refresh
+   `study-status` and `replay` before selecting
+   the next parent and action. Never treat the agent's interpretation or
+   recommendation as class-closure or execution authority.
 3. **Ablate or exploit:** use `--graph-action ablate` to isolate an uncertain
    mechanism or `--graph-action exploit` to improve a supported one. Both require
    a defensible compatible `--parent`; never blindly chain the newest node.

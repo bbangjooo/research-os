@@ -10,10 +10,10 @@
     "legacy_v1_projection_raw_sha256": "1b168e6eeef42a470dccbac9385366714c4def4f9e0e031c6b005e07bb391800",
     "legacy_v1_projection_canonical_digest": "9acf4e08a01756d39e4789a7e13f635d891cb426c183abcbfc4793c53d472e88",
     "m1c_manifest": "../v2/manifest.json",
-    "m1c_manifest_raw_sha256": "4b9c216ea7a6bcbd8aec00a2224e4c41c349c038ea4b1d7c7fafcc8721e31b1d",
-    "m1c_manifest_sorted_compact_sha256": "75d7e1e568f3d42463184544e4b396c6f68cd1ae91fc3d5026dffda8454dca67",
+    "m1c_manifest_raw_sha256": "0571da460b8c405b291c1d08b564ec54db3f11f56a37431625de96355348f019",
+    "m1c_manifest_sorted_compact_sha256": "fc9d6d324af4bfbce3ebd9ec941dd6994190e4b3c4ad9fa60c75da8ad411a510",
     "m1c_transition_matrix": "../v2/m1c-transition-negative-matrix.json",
-    "m1c_transition_matrix_raw_sha256": "1e9e8e60a18dfe0d610a4928ecb90933204d43c53796e00d253343093ed96dd0"
+    "m1c_transition_matrix_raw_sha256": "76524d0629f909c1f5ee1eabe0ad297463f2f1e7bb7685230e2c6c5b5317288c"
   },
   "expected": {
     "m1b_manifest_cases": 29,
@@ -21,7 +21,7 @@
     "m1c_manifest_cases": 20,
     "m1c_manifest_exact_matches": 20,
     "m1c_transition_cases": 53,
-    "m1c_transition_exact_matches": 53,
+    "m1c_transition_case_rejections": 53,
     "m1c_direct_replay_path_matches": 72,
     "legacy_event_bytes_preserved_after_replay": true,
     "legacy_event_head_preserved_after_replay": true,

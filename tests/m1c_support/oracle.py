@@ -83,6 +83,14 @@ def sorted_compact_digest(value: object) -> str:
     return sha256_bytes(encoded)
 
 
+def _json_canonical_equal(left: object, right: object) -> bool:
+    """Compare values in the public canonical-JSON equality domain."""
+
+    from research_os.contracts import canonical_json_bytes
+
+    return canonical_json_bytes(left) == canonical_json_bytes(right)
+
+
 def _pointer_tokens(pointer: str) -> list[str]:
     if pointer == "":
         return []
@@ -203,7 +211,7 @@ def _assert_subset(observed: object, expected: object, *, path: str = "$") -> No
                 raise AssertionError(f"{path}.{key} is absent")
             _assert_subset(observed[key], value, path=f"{path}.{key}")
         return
-    if observed != expected:
+    if not _json_canonical_equal(observed, expected):
         raise AssertionError(f"{path}: expected {expected!r}, observed {observed!r}")
 
 
@@ -457,17 +465,13 @@ class DocumentResolver:
             except KeyError as exc:
                 raise KeyError(f"unbound document control observer: {observer}") from exc
             expected_control = {
-                key: copy.deepcopy(value)
-                for key, value in control.items()
-                if key != "observer"
+                key: copy.deepcopy(value) for key, value in control.items() if key != "observer"
             }
             observed_control = handler(copy.deepcopy(source_document))
             if not isinstance(observed_control, Mapping):
                 raise TypeError("document control observer must return an object")
             _assert_subset(observed_control, expected_control)
-            self.control_observer_calls[observer] = (
-                self.control_observer_calls.get(observer, 0) + 1
-            )
+            self.control_observer_calls[observer] = self.control_observer_calls.get(observer, 0) + 1
         patches = specification.get("patches", [])
         if not isinstance(patches, Sequence) or isinstance(patches, (str, bytes)):
             raise TypeError("document patches must be an array")
@@ -581,5 +585,5 @@ def _changed_pointers(left: object, right: object, pointer: str = "") -> tuple[s
                 changed.extend(_changed_pointers(left[key], right[key], child))
         return tuple(changed)
     if isinstance(left, list) and isinstance(right, list):
-        return () if left == right else (pointer,)
-    return () if left == right else (pointer,)
+        return () if _json_canonical_equal(left, right) else (pointer,)
+    return () if _json_canonical_equal(left, right) else (pointer,)

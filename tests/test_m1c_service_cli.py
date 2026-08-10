@@ -87,6 +87,67 @@ def _scoped_project(tmp_path: Path) -> tuple[Path, ResearchService, dict[str, ob
     return project, service, proposal
 
 
+def _record_retryable_diagnosis(
+    service: ResearchService,
+    experiment_id: str,
+) -> dict[str, object]:
+    events = service.event_log.read()
+    registration_event = next(
+        event
+        for event in events
+        if event.event_type == "EXPERIMENT_REGISTERED"
+        and event.payload.get("experiment_id") == experiment_id
+    )
+    terminal_event = next(
+        event
+        for event in events
+        if event.event_type == "EXPERIMENT_TERMINATED"
+        and event.payload.get("experiment_id") == experiment_id
+    )
+    registration = registration_event.payload
+    terminal = terminal_event.payload
+    proposal = registration["proposal"]
+    assert isinstance(proposal, dict)
+    diagnosis = {
+        "diagnosis_schema_version": 1,
+        "generation_id": registration["generation_id"],
+        "compatibility_digest": registration["compatibility_digest"],
+        "experiment_id": experiment_id,
+        "proposal_id": registration["proposal_id"],
+        "proposal_digest": registration["proposal_digest"],
+        "hypothesis_class_id": proposal["hypothesis_class_id"],
+        "evaluation_scope_id": registration["evaluation_scope_id"],
+        "terminal_evidence": {
+            "experiment_id": experiment_id,
+            "event_id": terminal_event.event_id,
+            "event_hash": terminal_event.hash,
+        },
+        "artifact_evidence": [],
+        "observation": {
+            "terminal_status": terminal["status"],
+            "reason_code": terminal["reason_code"],
+            "verified": terminal["verified"],
+            "retryable": terminal["retryable"],
+            "primary_metric": terminal["primary_metric"],
+            "candidate_value": None,
+            "baseline_value": None,
+            "improvement": None,
+            "promotion_margin": None,
+            "gate_evaluations": [],
+        },
+        "interpretation": (
+            "The adapter failed before producing quantitative decision evidence."
+        ),
+        "failure_type": "operational",
+        "falsifier": (
+            "An exact retry completes under the same frozen registration and evidence contract."
+        ),
+        "recommendation": "retry",
+        "authorized_action": None,
+    }
+    return service.record_diagnosis(diagnosis)
+
+
 def test_baseline_scope_option_is_forwarded_without_changing_legacy_call_shape() -> None:
     service = mock.Mock()
     service.baseline.return_value = {"authorized_action": None}
@@ -489,6 +550,11 @@ def test_typed_retry_inherits_exact_proposal_scope_and_candidate(
     with mock.patch.object(service, "_call_sealed", side_effect=fail_first_run):
         first = service.run_once(candidate, proposal=proposal)
     assert first["status"] == TerminalStatus.INFRA_FAILED.value
+    diagnosis = _record_retryable_diagnosis(
+        service,
+        str(first["experiment_id"]),
+    )
+    assert diagnosis["experiment_id"] == first["experiment_id"]
 
     second = service.run_once(
         candidate,

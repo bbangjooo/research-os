@@ -1,50 +1,86 @@
 # Critic — Phase 04 (2026-08-10) — m1-d-diagnosis-class-frontier
 
-> Status: **POST-CHECKPOINT RESULT-INVALID — correction audit open; M1-D EXPLORATORY**
+> Status: **FINAL CORRECTED VERIFY PASS — M1-D EXPLORATORY; independent progress audit PASS**
 
-## Q1 — Diagnosis schema와 evidence binding이 exact·replay-safe한가?
+영향 §북극성 행: NS1, NS2, NS3
+
+## Q1 [measurement-gap] — Diagnosis schema와 evidence binding이 exact·replay-safe한가?
 
 **First review: FAIL.** Full artifact equality를 문서에 선언했지만 omission/extra/empty/order attacks가 없어 subset-accepting implementation을 잡지 못했다. 동일 Diagnosis 재제출의 idempotent service success와 duplicate persisted event replay failure도 race oracle에서 충돌했다. Terminal corpus의 `decision`은 actual `Decision.to_dict()` 9 fields가 아니라 quantitative subset이었다.
 
 Revision response: terminal corpus는 exact 9-field Decision으로 고정하고, artifact full-set negative를 추가한다. Public service의 concurrent identical request는 success 2/event 1/idempotent reuse 1/error 0이며, canonical history에 Diagnosis event가 둘 존재하는 corruption만 replay `DIAGNOSIS_ALREADY_RECORDED`다.
 
-## Q2 — Control과 conclusive rejection 정의가 authority를 탈취하지 않는가?
+**Response:** _DIRECT_ — final negative four paths `460/460`, exact 10-field observation,
+Artifact/Decision/Result binding, extra-key와 bool-number corruption witnesses, direct service
+idempotency/replay tests가 PASS했다. Phase §04.5 final evidence와 `tests/test_m1d_state.py`,
+`tests/test_m1d_service_cli.py`가 근거다.
+
+## Q2 [proxy-vs-real] — Control과 conclusive rejection 정의가 authority를 탈취하지 않는가?
 
 **First review: PASS.** Baseline/golden만 registration 밖 control이고 diagnostic scope는 scientific이다. `HARD_CONSTRAINT_FAILED`는 certified gate-definition snapshot이 replay 가능해질 때까지 negative Diagnosis로만 보존하고 class count는 0이다.
 
-## Q3 — Pending, stop, successor generation 정책이 deadlock·laundering 없이 일관적인가?
+**Response:** _DIRECT_ — taxonomy `26/26`의 positive 7/zero 19와 direct margin/gate
+single-axis counterfactual이 kernel truth만 count함을 재현했다. Agent narrative와
+`is_control:true`는 disposition authority가 아니다.
+
+## Q3 [boundary] — Pending, stop, successor generation 정책이 deadlock·laundering 없이 일관적인가?
 
 **First review: FAIL.** `STUDY_STOPPED`를 Diagnosis validation보다 앞세우면 UNTRUSTED terminal이 자신에게 필요한 Diagnosis를 영구 차단한다. Budget/all-classes stop이 genuinely changed successor까지 막는 정책은 M1-B의 frozen generation-local budget/change-control contract와 충돌했다.
 
 Revision response: stop은 active-generation registration/retry/frontier만 막고 required Diagnosis append에는 적용하지 않는다. Pending과 active nonterminal이 해소되면 M1-B exact predecessor/change reason/new sealed contract를 만족하는 successor를 허용하며, unchanged/stale/missing-reason rules는 그대로 유지한다.
 
-## Q4 — ClassState transition과 support predicate가 total·deterministic한가?
+**Response:** _DIRECT_ — pending `23/23`, gate `37/37`, successor reset 3행과 direct
+recovery/preflight/race tests가 stopped Diagnosis append, active-nonterminal priority와 genuine
+successor를 exact 검증했다.
+
+## Q4 [counterfactual] — ClassState transition과 support predicate가 total·deterministic한가?
 
 **First review: FAIL.** Evidence partition 문구가 class-local이 아니었고, full-state oracle이 empty/conclusive만 다뤄 provisional/replicated/inconclusive/mixed partition을 증명하지 못했다. Supported predicate도 positive margin과 zero failed gates를 요구하지 않았으며 unsupported-parent counterfactual이 부족했다.
 
 Revision response: partition을 hypothesis-class-local exhaustive union으로 고치고 네 추가 full literal states를 고정한다. Shared support predicate는 exact terminal+Decision, verified primary improvement, positive margin, zero failed hard/support gates, no top-level error, active/latest/open/diagnosed conjunction이다. Invalid/undiagnosed/superseded/incompatible/closed/generic parent negatives를 추가한다.
 
-## Q5 — Semantic frontier와 stop projection을 raw evidence에서 독립 파생하는가?
+**Response:** _DIRECT_ — full states `54/54`, limits 2·3·4 N-1/N/post-close,
+immutable closure origin과 replicated support persistence가 exact replay되고 closed registration은
+거절된다.
+
+## Q5 [end-state-positioning] — Semantic frontier와 stop projection을 raw evidence에서 독립 파생하는가?
 
 **First review: FAIL.** Positive oracle가 pre-derived `eligible_nodes`를 입력으로 받아 eligibility/maturity를 시험하지 않았고 successful child가 소비해야 할 parent가 pool에 없어 exclusion이 vacuous했다. Stop case도 precomputed reason을 주입했다.
 
 Revision response: raw typed terminal/Decision/Diagnosis/class/scope evidence pool에서 support, maturity, child consumption, actions를 파생한다. Consumed parent를 pool에 포함하고 direct/failed-direct/grandchild/unrelated counterfactual을 고정한다. Stop은 UNTRUSTED terminal 전후 Diagnosis, budget ledger, closed ClassState에서 파생한다.
 
-## Q6 — Oracle이 hidden scenario나 expected self-echo 없이 실행 가능한가?
+**Response:** _DIRECT_ — 20 exclusion axes/21 subcases, membership-derived corruption witness,
+positive 5→ordered 3, caps 1·2·3·4·7과 retry allowlist-free positives가 PASS했다. 이는 pipeline
+§8.4 Study inference를 `△→○`로 구체화하며 §8.2 행동을 제거하지 않는다.
+
+## Q6 [claim-mode-discipline] — Oracle이 hidden scenario나 expected self-echo 없이 실행 가능한가?
 
 **First review: FAIL.** Required manifest가 없고 transition input이 scenario labels여서 support code가 hidden histories를 만들 여지가 있었다.
 
 Revision response: transition input은 ordered literal event histories로 바꾸고 expected state는 계속 full literal로 유지한다. Manifest 28 operations는 `{operation,input}`만 observer에 전달하고 `id`/`expected` access와 literal case dispatch를 금지한다.
 
-## Q7 — Compatibility와 null authority가 보존되는가?
+**Response:** _DIRECT_ — declarative-only observer schema, selector-free operation+input dispatch,
+literal `26/23/54/37/7`, expected-corruption witnesses와 correction fixed point가 PASS했다.
+Post-implementation correction이므로 phase §04.6.7은 EXPLORATORY로 고정했고 invalid 결과를
+북극성 evidence에서 제외했다.
+
+## Q7 [external-validation] — Compatibility와 null authority가 보존되는가?
 
 **First review: conditional PASS.** Frozen v1/M1-C parity, context v2/branch-conclusion v1 무변경, generic Finding 비추론, recursive null authority 경계는 위 schema/state defects가 닫히는 조건에서 적절하다.
 
-## Q8 — CONFIRMATORY chronology와 M1-D 다섯 conjunct가 정당한가?
+**Response:** _DIRECT_ — M1-C exact `20/20`, v2 final seals, four public state paths × 19
+keys, M1-D recursive authority non-null 0과 single regression floor를 별도로 재현했다.
+
+## Q8 [milestone-positioning] — Claim chronology와 M1-D 다섯 conjunct가 정당한가?
 
 **First review: FAIL.** Manifest/seal/product observer가 없고 위 oracle holes가 남아 independent pre-spec PASS나 confirmatory checkpoint를 청구할 수 없었다.
 
 Revision gate: revised phase + all supporting fixtures + manifest raw/sorted-compact seal에 대해 independent critic이 Q1–Q8 전부 PASS해야 docs/fixture-only pre-spec commit을 만든다. 그 commit이 첫 product/result-bearing commit보다 앞서지 않으면 M1-D는 `EXPLORATORY`로 강등한다.
+
+**Response:** _DIRECT_ — historical invalid measurements는 철회했고 final claim은
+EXPLORATORY다. Pipeline §9.4 M1-D의 다섯 conjunct가 phase §04.6.4에 각각 exact evidence와
+함께 `CLOSE`로 매핑되며 M1-C prerequisite는 closed다. Single floor는 `real 598.21s`, tests
+`>=442`, subtests `>=111`, ruff/ty/diff PASS다.
 
 ## Re-review
 
@@ -258,3 +294,94 @@ parser/identity를 통과하지 못하는 prerequisite defect다.
 minimal dependency rehash/re-ID correction-only checkpoint, 새 manifest/supporting seal, fresh
 Q1–Q8 PASS 전까지 기존 sixth PASS는 result-bearing 권한이 없다. Product semantic output을
 expected에 복사하거나 parser/identity를 약화하는 수정은 금지한다.
+
+## Post-correction live-observer audit — RESULT-INVALID
+
+Prerequisite fixture correction 뒤 실행한 anti-vacuity review는 기존 manifest `35/35`를
+result-bearing evidence로 인정하지 않았다.
+
+1. compatibility observer가 M1-C 20 operation 중 2개만 실행하고 나머지를 literal zero로
+   채웠다.
+2. transition observer가 request digest catalog에서 expected event identity/time/hash/output을
+   선택해 accepted gate 7행과 race 7행의 독립 실행을 오염시켰다.
+3. full state, gate/race final state/digest/head와 inner expected mutation을 실제 비교하지 않아
+   corrupt expected가 그대로 통과했다.
+4. terminal-pending 23행이 dispatch됐다는 count만 있고 reducer 실행은 0이었다.
+5. frontier exclusion은 axis label로 count를 올렸을 뿐 해당 node가 실제 output에서 제외됐는지
+   증명하지 않았다.
+
+Catalog를 제거한 mismatch census는 accepted gate 7/7와 race 7/7의 arbitrary event
+ID/timestamp/hash/head mismatch, Diagnosis append가 state에 남는 gate 3행의 state/digest mismatch,
+successor gate 3행의 budget-reset delta mismatch를 재현했다. Rejected gate 30행에는 exact
+path/details expected가 없어 stable error metadata claim도 관찰할 수 없다.
+
+**Verdict: FAIL / RESULT-INVALID.** Input/pre-head-derived deterministic entropy/clock,
+stdlib-only expected rebuild, all 23 pending executions, all inner exact comparisons and
+counterfactual expected corruption tests를 고정한 새 transition/manifest seal이 필요하다.
+Product output이나 expected catalog를 correction source로 쓰면 FAIL이다.
+
+## Second-correction candidate — awaiting fresh verdict
+
+Correction은 input/pre-head-only event entropy, exact gate error metadata, structural successor
+budget reset, all gate/race state/head/delta를 stdlib-only script로 재생성했다. Full-state 54행의
+normative expected는 exact state와 중복되던 78종 summary key를 제거하고 네 core key plus
+separate full literal state로 축소했다. Counting 26행은 byte-for-byte 유지했다.
+
+- transition raw:
+  `28d9c2d7ac42432aea36562a916ec2c5bae07c4b07a4581cd7276c571328e24f`
+- manifest raw:
+  `e0eb0ea0083100397762f217b8f0470bc08c551e14f5420ba7240fab9062abe2`
+- manifest public:
+  `f6328c23f586d856ec57ecbf32f516f124f40cd3fffccededf65e673573f4aa7`
+- executed transition rows: `26/23/54/37/7`; gate `37/37`, race `7/7`
+- corruption/dispatch witnesses: `3/3`; transition manifest bindings `12/12`
+- product focused: `110 passed, 4 subtests`; ruff/ty/diff PASS
+
+Rejected gate 30행 중 duplicate Diagnosis만 `$.experiment_id` path가 contract-defined이고,
+나머지 29 path는 under-specified 상태를 숨기지 않고 exact null로 고정했다. Details는 literal
+input/state에서 독립 파생한다. 이 snapshot은 fresh anti-vacuity audit와 regression floor 전인
+candidate이며 아직 PASS/CLOSE가 아니다.
+
+### First anti-vacuity verdict — FAIL, repaired
+
+Audit은 regression-child에서 actual M1-C `20/20`과 regression floor를 literal PASS로 바꾸는
+두 fail-open guard, correction `--check`가 counting 26/terminal 23 expected corruption을
+허용하는 결함, pending aggregate가 row equality가 아닌 census였던 결함을 재현했다.
+두 guard를 제거하고 child-env counterfactual을 추가했으며, correction check가 두 domain의
+semantic corruption을 거부하도록 보강했다. Pending aggregate는 independently derived pending
+ID tuple을 23행 모두 비교하고 one-row mutation에서 `22/23`으로 실패한다.
+
+Focused repair `5/5` 뒤 당시 intermediate manifest seal은 raw
+`0f9be9397ac4ef8ff2ef47193d7d3d446f48f077f9412721b199c4e3b805ab83`, public
+`5d0119f7fab7da5c7f8bc30b3582ba412a19f5babd8796f2dc3ac1e628ec0a47`다. 이전
+`e0eb…`/`f632…` candidate는 FAIL provenance일 뿐 final seal이 아니다. Fresh audit와 floor
+PASS 전까지 verdict는 계속 FAIL/open이다.
+
+## Final corrected implementation verification — PASS candidate
+
+이 절은 기존 closed Q1–Q8 질문에 대한 최종 verify response다. 새 질문을 만들지 않았다.
+Current bytes는 v3 manifest raw `10e037678f49397a14b9f75bc0d8913da7a8f8ed8af8607b2c6f4751892e1718`,
+public `c34efc9aeb5af9d83bd7325bc95cd948b4ba04de4ca7b773404a15100d28af78`,
+transition raw `92551a101bfbdbf96c92673750335a70ccd5d1bf422dc7fd80df4feeae9e3c54`다.
+Progress-critic verify는 session의 새 agent 생성 금지 때문에 root가 분리된 read-only pass로
+수행했으며, 독립성 경계는 simulated다. Final cycle close는 별도 agent의 7-pass auditor가
+판정한다.
+
+| Q | response | current direct evidence |
+|---|---|---|
+| Q1 exact Diagnosis/evidence | **DIRECT** | exact 10-field observation, event/artifact/Decision/Result binding, negative four paths `460/460`, extra-key와 bool-number corruption reject, direct service/replay tests PASS |
+| Q2 control/conclusive authority | **DIRECT** | taxonomy `26/26` = positive 7/zero 19; kernel disposition ignores narrative/control label and binds quantitative/gate truth |
+| Q3 pending/stop/successor | **DIRECT** | pending `23/23`, gate `37/37`, successor reset 3행, stopped Diagnosis append와 active-nonterminal ordering, recovery re-gating direct tests PASS |
+| Q4 ClassState/support | **DIRECT** | full state `54/54`, limits 2·3·4 N-1/N/post-close, immutable closure origin, replicated support persistence and closed registration reject |
+| Q5 frontier/stop | **DIRECT** | 20 exclusion axes/21 subcases, membership-derived witness, positive 5→ordered 3, caps 1·2·3·4·7, retry eligibility without terminal allowlist |
+| Q6 anti-self-echo | **DIRECT** | selector-free operation+input dispatch, observer declarative-only schema, `26/23/54/37/7` literal execution, corruption witnesses, correction fixed point PASS |
+| Q7 compatibility/authority | **DIRECT** | M1-C exact `20/20`, v2 current seals, four public state paths × 19 keys, recursive non-null authority 0, M1-D bounded manifest PASS |
+| Q8 chronology/five conjuncts | **DIRECT** | historical invalid results excluded and claim downgraded EXPLORATORY; five product conjuncts 5/5; single floor PASS `real 598.21s`, tests `>=442`, subtests `>=111`, ruff/ty/diff PASS |
+
+Fresh four-pass anti-vacuity auditor와 narrow recursion auditor가 각각 PASS했고 product review의
+actionable P0/P1/P2는 0건이다. Bounded manifest는 `56 passed, 2 deselected`, 제외된 두 row는
+compatibility exact `20/20`과 단일 actual floor로 따로 증명됐다. Duplicate broad attempt는
+중단 provenance로만 남기고 결과 증거에서 제외했다.
+
+**Progress critic verify verdict: PASS (simulated independence).** Q1–Q8 응답은 모두 DIRECT이며
+LIMITATION/OUT-OF-SCOPE escape는 없다. 이 verdict는 discipline auditor PASS를 대신하지 않는다.

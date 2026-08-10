@@ -128,6 +128,33 @@ history but does not yet impose a lifetime cap. Registrations before the first
 generation remain readable as `legacy_unstructured`; after a generation opens,
 an unbound or partial registration fails closed.
 
+## Diagnosis, class state, and semantic frontier
+
+Every terminal experiment registered under `StudyContract` v2 creates a pending
+Diagnosis obligation. Until one strict `research.experiment_diagnosed.v1` event
+is appended, the service rejects a new registration, retry, or successor
+generation. The Diagnosis is not another experiment: it has
+`authorized_action: null` and binds the exact terminal event ID/hash, persisted
+Proposal and scope, kernel-reconstructed Decision observation, and verified
+artifact references. Retrying the same canonical Diagnosis is idempotent;
+conflicting or late diagnoses fail closed in locked live append, cold replay,
+and projection rebuild.
+
+`ClassState` is a pure replay-derived view, not a second canonical table.
+Conclusive class rejections count once per causal chain; operational,
+insufficient-evidence, hard-gate-only, and agent-labelled control outcomes do
+not close a class. Kernel evidence determines provisional support, replication
+requirements, replication, falsification, inconclusive state, and immutable
+closure. Agent-written interpretation and recommendation remain provenance and
+retrieval input, never disposition or execution authority.
+
+The semantic frontier returns only open, contract-compatible, scientifically
+eligible classes and parents. A separate retry frontier preserves eligible
+operational retries. Both are deterministic replay outputs; their ordering is a
+policy, not a claim that Research OS has learned the scientifically optimal next
+hypothesis. `agent-context` v2 does not yet expose these views or help author the
+strict Diagnosis; that compatibility surface is context v3 work.
+
 ## Scientific correctness boundary
 
 Research OS proves that configured bytes and protocol results are bounded,

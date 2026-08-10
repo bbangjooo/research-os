@@ -1,6 +1,6 @@
 # §04 — M1-D Diagnosis, ClassState, and Semantic Frontier (2026-08-10)
 
-> Status: **IMPLEMENTATION — EXPLORATORY / RESULT-INVALID oracle correction audit open**
+> Status: **CLOSED — EXPLORATORY / independent progress audit PASS**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §02
 > 직전 phase: [`§03 M1-C`](03-2026-08-10-m1-c-typed-proposal-replication.md)
 > Pipeline 영향: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §3, §8.4 Study inference, §9.4 M1-D
@@ -8,7 +8,7 @@
 
 ## 04.0 한 단락 요약 (TL;DR)
 
-M1-D는 StudyContract v2의 모든 terminal experiment를 exact event/hash·Proposal·scope·quantitative decision·artifact evidence에 묶인 typed `Diagnosis`로 닫기 전에는 다음 registration, retry, successor generation을 허용하지 않는다. Agent가 적는 interpretation·failure type·falsifier·recommendation은 지식으로 보존하되 class count나 frontier 권한으로 신뢰하지 않는다. Kernel은 exact verified terminal evidence만으로 Proposal retry-chain당 conclusive rejection을 최대 한 번 세고, preregistered threshold에서 derived `ClassState`를 비가역적으로 닫는다. Semantic frontier는 active generation/compatibility의 diagnosed verified `VALIDATED` scientific leaves만 deterministic하게 고른다. 목표 §북극성은 NS1·NS2·NS3, 목표 종착지 delta는 실패를 replayable state와 다음 선택 입력으로 바꾸는 것이며, 목표 checkpoint는 M1-D 다섯 conjunct 전부 `CLOSE`다.
+M1-D는 StudyContract v2의 모든 terminal experiment를 exact event/hash·Proposal·scope·quantitative decision·artifact evidence에 묶인 typed `Diagnosis`로 닫기 전에는 다음 registration, retry, successor generation을 허용하지 않는다. Agent interpretation은 보존하되 class count나 frontier 권한으로 신뢰하지 않고, kernel은 verified terminal evidence만으로 derived `ClassState`와 semantic/retry frontier를 재생한다. Historical oracle 결과 두 개는 `RESULT-INVALID`로 철회했으며 final corrected transition `26/23/54/37/7`, negative `460/460`, direct/bounded/compatibility/floor evidence가 five conjunct 5/5를 충족해 M1-D `CLOSE`를 EXPLORATORY 등급으로 청구한다. NS1·NS2·NS3와 pipeline §8.4 Study inference를 움직이지만 Program Memory·autonomous loop·NS6 효과는 청구하지 않는다.
 
 ## 04.1 왜 이 작업을 하나
 
@@ -153,6 +153,15 @@ StudyContract v2 `ScientificState.to_dict()`는 기존 generation/contract/budge
 - Namespaced Diagnosis event는 SQLite의 canonical truth table을 만들지 않지만 projection cursor 우회를 막기 위해 full scientific-history-required set에 포함한다. Cold reducer, fresh projection rebuild, service replay가 같은 state/error를 내야 한다.
 - Context v2와 branch conclusion v1은 M1-E까지 exact 보존한다. Diagnosis는 generic Finding으로 자동 추론하거나 legacy branch conclusion으로 대체하지 않는다.
 
+### 04.1.8 Scope
+
+- In scope: Diagnosis v1 schema/identity/evidence binding, pending registration gate, derived
+  ClassState/closure, semantic/retry frontier, service/CLI/replay/projection races, M1-C/v1
+  compatibility and null authority.
+- Out of scope: context v3/authoring UX, Claim/program memory, autonomous loop, unseen learning
+  effect, live project migration and product multi-agent.
+- Target anchors: NS1·NS2·NS3, pipeline §8.4 Study inference, checkpoint M1-D five conjuncts.
+
 ## 04.2 immutable oracle과 사전 예상 결과
 
 Versioned oracle은 `tests/fixtures/scientific_state/v3/manifest.json`과 supporting fixture 7개다.
@@ -194,6 +203,23 @@ Anti-self-echo:
 | protocol/docs | README, architecture, skill references | human protocol and executable gate agree |
 | executable oracle | `tests/test_m1d_*`, v3 fixture observer | manifest 28/28, prior oracle parity |
 
+### 04.3.1 무엇을 만들었나
+
+- `science/diagnoses.py`의 strict Diagnosis v1과 `science/state.py`의 evidence-bound reducer,
+  derived ClassState, pending/stop/semantic/retry frontier를 public state에 추가했다.
+- `service.py`가 Diagnosis append/idempotency, registration/retry/successor preflight,
+  recovery re-gating과 coherent projection replay를 locked path에서 수행한다.
+- `tests/test_m1d_state.py`, `tests/test_m1d_service_cli.py`,
+  `tests/test_m1d_manifest_oracle.py`와 `tests/m1d_support/`가 direct behavior,
+  `26/23/54/37/7` literal transitions, `460/460` negative paths, races와 compatibility를 관찰한다.
+- `scripts/rebuild_m1d_transition_correction.py --check`가 final transition bytes의
+  fixed point와 121 histories/912 Events/105 state digests를 product output 없이 재계산한다.
+- `README.md`, `docs/architecture.md`, `docs/agent-usage.md`, packaged
+  `resources/research-os/SKILL.md`가 public `diagnose` 명령, pending gate,
+  kernel-owned ClassState/frontier, context v2 authoring limitation을 동일하게 명시한다.
+- Observable delta는 phase §04.5의 direct `67`, bounded `56`, compatibility `20/20`, single
+  floor PASS와 final seals로 측정했다.
+
 ## 04.4 검증 계획
 
 - Focused: Diagnosis parser/digest/ID, terminal/Decision/artifact binding, pending gate, one-per-chain count, N-1/N closure, support/replication transitions, frontier positive/exclusions/order, idempotent/concurrent append.
@@ -206,7 +232,96 @@ Anti-self-echo:
 
 ## 04.5 결과 vs 가설
 
-구현 전 첫 independent pre-spec review부터 다섯 번째 review까지의 FAIL/repair trail 뒤, sixth exact snapshot은 supporting hash 7/7, manifest raw `950096a8f1b4c4c46f42329d1ee77a16d741c678eba6108544280b01031f0a97`, public `sha256_json` `6f72ec9fc9ece754e40c1be6598e50eeddd9cc053338ebc2ce97a1e9872136ea`에서 fresh Q1–Q8 **전부 PASS**했고 `091af24`로 product code 전에 고정됐다. 구현 첫 replay에서 valid frozen full-state 50/54가 exact 일치했으나 최소 네 literal contradiction이 발견됐다: retry-frontier history의 허용 enum 밖 `failure_type="execution"` 2개, limit-4 세 history의 contract digest `e907…`에 대한 canonical generation ID `generation_1dcfe94c2c8299219dbf218d2b3f1f60` 대신 이전 `generation_5d…` 유지. Gate replay도 superseded history의 같은 invalid enum과 all-classes history의 undeclared baseline ID를 추가로 드러냈다. 기존 Diagnosis parser와 M1-B generation identity로 독립 재현했으므로 현재 classification은 **RESULT-INVALID**, M1-D claim mode는 **EXPLORATORY**다. Fixture/manifest는 아직 수정하지 않았고, 전체 contradiction census → minimal canonical correction → correction-only checkpoint → 새 raw/public seal → fresh Q1–Q8 PASS 전에는 product 결과나 M1-D CLOSE를 청구하지 않는다. 상세 trail은 [`04-m1-d-diagnosis-class-frontier.critic.md`](04-m1-d-diagnosis-class-frontier.critic.md)에 보존한다.
+구현 전 첫 independent pre-spec review부터 다섯 번째 review까지의 FAIL/repair trail 뒤, sixth exact snapshot은 supporting hash 7/7, manifest raw `950096a8f1b4c4c46f42329d1ee77a16d741c678eba6108544280b01031f0a97`, public `sha256_json` `6f72ec9fc9ece754e40c1be6598e50eeddd9cc053338ebc2ce97a1e9872136ea`에서 fresh Q1–Q8 **전부 PASS**했고 `091af24`로 product code 전에 고정됐다. 구현 첫 replay에서 valid frozen full-state 50/54가 exact 일치했으나 최소 네 literal contradiction이 발견됐다: retry-frontier history의 허용 enum 밖 `failure_type="execution"` 2개, limit-4 세 history의 contract digest `e907…`에 대한 canonical generation ID `generation_1dcfe94c2c8299219dbf218d2b3f1f60` 대신 이전 `generation_5d…` 유지. Gate replay도 superseded history의 같은 invalid enum과 all-classes history의 undeclared baseline ID를 추가로 드러냈다. 기존 Diagnosis parser와 M1-B generation identity로 독립 재현했으므로 당시 classification은 **RESULT-INVALID**, M1-D claim mode는 **EXPLORATORY**였다. 이 historical result는 final evidence에서 제외했고 상세 trail은 [`04-m1-d-diagnosis-class-frontier.critic.md`](04-m1-d-diagnosis-class-frontier.critic.md)에 보존한다.
+
+Correction 후 live observer를 expected/request catalog에서 분리하는 anti-vacuity 감사가 두 번째
+`RESULT-INVALID`를 발견했다. 기존 `35/35`는 terminal-pending 23행을 실행하지 않았고,
+M1-C compatibility 20 operation 중 2개만 실행했으며, full state·accepted event·gate/race
+expected를 실제 관찰값과 끝까지 비교하지 않았다. Catalog lookup을 제거하자 accepted gate
+7행과 forced race 7행의 동결 event ID·timestamp·hash/head가 public append의 비결정적
+entropy를 임의의 정답으로 취급한 것이 드러났다. 세 successor gate는 그뿐 아니라 새
+generation budget reset의 per-row delta를 0으로 잘못 고정했다. 두 single-registration
+history는 `attempts=-1`, `elapsed=-1000`, `cost=-2500`이고, two-registration all-classes
+history는 각각 `-2`, `-2000`, `-5000`이다. Rejected gate 30행도 code만 있고 required
+path/details oracle이 없다.
+
+따라서 당시 manifest 결과는 다시 **RESULT-INVALID / EXPLORATORY**였다. Correction은 literal
+input과 pre-head만으로 결정되는 test-only event ID/clock 규칙을 먼저 선언하고, stdlib-only
+rebuild script가 affected event/state/head/delta와 rejected error metadata를 독립 재계산하는
+방식으로만 수행한다. Product output, case ID, expected catalog를 생성 입력으로 쓰지 않는다.
+새 transition/manifest seal, expected-corruption counterfactual, 실제 23 terminal-pending 실행,
+full compatibility 20/20과 fresh Q1–Q8 PASS 전에는 M1-D close나 preview certification을
+청구하지 않는다.
+
+같은 감사에서 full-state 54행의 `expected`가 exact `expected_state`와 별도로 82종의
+row-specific summary key를 중복 보유하면서도 observer가 이를 비교하지 않는 문제가
+확인됐다. 60여 파생 규칙을 또 하나의 shadow reducer로 만드는 대신 normative surface를
+`history_event_count`, `operation_deltas`, `pre_state_digest`, `post_state_digest` 네 key와
+별도 full literal `expected_state`로 축소한다. 나머지 78종 summary key는 ignored subtree로
+숨기지 않고 fixture에서 제거하며, taxonomy/gate/race의 targeted expected는 그대로 둔다.
+이는 subset PASS가 아니라 중복 oracle surface를 명시적으로 폐기하는 second correction이다.
+
+Second-correction candidate는 stdlib-only rebuild를 두 번 적용해 byte fixed point를 확인했다.
+Transition raw SHA-256은
+`28d9c2d7ac42432aea36562a916ec2c5bae07c4b07a4581cd7276c571328e24f`,
+resealed manifest raw는
+`e0eb0ea0083100397762f217b8f0470bc08c551e14f5420ba7240fab9062abe2`,
+public digest는
+`f6328c23f586d856ec57ecbf32f516f124f40cd3fffccededf65e673573f4aa7`다.
+Independent check census는 121 histories/896 history Events/912 total Event objects,
+ClassState 210, Diagnosis wrappers 266, state digests 105다. 실제 transition observer는
+147 literal rows를 실행해 taxonomy `26/26`, pending `23/23`, full state `54/54`, gate
+`37/37`, race `7/7`을 exact 비교했고, transition binding `12/12`, inner corruption/AST
+`3/3`을 통과했다. Product focused suite는 M1-C 포함 `110 passed, 4 subtests`, ruff/ty/diff는
+PASS다. 이 문단은 correction evidence이며 fresh anti-vacuity critic/auditor verdict 전에는
+M1-D close를 뜻하지 않는다.
+
+첫 anti-vacuity audit는 이 candidate를 FAIL했다. Regression-child의 M1-C/floor literal-PASS
+guard 2개, stdlib `--check`의 terminal/counting corruption blind spot, pending aggregate의
+census-only assertion을 제거·보강했다. Focused repair `5/5` 뒤 transition raw는 유지됐고,
+manifest는 raw
+`0f9be9397ac4ef8ff2ef47193d7d3d446f48f077f9412721b199c4e3b805ab83`, public
+`5d0119f7fab7da5c7f8bc30b3582ba412a19f5babd8796f2dc3ac1e628ec0a47`로 reseal됐다.
+앞 문단의 `e0eb…`/`f632…`와 이 `0f9…`/`5d0…` snapshot은 reviewed-FAIL
+중간 provenance이며 최종 seal이 아니다.
+
+### Final corrected implementation evidence
+
+Canonical JSON equality audit가 Python의 `True == 1` 허용과 subset/extra-key blind spot을
+추가로 발견해 M1-B/C compatibility observer와 M1-D outer/inner comparator를 public
+canonical JSON equality로 통일했다. `1`과 `1.0`은 의도대로 같고 bool/number는 다르며,
+four-path public state는 19-key exact equality, transition error details는 truthful subset
+label로 고정했다. 이 correction 뒤 final seals는 다음과 같다.
+
+- v2 transition raw: `76524d0629f909c1f5ee1eabe0ad297463f2f1e7bb7685230e2c6c5b5317288c`
+- v2 manifest raw / sorted-compact: `0571da460b8c405b291c1d08b564ec54db3f11f56a37431625de96355348f019` / `fc9d6d324af4bfbce3ebd9ec941dd6994190e4b3c4ad9fa60c75da8ad411a510`
+- v3 compatibility raw: `680f475d7d13dfc663f4d84e1931f1a10888cf660312a6d0575d3d4a216a70fc`
+- v3 transition raw: `92551a101bfbdbf96c92673750335a70ccd5d1bf422dc7fd80df4feeae9e3c54`
+- v3 manifest raw / public: `10e037678f49397a14b9f75bc0d8913da7a8f8ed8af8607b2c6f4751892e1718` / `c34efc9aeb5af9d83bd7325bc95cd948b4ba04de4ca7b773404a15100d28af78`
+
+Fresh four-pass anti-vacuity audit는 Schema/Reproducibility/Drift/Linguistic-weakness를
+전부 PASS했다. Exact evidence는 transition literal `26/23/54/37/7`, negative path
+`460/460`, public state four paths × 19 keys, M1-C binding `20/20`, corruption witnesses
+extra-key/bool-number/frontier/race/closure 전부 fail-closed다. Narrow recursion audit도
+`PYTEST_ADDOPTS` 상속과 M1-D/M1-C ignore 전파를 재현해 PASS했다.
+
+최종 실행 evidence는 단일 실행으로 과장하지 않고 다음처럼 합성한다.
+
+| 검증 | 결과 |
+|---|---|
+| M1-D direct M1-C/M1-D state·service·CLI | `67 passed in 16.95s` |
+| M1-D manifest bounded non-floor/non-compatibility | `56 passed, 2 deselected in 20.04s` |
+| excluded compatibility row | `_m1c_exact_case_count(20) == 20`; 별도 actual proof PASS |
+| excluded regression floor row | 단 한 번 actual 실행 PASS, `real 598.21s`; tests `>=442`, subtests `>=111`, ruff/ty/diff PASS; 잔여 process 0 |
+| complete collection census | `589 tests collected`; 합성 범위 = floor 531 + bounded 56 + separately proved 2 |
+| correction fixed point | histories 121, Events 912, ClassState 210, Diagnosis wrappers 266, state digests 105, `repair_fixed_point=true`, transition raw `92551a…c54` |
+| duplicate broad attempt | 증거 제외: 중복 M1-C floor 진입을 발견해 `26 passed, 1 deselected` 뒤 `KeyboardInterrupt`; 위 bounded/separate evidence로 대체 |
+
+Product review는 registration/successor preflight priority, recovery re-gating, null
+Decision/Result, post-successor duplicate Diagnosis replay, coherent projection snapshot과
+direct ProjectionStore race까지 고친 뒤 actionable P0/P1/P2 0건으로 끝났다. Correction 뒤
+criterion을 약화하지 않았으므로 historical 두 `RESULT-INVALID` 측정만 철회하고 위 corrected
+remeasurement를 유효한 **EXPLORATORY** M1-D close evidence로 사용한다.
 
 ## 04.6 시스템 영향 분석 ★
 
@@ -218,32 +333,61 @@ Anti-self-echo:
 
 ### 04.6.4 마일스톤 진척 청구 ★
 
-**영향 받은 M_i.j**: `M1-D` · **계획 라벨**: _CLOSE CANDIDATE_
+**영향 받은 M_i.j**: `M1-D`
 
-| conjunct | 현재 | close gate |
-|---|---|---|
-| terminal evidence-bound Diagnosis schema/replay PASS | ⬜ | canonical 18 + negative 115, exact event/artifact/observation refs, four paths 460 |
-| diagnosis 전 다음 v2 registration 100% 차단 | ⬜ | terminal-pending 23 + generic STATUS_CHANGED 1, first/retry/successor + races, all reject deltas 0 |
-| conclusive threshold class closure transition PASS | ⬜ | configured limits 2·3·4의 N-1/N, post-close count/support, immutable closure evidence, closed-class gate |
-| invalid/control/inconclusive count 규칙 PASS | ⬜ | taxonomy 26/26; diagnostic와 agent `is_control:true` label은 scientific, baseline/golden만 outside registration control |
-| frontier가 closed/incompatible/non-scientific 100% 제외 | ⬜ | exclusions 20 axes/21 subcases + positive 5→ordered 3 + caps 1·2·3·4·7 |
+**라벨**: `CLOSE`
 
-다섯 conjunct와 critic/auditor가 모두 PASS하기 전 M1-D를 닫지 않는다. Parent M1은 M1-E까지 open이다.
+**Prerequisite gate state**: M1-C `closed`; M-level prerequisite는 `N/A (M1)`.
+
+| conjunct | 이전 | 이번 phase 후 | 근거 |
+|---|---|---|---|
+| terminal evidence-bound Diagnosis schema/replay PASS | 없음 | ✅ | phase §04.5: negative four paths `460/460`, exact event/artifact/10-field observation, bool-number/extra-key witnesses |
+| diagnosis 전 다음 v2 registration 100% 차단 | 없음 | ✅ | phase §04.5: pending `23/23`, gate `37/37`, race `7/7`, rejected write delta 0 |
+| conclusive threshold class closure transition PASS | 없음 | ✅ | phase §04.5: full states `54/54`, limits 2·3·4 N-1/N, immutable closure origin, post-close rejection |
+| invalid/control/inconclusive count 규칙 PASS | 없음 | ✅ | phase §04.5: taxonomy `26/26`, positive 7/zero 19, margin/gate single flips |
+| frontier가 closed/incompatible/non-scientific 100% 제외 | 없음 | ✅ | phase §04.5: exclusions 20 axes/21 subcases, positive 5→ordered 3, caps 1·2·3·4·7 |
+
+다섯 product conjunct를 모두 `CLOSE`로 청구한다. Parent M1은 마지막 sub-checkpoint M1-E까지
+open이다. Independent 7-pass progress auditor가 20/20 bounded check와 Severity-1
+0으로 PASS했고, 발견한 문서 Severity-2 두 건은 checkpoint 전에 수정했다.
+상세는 [`04-m1-d-diagnosis-class-frontier.audit.md`](04-m1-d-diagnosis-class-frontier.audit.md)다.
 
 ### 04.6.5 종착지 비전 갱신 ★
 
-- 계획 Delta: pipeline §8.4 Study inference의 terminal→Diagnosis→ClassState→frontier를 executable canonical transition으로 구체화한다.
-- 성공 시 NS2는 `2/6→5/6`, NS3는 `1/4→3/4`까지가 최대다. Complete legacy isolation과 Claim은 M1-E/M2에 남는다.
-- Pipeline Stage 3은 모든 M1-D gate PASS 뒤에만 `△→○`를 청구한다. Autonomous learning/community나 NS6 효과를 청구하지 않는다.
-- §8 endpoint, M-chain, unseen NS6 gate, live migration/product multi-agent 경계는 유지한다.
+**Delta classification**: `구체화·검증`
+
+- **Before vision snapshot**: pipeline §8.4 Study inference는 typed Proposal/scope/replication까지만 canonical이고 terminal Diagnosis·ClassState·semantic frontier는 없었다.
+- **After vision snapshot**: terminal→Diagnosis→derived ClassState→semantic/retry frontier가 executable canonical transition이고 pending/closure/parent gates가 machine-enforced다.
+- **Touched §8.4 영역**: Study inference `△→○`; NS2 `2/6→5/6`, NS3 `1/4→3/4`.
+- **유지한 갭/경계**: complete legacy isolation과 Claim은 M1-E/M2에 남고 Autonomous learning/community·NS6·live migration/product multi-agent 범위는 변하지 않는다.
+- **Vision loosening**: 없음. §8.2 가능 행동과 §8.3 의도적 제외 항목을 제거·이동하지 않았다.
 
 ### 04.6.6 의도-실행 정합 ★
 
-**계획 라벨**: _MATCH CANDIDATE_ — 실패를 durable state와 next-choice input으로 바꾸되 agent narrative에 closure 권한을 주지 않는다. 이는 사용자가 승인한 “실패를 지식으로 바꾸는 자율 연구 시스템” 방향의 scientific-state 단계이며 Program memory/자율성의 완성 청구는 아니다.
+**라벨**: `MATCH`
+
+- **§04.1 의도**: terminal evidence를 typed Diagnosis/ClassState/frontier로 만들고 five M1-D gates를 exact oracle로 닫는다.
+- **§04.2~§04.6 실행**: 같은 state/gate/frontier surface와 public `diagnose`
+  protocol 문서·packaged skill을 구현했고 두 invalid oracle result를 철회한 뒤
+  criterion 약화 없이 corrected exact remeasurement를 수행했다.
+- **정합 근거**: 목표 §북극성 NS1·NS2·NS3, data source인 canonical event history, M1-D five conjunct와 §8.4 Study inference가 모두 유지됐다. Program memory/자율성 완성을 새로 청구하지 않는다.
 
 ### 04.6.7 Claim Mode ★
 
-**현재 라벨**: _EXPLORATORY / RESULT-INVALID_. 구현 전 기준선과 pre-spec chronology 자체는 깨끗하지만, `091af24` frozen oracle의 literal contradiction이 product replay 뒤 발견됐다. 기존 PASS seal은 역사적 provenance로 보존하되 현재 result-bearing 권한은 없다. Correction-only checkpoint와 새 independent Q1–Q8 PASS 없이는 CONFIRMATORY를 복원하지 않는다.
+**라벨**: `EXPLORATORY`
+
+`091af24` 뒤 발견된 literal contradiction과 vacuous-observer
+결과는 각각 `RESULT-INVALID`로 철회했다. 최종 corrected bytes는 product 구현을 본 뒤
+재고정됐으므로 chronology를 이용해 CONFIRMATORY 자격을 복원하지 않는다. 다만 criterion
+약화 없이 fresh anti-vacuity audit, exact transition/negative/floor remeasurement를 통과한
+결과이므로 M1-D 기능 close에는 사용할 수 있다. Unseen learning-effect 청구는 하지 않는다.
+
+- **금지 단어 self-check**: §04.0, §04.5 final evidence, §04.7 final progress claim의
+  confirmatory-grade Korean/English verb hit는 0이다. Historical review 기록의 PASS/FAIL과
+  `검증 계획` 제목은 claim-grade 언어가 아니다.
+- **Confirmatory follow-up**: §04.10에서 M1-E 구현 전에 disposable CLI study와 legacy
+  replay fixture/acceptance를 새로 precommit하고 구현 뒤 별도 측정한다. 이는 corrected
+  behavior의 fresh validation이며 M1-D를 소급해 CONFIRMATORY로 바꾸지 않는다.
 
 Pre-spec checkpoint provenance:
 
@@ -303,20 +447,29 @@ Oracle expected나 criterion을 구현/관찰 뒤 고치면 이전 결과를 `RE
 
 ### 04.6.8 Requirement-Result Divergence ★
 
+**분류**: `RESULT-INVALID` (historical measurements) → corrected remeasurement completed.
+
 - `REQUIREMENT-WRONG`: control/conclusive/frontier가 사용자 목표를 잘못 대리하거나 M1-D conjunct를 측정하지 못함 → 구현 중단, 필요 시 Rule 9 retrospective.
 - `RESULT-INVALID`: wrong runtime, fixture inheritance/subset, observer self-echo, production path 미실행, race 미강제, replay/live 불일치, implementation bug → 결과 제외, 같은 frozen criterion으로 재측정.
 - `GENUINE-FINDING`: independent minimal reproduction에서 existing event/projection/terminal semantics와 fixed contract가 근본 충돌 → M1-D open, EXPLORATORY 재명세.
 - 어느 분류든 manifest 28/Diagnosis 115/four-path 460/full state·gate·race/count taxonomy/frontier exclusion/order/parity의 새 frozen denominator와 exact 불일치가 있으면 CLOSE를 차단한다.
+- **Final classification**: 앞선 두 측정은 `RESULT-INVALID`로 북극성 evidence에서 제외했다.
+  Corrected remeasurement는 예상 criterion과 일치했고 새 divergence는 없다. Claim mode는
+  사후 correction 때문에 계속 EXPLORATORY다.
+- **Invalid-result exclusion**: pre-correction `950096…`/`35/35`와 intermediate
+  `0f9be9…` 결과는 §04.7과 status §12 근거에 사용하지 않는다.
+- **Remeasurement completion**: final `10e037…`/`92551a…`, `26/23/54/37/7`,
+  negative `460/460`, bounded/separate composite floor evidence로 다시 측정했다.
 
-## 04.7 §북극성 갱신 계획
+## 04.7 §북극성 갱신 청구
 
-- NS1: v1/M1-C parity와 Diagnosis authority/race/replay fail-closed evidence를 보강한다. 전체 release protocol-attack gate는 open이다.
-- NS2: Diagnosis gate, class closure, semantic frontier가 모두 PASS할 때만 `2/6→5/6`. Complete legacy isolation은 M1-E다.
-- NS3: typed Diagnosis와 derived ClassState가 exact origin/digest로 replay될 때만 `1/4→3/4`. Claim은 M2다.
+- NS1: M1-D floor와 compatibility/null-authority/race/replay evidence를 보강했다. 전체 release protocol-attack gate는 open이다.
+- NS2: Diagnosis gate, class closure, semantic frontier가 모두 PASS해 `2/6→5/6`으로 갱신한다. Complete legacy isolation은 M1-E다.
+- NS3: typed Diagnosis와 derived ClassState가 exact origin/digest로 replay되어 `1/4→3/4`로 갱신한다. Claim은 M2다.
 
 ## 04.8 §pipeline 매핑 영향
 
-- 구현/검증 성공 뒤 pipeline §8.4 current state, §8.5 cycle delta, §10 단계 평가를 함께 갱신한다. M1-D 전에는 Stage 3 `△`를 유지한다.
+- pipeline §8.4 current state, §8.5 Cycle 04 delta, §10 Stage 3 `△→○`을 status core와 함께 갱신한다.
 
 ## 04.9 비관 재채점 — 이 phase 자체
 
@@ -328,7 +481,22 @@ Oracle expected나 criterion을 구현/관찰 뒤 고치면 이전 결과를 `RE
 - Registered control은 현 schema에서 지원하지 않는다. 임의 inference로 gap을 숨기지 않는다.
 - Actual usage settlement/study lifetime ceiling은 M1-B limitation, holdout policy는 후속 범위다.
 
+### 04.9.1 Residual issues
+
+- M1-D는 좋은 Diagnosis narrative를 생성하거나 인과 타당성을 판정하지 않는다.
+- Context v2는 pending/class/frontier와 authoring affordance를 노출하지 않는다; M1-E 범위다.
+- Post-implementation oracle correction 때문에 M1-D claim은 영구 EXPLORATORY이며, fresh
+  validation은 소급 confirmatory 승격이 아니라 별도 evidence다.
+- Fixture/observer/correction support가 product core보다 커진 과잉설계 비용은 M1-E에서
+  working vertical slice first와 bounded mutation audit로 제한한다.
+
 ## 04.10 다음 1행동
 
-- 모든 full-state/gate/race/negative literal history를 canonical parser와 M1-B identity로 재실행해 contradiction census를 닫는다.
-- 제품 결과를 expected로 복사하지 않고 prerequisite identity만 canonical하게 고친 correction-only fixture checkpoint와 새 seal을 독립 감사한다.
+- final progress critic과 independent 7-pass audit는 PASS했다. Atomic M1-D local
+  checkpoint로 고정한다.
+- 그 다음 active M1-E에서 `context v3 + Diagnosis authoring/template + disposable example`을
+  첫 working vertical slice로 pre-spec한다. 외부 세 프로젝트는 계속 read-only이며 제품
+  multi-agent는 NS6 이후다.
+- M1-E product 구현 전에 disposable CLI study와 legacy replay acceptance를 새 fixture로
+  precommit한 뒤 구현 후 측정한다. 이는 M1-D corrected behavior의 fresh validation이며
+  M1-D claim을 소급해 CONFIRMATORY로 바꾸지 않는다.

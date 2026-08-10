@@ -7,7 +7,7 @@ import re
 import shutil
 import subprocess
 import sys
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager, redirect_stdout
 from dataclasses import replace
@@ -20,24 +20,27 @@ import pytest
 
 from research_os.cli import main as cli_main
 from research_os.contracts import Operation, ProtocolResponse
-from research_os.contracts.common import canonical_json, sha256_json
+from research_os.contracts.common import canonical_json, canonical_json_bytes, sha256_json
 from research_os.errors import ScientificStateError
 from research_os.kernel.events import EventLog
 from research_os.kernel.ids import new_experiment_id, stable_id
 from research_os.kernel.projection import ProjectionStore
 from research_os.scaffold import RESEARCH_BRIEF_TEMPLATE
 from research_os.science import (
+    Diagnosis,
+    DiagnosisEventPayload,
     EvaluationSeal,
     Proposal,
     ScientificState,
     StudyContract,
+    plan_diagnosis_append,
     plan_generation_open,
     proposal_id,
     reduce_scientific_state,
     registration_payload_fields,
     validate_registration,
 )
-from research_os.science.state import ScientificRegistration
+from research_os.science.state import DiagnosisRecord, ScientificRegistration
 from research_os.service import (
     EVALUATION_SCOPE_CAPABILITY,
     DoctorReport,
@@ -63,16 +66,31 @@ from tests.test_m1b_service_cli import CONTRACT_PATH as M1B_CONTRACT_PATH
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "scientific_state" / "v2"
 V1_FIXTURE_ROOT = FIXTURE_ROOT.parent / "v1"
-MANIFEST_RAW_SHA256 = "4b9c216ea7a6bcbd8aec00a2224e4c41c349c038ea4b1d7c7fafcc8721e31b1d"
-MANIFEST_SORTED_COMPACT_DIGEST = (
-    "75d7e1e568f3d42463184544e4b396c6f68cd1ae91fc3d5026dffda8454dca67"
-)
+MANIFEST_RAW_SHA256 = "0571da460b8c405b291c1d08b564ec54db3f11f56a37431625de96355348f019"
+MANIFEST_SORTED_COMPACT_DIGEST = "fc9d6d324af4bfbce3ebd9ec941dd6994190e4b3c4ad9fa60c75da8ad411a510"
+_TRANSITION_OCCURRED_AT = "2026-08-10T00:00:00.000000Z"
 
 
 def _object(path: Path) -> dict[str, object]:
     value = strict_load_json(path)
     assert isinstance(value, dict)
     return value
+
+
+def _json_canonical_equal(left: object, right: object) -> bool:
+    """Compare values in the public canonical-JSON equality domain."""
+
+    return canonical_json_bytes(left) == canonical_json_bytes(right)
+
+
+def _assert_json_canonical_equal(left: object, right: object) -> None:
+    assert _json_canonical_equal(left, right)
+
+
+def _json_canonical_match_count(values: Sequence[object]) -> int:
+    if not values:
+        return 0
+    return sum(_json_canonical_equal(value, values[0]) for value in values)
 
 
 _MANIFEST = _object(FIXTURE_ROOT / "manifest.json")
@@ -310,9 +328,7 @@ def _observe_v1_public_surfaces(
         if event.event_type == "research.study_generation_opened.v1"
     )
     registration_event = next(
-        event
-        for event in service.event_log.read()
-        if event.event_type == "EXPERIMENT_REGISTERED"
+        event for event in service.event_log.read() if event.event_type == "EXPERIMENT_REGISTERED"
     )
     study_status = service.study_status()
     replay = service.replay()
@@ -329,17 +345,13 @@ def _observe_v1_public_surfaces(
             service.config.project_id,
             experiment_id,
         ),
-        "project_status": service.projection.project_status(
-            service.config.project_id
-        ),
+        "project_status": service.projection.project_status(service.config.project_id),
         "registration_payload": registration_event.payload,
     }
     cli_root = root / "cli"
     cli_root.mkdir()
     cli_project, cli_service = _m1b_certified_project(cli_root)
-    cli_baseline = _cli_json(
-        ["--project", str(cli_project), "baseline"]
-    )
+    cli_baseline = _cli_json(["--project", str(cli_project), "baseline"])
     cli_opened = _cli_json(
         [
             "--project",
@@ -356,9 +368,7 @@ def _observe_v1_public_surfaces(
             str(cli_project / "candidates" / "improve.json"),
         ]
     )
-    cli_study_status = _cli_json(
-        ["--project", str(cli_project), "study-status"]
-    )
+    cli_study_status = _cli_json(["--project", str(cli_project), "study-status"])
     cli_replay = _cli_json(["--project", str(cli_project), "replay"])
     cli_generation_event = next(
         event
@@ -383,9 +393,7 @@ def _observe_v1_public_surfaces(
             cli_service.config.project_id,
             cli_experiment_id,
         ),
-        "project_status": cli_service.projection.project_status(
-            cli_service.config.project_id
-        ),
+        "project_status": cli_service.projection.project_status(cli_service.config.project_id),
         "registration_payload": cli_registration_event.payload,
     }
     assert set(cli_surfaces) == set(surfaces)
@@ -394,8 +402,7 @@ def _observe_v1_public_surfaces(
         for name, surface in surfaces.items()
     )
     keyset_matches = sum(
-        sorted(surfaces[name]) == expected
-        for name, expected in public_keysets.items()
+        sorted(surfaces[name]) == expected for name, expected in public_keysets.items()
     )
     shape_matches = sum(
         sha256_json(_canonical_shape(surfaces[name])) == expected
@@ -403,9 +410,7 @@ def _observe_v1_public_surfaces(
     )
     nullable_scope_keys = {"evaluation_scope", "evaluation_scope_id"}
     nullable_scope_occurrences = sum(
-        key in nullable_scope_keys
-        for name in public_keysets
-        for key in surfaces[name]
+        key in nullable_scope_keys for name in public_keysets for key in surfaces[name]
     )
     return keyset_matches, shape_matches, nullable_scope_occurrences
 
@@ -462,9 +467,7 @@ def _observe_legacy_parity(inputs: Mapping[str, object], tmp_path: Path) -> dict
         if event.event_type == "EXPERIMENT_REGISTERED"
     ]
     finding_ids = [
-        event.payload["finding_id"]
-        for event in events
-        if event.event_type == "FINDING_RECORDED"
+        event.payload["finding_id"] for event in events if event.event_type == "FINDING_RECORDED"
     ]
     forbidden = frozenset(oracle["forbidden_typed_keys"])  # type: ignore[arg-type]
     public_keysets = oracle["public_surface_keysets"]
@@ -485,25 +488,18 @@ def _observe_legacy_parity(inputs: Mapping[str, object], tmp_path: Path) -> dict
     replay = fixed_service.replay()
     replay_findings = fixed_service.findings()
     after_replay_events = fixed_service.event_log.read()
-    keyset_matches, shape_matches, public_scope_occurrences = (
-        _observe_v1_public_surfaces(
-            tmp_path / "v1-public-surfaces",
-            public_keysets=public_keysets,
-            shape_digests=shape_digests,
-        )
+    keyset_matches, shape_matches, public_scope_occurrences = _observe_v1_public_surfaces(
+        tmp_path / "v1-public-surfaces",
+        public_keysets=public_keysets,
+        shape_digests=shape_digests,
     )
     expected_registration_keys = oracle["exact_v1_registration_keyset"]
     assert isinstance(expected_registration_keys, list)
     actual_registration_keysets = [
-        sorted(event.payload)
-        for event in events
-        if event.event_type == "EXPERIMENT_REGISTERED"
+        sorted(event.payload) for event in events if event.event_type == "EXPERIMENT_REGISTERED"
     ]
     assert actual_registration_keysets
-    assert all(
-        keyset == expected_registration_keys
-        for keyset in actual_registration_keysets
-    )
+    assert all(keyset == expected_registration_keys for keyset in actual_registration_keysets)
     v1_manifest_path = FIXTURE_ROOT / str(v1_manifest_name)
     assert sha256_bytes(v1_manifest_path.read_bytes()) == invariance["raw_sha256"]
     assert sorted_compact_digest(v1_manifest) == invariance["sorted_compact_digest"]
@@ -517,7 +513,7 @@ def _observe_legacy_parity(inputs: Mapping[str, object], tmp_path: Path) -> dict
         case_root = tmp_path / "m1b-manifest" / str(ordinal)
         case_root.mkdir(parents=True)
         observed = _observe_m1b_manifest_case(case, case_root)
-        m1b_matches += int(observed == case["expected"])
+        m1b_matches += int(_json_canonical_equal(observed, case["expected"]))
     event_typed_occurrences = _recursive_key_occurrences(
         [event.payload for event in events],
         forbidden,
@@ -634,9 +630,7 @@ def _baseline_payload(
     if evaluation_scope_id is not None:
         assert state.contract is not None
         scope = next(
-            item
-            for item in state.contract.evaluation_scopes
-            if item.id == evaluation_scope_id
+            item for item in state.contract.evaluation_scopes if item.id == evaluation_scope_id
         )
         payload.update(
             {
@@ -672,9 +666,7 @@ def _registration_payload(
         else state.evaluation_seal.compatibility_digest
     )
     baseline = (
-        None
-        if evaluation_scope_id is None
-        else state.baseline_for_scope(evaluation_scope_id)
+        None if evaluation_scope_id is None else state.baseline_for_scope(evaluation_scope_id)
     )
     if baseline is not None:
         baseline_id = baseline.baseline_id
@@ -768,6 +760,23 @@ def _state_with_parent_view(
     proposal_raw["hypothesis_class_id"] = view["hypothesis_class_id"]
     proposal_raw["evaluation_scope_id"] = view["evaluation_scope_id"]
     proposal = Proposal.from_mapping(proposal_raw)
+    terminal = view.get("terminal") is True
+    terminal_payload = {
+        "experiment_id": str(view["experiment_id"]),
+        "status": "VALIDATED",
+        "reason_code": "TERMINATED",
+        "attempt": 1,
+        "retry_of": None,
+        "retryable": False,
+        "authorized_action": None,
+    }
+    terminal_event_id = stable_id(
+        "event",
+        state.project_id,
+        "parent-view-terminal",
+        view["experiment_id"],
+    )
+    terminal_event_hash = sha256_json(terminal_payload)
     registration = ScientificRegistration(
         experiment_id=str(view["experiment_id"]),
         generation_id=str(view["generation_id"]),
@@ -782,10 +791,76 @@ def _state_with_parent_view(
         baseline_id="parent-view",
         attempt=1,
         retry_of=None,
-        terminal_status="VALIDATED" if view.get("terminal") is True else None,
+        terminal_status="VALIDATED" if terminal else None,
         retryable=False,
+        terminal_event_type="EXPERIMENT_TERMINATED" if terminal else None,
+        terminal_event_id=terminal_event_id if terminal else None,
+        terminal_event_hash=terminal_event_hash if terminal else None,
+        terminal_event_sequence=1 if terminal else None,
+        terminal_payload_json=canonical_json(terminal_payload) if terminal else None,
     )
-    return replace(state, registrations=(*state.registrations, registration))
+    prospective = replace(state, registrations=(*state.registrations, registration))
+    if not terminal:
+        return prospective
+    assert state.active_generation_id is not None
+    assert state.evaluation_seal is not None
+    diagnosis = Diagnosis.from_mapping(
+        {
+            "diagnosis_schema_version": 1,
+            "generation_id": state.active_generation_id,
+            "compatibility_digest": state.evaluation_seal.compatibility_digest,
+            "experiment_id": registration.experiment_id,
+            "proposal_id": registration.proposal_id,
+            "proposal_digest": registration.proposal_digest,
+            "hypothesis_class_id": registration.proposal.hypothesis_class_id,
+            "evaluation_scope_id": registration.evaluation_scope_id,
+            "terminal_evidence": {
+                "experiment_id": registration.experiment_id,
+                "event_id": terminal_event_id,
+                "event_hash": terminal_event_hash,
+            },
+            "artifact_evidence": [],
+            "observation": {
+                "terminal_status": "VALIDATED",
+                "reason_code": "TERMINATED",
+                "verified": False,
+                "retryable": False,
+                "primary_metric": None,
+                "candidate_value": None,
+                "baseline_value": None,
+                "improvement": None,
+                "promotion_margin": None,
+                "gate_evaluations": [],
+            },
+            "interpretation": ("The synthetic parent view has no verified quantitative support."),
+            "failure_type": "evidence",
+            "falsifier": "A compatible parent supplies verified quantitative evidence.",
+            "recommendation": "explore",
+            "authorized_action": None,
+        }
+    )
+    wrapper = DiagnosisEventPayload.from_diagnosis(
+        project_id=state.project_id,
+        generation_id=state.active_generation_id,
+        study_contract_digest=str(state.study_contract_digest),
+        evaluation_seal_digest=str(state.evaluation_seal_digest),
+        compatibility_digest=state.evaluation_seal.compatibility_digest,
+        diagnosis=diagnosis,
+    )
+    record = DiagnosisRecord(
+        diagnosis_id=wrapper.diagnosis_id,
+        diagnosis_digest=wrapper.diagnosis_digest,
+        diagnosis_event_id=stable_id(
+            "event",
+            state.project_id,
+            "parent-view-diagnosis",
+            registration.experiment_id,
+        ),
+        diagnosis_event_hash=sha256_json(wrapper.to_dict()),
+        event_sequence=2,
+        diagnosis=diagnosis,
+    )
+    return replace(prospective, diagnoses=(*prospective.diagnoses, record))
 
 
 class _ReplayHarness(ResearchService):
@@ -807,8 +882,16 @@ class _ReplayHarness(ResearchService):
     def _recover_incomplete_experiments(self) -> None:
         return None
 
-    def _verify_terminal_artifact_bindings(self, projected_records):  # type: ignore[no-untyped-def,override]
-        return None
+    def _verify_terminal_artifact_bindings(  # type: ignore[no-untyped-def,override]
+        self,
+        projected_records,
+        *,
+        events=None,
+    ):
+        return super()._verify_terminal_artifact_bindings(
+            projected_records,
+            events=events,
+        )
 
     def _validate_baseline_payload(  # type: ignore[no-untyped-def,override]
         self,
@@ -817,6 +900,126 @@ class _ReplayHarness(ResearchService):
         **kwargs,
     ):
         return {**payload, "artifacts": []}
+
+
+def _normalized_event_type(value: object) -> str:
+    assert isinstance(value, str)
+    return value.strip().upper().replace(".", "_").replace("-", "_")
+
+
+def _diagnosis_body(
+    events: Sequence[Mapping[str, object]],
+    state: ScientificState,
+    experiment_id: str,
+) -> dict[str, object]:
+    registration = state.registration(experiment_id)
+    assert registration is not None
+    assert registration.is_terminal
+    assert registration.terminal_event_id is not None
+    assert registration.terminal_event_hash is not None
+    assert state.active_generation_id is not None
+    assert state.evaluation_seal is not None
+    terminal_event = next(
+        event for event in events if event["event_id"] == registration.terminal_event_id
+    )
+    terminal = terminal_event["payload"]
+    assert isinstance(terminal, Mapping)
+    reason_code = terminal.get("reason_code")
+    verified = terminal.get("verified", False)
+    primary_metric = terminal.get("primary_metric", registration.primary_metric)
+    assert isinstance(reason_code, str)
+    assert isinstance(verified, bool)
+    assert primary_metric is None or isinstance(primary_metric, str)
+    decision = terminal.get("decision")
+    assert decision is None or isinstance(decision, Mapping)
+    gate_evaluations = [] if decision is None else decision.get("gate_evaluations")
+    assert isinstance(gate_evaluations, list)
+    artifact_evidence: list[dict[str, object]] = []
+    for event in events:
+        payload = event["payload"]
+        assert isinstance(payload, Mapping)
+        if (
+            _normalized_event_type(event["event_type"]) != "ARTIFACT_RECORDED"
+            or payload.get("experiment_id") != experiment_id
+        ):
+            continue
+        artifact_id = payload.get("artifact_id")
+        artifact_digest = payload.get("digest")
+        assert isinstance(artifact_id, str)
+        assert isinstance(artifact_digest, str)
+        artifact_evidence.append(
+            {
+                "artifact_id": artifact_id,
+                "artifact_digest": artifact_digest,
+                "event_id": event["event_id"],
+                "event_hash": event["hash"],
+            }
+        )
+    artifact_evidence.sort(key=lambda item: (str(item["artifact_id"]), str(item["event_id"])))
+    promotion_margin = None if decision is None else decision.get("promotion_margin")
+    supported = (
+        registration.terminal_status == "VALIDATED"
+        and reason_code == "PRIMARY_METRIC_IMPROVED"
+        and verified is True
+        and isinstance(promotion_margin, (int, float))
+        and not isinstance(promotion_margin, bool)
+        and promotion_margin > 0
+    )
+    retryable = registration.retryable is True
+    return {
+        "diagnosis_schema_version": 1,
+        "generation_id": state.active_generation_id,
+        "compatibility_digest": state.evaluation_seal.compatibility_digest,
+        "experiment_id": experiment_id,
+        "proposal_id": registration.proposal_id,
+        "proposal_digest": registration.proposal_digest,
+        "hypothesis_class_id": registration.proposal.hypothesis_class_id,
+        "evaluation_scope_id": registration.evaluation_scope_id,
+        "terminal_evidence": {
+            "experiment_id": experiment_id,
+            "event_id": registration.terminal_event_id,
+            "event_hash": registration.terminal_event_hash,
+        },
+        "artifact_evidence": artifact_evidence,
+        "observation": {
+            "terminal_status": registration.terminal_status,
+            "reason_code": reason_code,
+            "verified": verified,
+            "retryable": registration.retryable,
+            "primary_metric": primary_metric,
+            "candidate_value": None if decision is None else decision.get("candidate_value"),
+            "baseline_value": None if decision is None else decision.get("baseline_value"),
+            "improvement": None if decision is None else decision.get("improvement"),
+            "promotion_margin": promotion_margin,
+            "gate_evaluations": copy.deepcopy(gate_evaluations),
+        },
+        "interpretation": (
+            "The verified primary metric improved under the frozen evidence contract."
+            if supported
+            else "The terminal event did not establish verified positive support."
+        ),
+        "failure_type": ("supported" if supported else "operational" if retryable else "evidence"),
+        "falsifier": (
+            "A preregistered replication fails the frozen promotion threshold."
+            if supported
+            else "A new experiment completes with verified quantitative evidence."
+        ),
+        "recommendation": ("replicate" if supported else "retry" if retryable else "explore"),
+        "authorized_action": None,
+    }
+
+
+def _append_transition_project_initialized(log: EventLog) -> None:
+    log.append(
+        "PROJECT_INITIALIZED",
+        {
+            "project_id": str(_fixtures()["project_id"]),
+            "status": "active",
+            "authorized_action": None,
+        },
+        event_id=stable_id("event", str(_fixtures()["project_id"]), "transition-init"),
+        occurred_at=_TRANSITION_OCCURRED_AT,
+    )
 
 
 class _TransitionScenario:
@@ -841,6 +1044,8 @@ class _TransitionScenario:
         self.last_registration_payload: dict[str, object] | None = None
         control = environment_root / ".research-os"
         control.mkdir(parents=True, exist_ok=True)
+        self.event_log = EventLog(control / "transition-events.jsonl", self.project_id)
+        _append_transition_project_initialized(self.event_log)
         (control / "candidate.schema.json").write_bytes(
             (fixture_root / "m1c-candidate-schema.json").read_bytes()
         )
@@ -871,8 +1076,29 @@ class _TransitionScenario:
         )
 
     def _append(self, event_type: str, payload: Mapping[str, object]) -> None:
-        self.events.append(_event_mapping(event_type, payload))
+        event = self.event_log.append(
+            event_type,
+            payload,
+            event_id=stable_id(
+                "event",
+                self.project_id,
+                "transition",
+                len(self.events) + 1,
+                event_type,
+            ),
+            occurred_at=_TRANSITION_OCCURRED_AT,
+        )
+        self.events.append(event.to_dict())
         self._refresh()
+
+    def _diagnose(self, experiment_id: str) -> None:
+        plan = plan_diagnosis_append(
+            self.events,
+            project_id=self.project_id,
+            diagnosis=_diagnosis_body(self.events, self.state, experiment_id),
+        )
+        assert plan.append_required is True
+        self._append(plan.event_type, plan.payload)
 
     def _resolve(
         self,
@@ -940,20 +1166,36 @@ class _TransitionScenario:
                 assert isinstance(experiment_id, str) and isinstance(status, str)
                 registration = self.state.registration(experiment_id)
                 assert registration is not None and isinstance(retryable, bool)
+                terminal_payload: dict[str, object] = {
+                    "experiment_id": experiment_id,
+                    "status": status,
+                    "reason_code": (
+                        "ADAPTER_TIMEOUT" if status == "TIMED_OUT" else "PRIMARY_METRIC_IMPROVED"
+                    ),
+                    "attempt": registration.attempt,
+                    "retry_of": registration.retry_of,
+                    "retryable": retryable,
+                    "verified": status == "VALIDATED",
+                    "primary_metric": "score",
+                    "authorized_action": None,
+                }
+                if status == "VALIDATED":
+                    terminal_payload["decision"] = {
+                        "status": "VALIDATED",
+                        "reason_code": "PRIMARY_METRIC_IMPROVED",
+                        "primary_metric": "score",
+                        "candidate_value": 2.0,
+                        "baseline_value": 1.0,
+                        "improvement": 1.0,
+                        "promotion_margin": 0.5,
+                        "gate_evaluations": [],
+                        "authorized_action": None,
+                    }
                 self._append(
                     "EXPERIMENT_TERMINATED",
-                    {
-                        "experiment_id": experiment_id,
-                        "status": status,
-                        "reason_code": (
-                            "ADAPTER_TIMEOUT" if status == "TIMED_OUT" else "VERIFIED"
-                        ),
-                        "attempt": registration.attempt,
-                        "retry_of": registration.retry_of,
-                        "retryable": retryable,
-                        "authorized_action": None,
-                    },
+                    terminal_payload,
                 )
+                self._diagnose(experiment_id)
             elif driver == "event.append":
                 event_type = resolved.get("event_type")
                 payload = resolved.get("payload")
@@ -961,9 +1203,7 @@ class _TransitionScenario:
                 self._append(event_type, payload)
                 if event_type == "BASELINE_RECORDED":
                     scope = payload.get("evaluation_scope_id")
-                    self.baseline_scope_ids.append(
-                        scope if isinstance(scope, str) else None
-                    )
+                    self.baseline_scope_ids.append(scope if isinstance(scope, str) else None)
             elif driver == "parent_view.inject":
                 capture = resolved.get("capture")
                 assert isinstance(capture, str)
@@ -976,11 +1216,11 @@ class _TransitionScenario:
                 self.captures[capture] = copy.deepcopy(view)
             else:
                 raise KeyError(f"unsupported scenario driver: {driver!r}")
-        self._assert_expected_state()
+        self._assert_expected_state_subset()
 
-    def _assert_expected_state(self) -> None:
-        expected = self.scenario.get("expected_state")
-        assert isinstance(expected, Mapping)
+    def _assert_expected_state_subset(self) -> None:
+        expected_subset = self.scenario.get("expected_state_subset")
+        assert isinstance(expected_subset, Mapping)
         terminal_ids = [
             registration.experiment_id
             for registration in self.state.registrations
@@ -1003,7 +1243,10 @@ class _TransitionScenario:
             "used_candidate_scope_pairs": self.state.used_candidate_scope_pairs,
             "parent_view_count": len(self.parent_views),
         }
-        assert all(observed[key] == value for key, value in expected.items())
+        assert all(
+            key in observed and _json_canonical_equal(observed[key], value)
+            for key, value in expected_subset.items()
+        )
 
     def snapshot(self) -> dict[str, int]:
         return {
@@ -1016,8 +1259,7 @@ class _TransitionScenario:
                 event["event_type"] == "BASELINE_RECORDED" for event in self.events
             ),
             "registration_events": sum(
-                event["event_type"] == "EXPERIMENT_REGISTERED"
-                for event in self.events
+                event["event_type"] == "EXPERIMENT_REGISTERED" for event in self.events
             ),
             "budget_attempts": self.state.attempts_used,
             "budget_retries": self.state.retries_used,
@@ -1075,7 +1317,9 @@ class _TransitionScenario:
             _recompute_registration_field(payload, field)
         asserted = arguments.get("assert_recomputed", {})
         assert isinstance(asserted, Mapping)
-        assert all(payload.get(key) == value for key, value in asserted.items())
+        assert all(
+            _json_canonical_equal(payload.get(key), value) for key, value in asserted.items()
+        )
         return payload
 
     def invoke(
@@ -1156,19 +1400,21 @@ class _TransitionScenario:
 
 
 def _append_valid_events(log: EventLog, events: list[dict[str, object]]) -> None:
-    log.append(
-        "PROJECT_INITIALIZED",
-        {
-            "project_id": str(_fixtures()["project_id"]),
-            "status": "active",
-            "authorized_action": None,
-        },
-    )
+    _append_transition_project_initialized(log)
     for event in events:
         event_type = event["event_type"]
         payload = event["payload"]
+        event_id = event["event_id"]
+        occurred_at = event["occurred_at"]
         assert isinstance(event_type, str) and isinstance(payload, Mapping)
-        log.append(event_type, payload)
+        assert isinstance(event_id, str) and isinstance(occurred_at, str)
+        appended = log.append(
+            event_type,
+            payload,
+            event_id=event_id,
+            occurred_at=occurred_at,
+        )
+        assert appended.hash == event["hash"]
 
 
 def _direct_rejection_code(
@@ -1229,17 +1475,14 @@ def _observe_transition_negatives(
     cases = matrix.get("cases")
     assert isinstance(cases, list)
     rejected = 0
+    declared_detail_subset_matches = 0
     event_delta_zero = 0
     budget_delta_zero = 0
     direct_matches = 0
     case_id_dispatches = 0
     for ordinal, case in enumerate(cases):
         assert isinstance(case, Mapping)
-        case_input = {
-            key: copy.deepcopy(value)
-            for key, value in case.items()
-            if key != "id"
-        }
+        case_input = {key: copy.deepcopy(value) for key, value in case.items() if key != "id"}
         case_id_dispatches += int("id" in case_input)
         scenario_name = case_input.get("scenario")
         assert isinstance(scenario_name, str)
@@ -1263,21 +1506,22 @@ def _observe_transition_negatives(
         try:
             runner.invoke(invoke, local_documents=local_documents)
         except ScientificStateError as exc:
-            assert exc.code == expected["error_code"]
+            rejected += 1
+            assert _json_canonical_equal(exc.code, expected["error_code"])
             expected_details = expected.get("error_details", {})
             assert isinstance(expected_details, Mapping)
-            assert all(exc.details.get(key) == value for key, value in expected_details.items())
-            rejected += 1
+            assert _json_canonical_equal(
+                {key: exc.details.get(key) for key in expected_details},
+                dict(expected_details),
+            )
+            declared_detail_subset_matches += 1
         else:
             raise AssertionError("transition negative case was accepted")
         after = runner.snapshot()
-        deltas = {
-            key: after[key] - before[key]
-            for key in before
-        }
+        deltas = {key: after[key] - before[key] for key in before}
         expected_deltas = expected.get("deltas")
         assert isinstance(expected_deltas, Mapping)
-        assert deltas == expected_deltas
+        assert _json_canonical_equal(deltas, expected_deltas)
         event_delta_zero += int(
             all(
                 deltas[key] == 0
@@ -1289,9 +1533,7 @@ def _observe_transition_negatives(
                 )
             )
         )
-        budget_delta_zero += int(
-            deltas["budget_attempts"] == 0 and deltas["budget_retries"] == 0
-        )
+        budget_delta_zero += int(deltas["budget_attempts"] == 0 and deltas["budget_retries"] == 0)
         paths = invoke.get("paths", [])
         resolved_paths = resolver.resolve_value(paths)
         assert isinstance(resolved_paths, list)
@@ -1308,13 +1550,12 @@ def _observe_transition_negatives(
                 )
                 direct_matches += int(code == expected["error_code"])
     assert baseline_deriver.baseline_service_calls == 1
-    assert resolver.control_observer_calls.get(
-        "service.current_baseline_validation"
-    )
+    assert resolver.control_observer_calls.get("service.current_baseline_validation")
     assert resolver.control_observer_calls.get("reduce_scientific_state")
     return {
         "cases": len(cases),
         "case_rejections": rejected,
+        "declared_error_detail_subset_matches": declared_detail_subset_matches,
         "direct_replay_path_matches": direct_matches,
         "event_delta_zero_cases": event_delta_zero,
         "budget_delta_zero_cases": budget_delta_zero,
@@ -1387,7 +1628,7 @@ def test_every_manifest_case_has_an_operation_only_expectation_binding(
     expected = case["expected"]
     assert isinstance(expected, dict)
     observed = _registry(tmp_path).observe(case)
-    assert observed == expected
+    _assert_json_canonical_equal(observed, expected)
 
 
 def test_manifest_and_all_linked_fixture_bytes_are_strict_and_frozen() -> None:
@@ -1396,7 +1637,10 @@ def test_manifest_and_all_linked_fixture_bytes_are_strict_and_frozen() -> None:
     assert sorted_compact_digest(_MANIFEST) == MANIFEST_SORTED_COMPACT_DIGEST
     assert len(_MANIFEST_CASES) == 20
     assert len(set(_CASE_IDS)) == 20
-    assert _observe_fixture_integrity({}) == _CASES_BY_ID["fixture-integrity"]["expected"]
+    _assert_json_canonical_equal(
+        _observe_fixture_integrity({}),
+        _CASES_BY_ID["fixture-integrity"]["expected"],
+    )
 
 
 def test_strict_loader_rejects_duplicate_keys(tmp_path: Path) -> None:
@@ -1404,6 +1648,70 @@ def test_strict_loader_rejects_duplicate_keys(tmp_path: Path) -> None:
     malformed.write_text('{"case":1,"case":2}\n', encoding="utf-8")
     with pytest.raises(DuplicateKeyError):
         strict_load_json(malformed)
+
+
+def test_outer_and_legacy_match_counters_reject_bool_number_confusion() -> None:
+    expected = {"count": 1, "enabled": True}
+    _assert_json_canonical_equal(copy.deepcopy(expected), expected)
+    _assert_json_canonical_equal({"count": 1.0, "enabled": True}, expected)
+    with pytest.raises(AssertionError):
+        _assert_json_canonical_equal({"count": True, "enabled": True}, expected)
+    assert not _json_canonical_equal({"count": 1, "enabled": 1}, expected)
+    assert _json_canonical_match_count([{"replication_count": 1}, {"replication_count": 1.0}]) == 2
+    assert _json_canonical_match_count([{"replication_count": 1}, {"replication_count": True}]) == 1
+    assert (
+        _json_canonical_match_count(
+            [{"replication_count": 1}, {"replication_count": 1, "extra": None}]
+        )
+        == 1
+    )
+
+
+def test_m1c_support_subset_and_changed_pointers_use_canonical_json_semantics() -> None:
+    from tests.m1c_support import oracle as support_oracle
+
+    support_oracle._assert_subset(
+        {"count": 1.0, "extra": "allowed-by-subset"},
+        {"count": 1},
+    )
+    with pytest.raises(AssertionError):
+        support_oracle._assert_subset({"count": True}, {"count": 1})
+    with pytest.raises(AssertionError):
+        support_oracle._assert_subset({"count": 1}, {"count": 1, "required": None})
+
+    assert support_oracle._changed_pointers({"count": 1}, {"count": 1.0}) == ()
+    assert support_oracle._changed_pointers({"count": 1}, {"count": True}) == ("/count",)
+    assert support_oracle._changed_pointers(
+        {"count": 1},
+        {"count": 1, "extra": None},
+    ) == ("/extra",)
+
+
+def test_transition_scenario_state_subset_rejects_bool_number_confusion() -> None:
+    matrix = _object(FIXTURE_ROOT / "m1c-transition-negative-matrix.json")
+    scenarios = matrix["scenarios"]
+    assert isinstance(scenarios, Mapping)
+    assert sum("expected_state_subset" in scenario for scenario in scenarios.values()) == 15  # type: ignore[operator]
+    assert not any("expected_state" in scenario for scenario in scenarios.values())  # type: ignore[operator]
+
+    scenario = SimpleNamespace(
+        scenario={"expected_state_subset": {"attempts_used": 0.0}},
+        state=SimpleNamespace(
+            active_generation_id=None,
+            contract=None,
+            registrations=[],
+            attempts_used=0,
+            retries_used=0,
+            replication_count=0,
+            used_candidate_scope_pairs=0,
+        ),
+        baseline_scope_ids=[],
+        parent_views=[],
+    )
+    _TransitionScenario._assert_expected_state_subset(scenario)  # type: ignore[arg-type]
+    scenario.scenario = {"expected_state_subset": {"attempts_used": False}}
+    with pytest.raises(AssertionError):
+        _TransitionScenario._assert_expected_state_subset(scenario)  # type: ignore[arg-type]
 
 
 def test_operation_registry_never_receives_case_id() -> None:
@@ -1482,9 +1790,7 @@ class _ServiceBaselineDeriver:
         )
         service = ResearchService(project)
         report = service.doctor()
-        contract = StudyContract.from_mapping(
-            _object(FIXTURE_ROOT / "m1c-contract.json")
-        )
+        contract = StudyContract.from_mapping(_object(FIXTURE_ROOT / "m1c-contract.json"))
         plan = plan_generation_open(
             service.event_log.read(),
             project_id=str(_fixtures()["project_id"]),
@@ -1509,9 +1815,7 @@ class _ServiceBaselineDeriver:
         scope_id = arguments.get("evaluation_scope_id")
         persist = arguments.get("persist")
         if not isinstance(scope_id, str) or persist is not False:
-            raise ValueError(
-                "service.baseline_event_payload requires a scope and persist=false"
-            )
+            raise ValueError("service.baseline_event_payload requires a scope and persist=false")
         if self._payload is not None:
             return {"payload": copy.deepcopy(self._payload)}
         service = self._prepare_project()
@@ -1547,9 +1851,7 @@ class _ServiceBaselineDeriver:
         )
         assert state.contract is not None
         scope_id = document.get("evaluation_scope_id")
-        scope = next(
-            item for item in state.contract.evaluation_scopes if item.id == scope_id
-        )
+        scope = next(item for item in state.contract.evaluation_scopes if item.id == scope_id)
         compatibility = document.get("compatibility_digest")
         assert isinstance(compatibility, str)
         validated = service._validate_baseline_payload(
@@ -1575,9 +1877,7 @@ class _ServiceBaselineDeriver:
         )
         return {
             "accepted": True,
-            "legacy_unstructured_registrations": (
-                state.legacy_unstructured_registrations
-            ),
+            "legacy_unstructured_registrations": (state.legacy_unstructured_registrations),
             "active_generation_id": state.active_generation_id,
         }
 
@@ -1627,9 +1927,7 @@ class _M1CServiceProject:
             self.open_generation()
 
     def open_generation(self) -> dict[str, object]:
-        opened = self.service.open_generation(
-            _object(FIXTURE_ROOT / "m1c-contract.json")
-        )
+        opened = self.service.open_generation(_object(FIXTURE_ROOT / "m1c-contract.json"))
         assert opened["generation_id"] == _fixtures()["generation_id"]
         return opened
 
@@ -1657,21 +1955,33 @@ class _M1CServiceProject:
             'payload={"capabilities": sorted(OPERATIONS | {"evaluation_scope_v1"}), '
             '"side_effects": []},'
         )
-        capture_source = "        payload = request.get(\"payload\") or {}\n"
+        capture_source = '        payload = request.get("payload") or {}\n'
         capture_target = capture_source + (
-            "        capture = project / \".research-os/runtime/"
-            "m1c-adapter-requests.jsonl\"\n"
-            "        with capture.open(\"a\", encoding=\"utf-8\") as stream:\n"
+            '        capture = project / ".research-os/runtime/'
+            'm1c-adapter-requests.jsonl"\n'
+            '        with capture.open("a", encoding="utf-8") as stream:\n'
             "            stream.write(json.dumps(request, sort_keys=True, "
-            "separators=(\",\", \":\")) + \"\\n\")\n"
+            'separators=(",", ":")) + "\\n")\n'
+        )
+        evaluate_artifact_source = (
+            '                    "retention": "project",\n'
+            '                    "sensitivity": "public",\n'
+        )
+        evaluate_artifact_target = (
+            '                    "retention": "project",\n'
+            '                    "sensitivity": "public",\n'
+            '                    "sha256": __import__("hashlib").sha256(\n'
+            '                        (workspace / "outputs/result.json").read_bytes()\n'
+            "                    ).hexdigest(),\n"
+            '                    "size_bytes": (workspace / "outputs/result.json").stat().st_size,\n'
         )
         assert capability_source in adapter_source
         assert capture_source in adapter_source
+        assert evaluate_artifact_source in adapter_source
         adapter.write_text(
-            adapter_source.replace(capability_source, capability_target).replace(
-                capture_source,
-                capture_target,
-            ),
+            adapter_source.replace(capability_source, capability_target)
+            .replace(capture_source, capture_target)
+            .replace(evaluate_artifact_source, evaluate_artifact_target),
             encoding="utf-8",
         )
         (self.control / "research-brief.md").write_text(
@@ -1700,11 +2010,7 @@ class _M1CServiceProject:
         return [value for value in values if isinstance(value, dict)]
 
     def events(self, event_type: str) -> list[object]:
-        return [
-            event
-            for event in self.service.event_log.read()
-            if event.event_type == event_type
-        ]
+        return [event for event in self.service.event_log.read() if event.event_type == event_type]
 
     def registration(self, experiment_id: str) -> Mapping[str, object]:
         for event in self.service.event_log.read():
@@ -1782,12 +2088,29 @@ def _terminal_events(service: ResearchService) -> list[Mapping[str, object]]:
     ]
 
 
+def _record_terminal_diagnosis(
+    service: ResearchService,
+    experiment_id: str,
+) -> dict[str, object]:
+    events = service.event_log.read()
+    state = reduce_scientific_state(
+        events,
+        project_id=str(_fixtures()["project_id"]),
+    )
+    result = service.record_diagnosis(_diagnosis_body(events, state, experiment_id))
+    assert result["experiment_id"] == experiment_id
+    assert result["appended"] is True
+    return result
+
+
 def _seed_explore(project: _M1CServiceProject) -> dict[str, object]:
     project.service.baseline(evaluation_scope_id="development")
-    return project.service.run_once(
+    result = project.service.run_once(
         project.candidate_path,
         proposal=project.proposal_explore_path,
     )
+    _record_terminal_diagnosis(project.service, str(result["experiment_id"]))
+    return result
 
 
 def _observe_scope_baselines(
@@ -1831,18 +2154,15 @@ def _observe_scope_baselines(
             assert exc.code == "STUDY_SCOPE_BASELINE_REQUIRED"
             typed_authorized = False
         after_events = control.service.event_log.read()
-        after_baselines = sum(
-            event.event_type == "BASELINE_RECORDED" for event in after_events
-        )
+        after_baselines = sum(event.event_type == "BASELINE_RECORDED" for event in after_events)
         assert control.service.event_log.path.read_bytes() == before_bytes
 
     with _m1c_service_project(tmp_path / "scoped-baselines") as project:
         project.clear_requests()
-        results = [
-            project.service.baseline(evaluation_scope_id=scope)
-            for scope in scopes
-        ]
-        assert all(result["repetitions"] == repetitions for result in results)
+        results = [project.service.baseline(evaluation_scope_id=scope) for scope in scopes]
+        baseline_repetitions = [result["repetitions"] for result in results]
+        for observed_repetitions in baseline_repetitions:
+            _assert_json_canonical_equal(observed_repetitions, repetitions)
         baseline_events = [
             event.payload
             for event in project.service.event_log.read()
@@ -1877,6 +2197,7 @@ def _observe_scope_baselines(
         "scope_bound_verify_calls": len(scoped_verify_requests),
         "unscoped_baseline_authorizes_typed_run": typed_authorized,
         "typed_run_auto_creates_baseline": after_baselines > before_baselines,
+        "baseline_repetitions": baseline_repetitions,
         "baseline_event_scope_fields": scope_fields,
         "baseline_event_scope_bindings": scope_bindings,
     }
@@ -1909,8 +2230,7 @@ def _observe_typed_proposal(
             "proposal_id",
         }
         proposal_only_events = sum(
-            "PROPOSAL" in event.event_type.upper()
-            for event in project.service.event_log.read()
+            "PROPOSAL" in event.event_type.upper() for event in project.service.event_log.read()
         )
 
     return {
@@ -1953,8 +2273,7 @@ def _observe_typed_replication(
         ),
         "evaluation_scope_id": registration["evaluation_scope_id"],
         "evaluation_scope_changed": (
-            registration["evaluation_scope_id"]
-            != root_registration["evaluation_scope_id"]
+            registration["evaluation_scope_id"] != root_registration["evaluation_scope_id"]
         ),
         "attempt": registration["attempt"],
         "retry_of": registration["retry_of"],
@@ -2000,6 +2319,7 @@ def _observe_typed_proposal_retry(
             )
         assert first["experiment_id"] == retry_of
         assert first["retryable"] is True
+        _record_terminal_diagnosis(project.service, retry_of)
         result = project.service.run_once(
             project.candidate_path,
             retry_of=retry_of,
@@ -2053,6 +2373,7 @@ def _observe_typed_replication_retry(
         assert first["experiment_id"] == retry_of
         assert first["status"] == terminal_status
         assert first["retryable"] is retryable
+        _record_terminal_diagnosis(project.service, retry_of)
         before = project.science_state()
         result = project.service.run_once(
             project.candidate_path,
@@ -2180,15 +2501,30 @@ def _observe_state_path_parity(
         rebuilt = rebuilt_states[-1]
         replayed = project.service.replay()["science"]
         assert isinstance(replayed, Mapping)
-        signatures = [
-            _science_signature(value)
-            for value in (live, cold, rebuilt, replayed)
-        ]
+        public_states = [live, cold, rebuilt, dict(replayed)]
+        signature = _science_signature(live)
 
     return {
-        "paths_equal": sum(value == signatures[0] for value in signatures),
-        **signatures[0],
+        "paths_equal": _json_canonical_match_count(public_states),
+        **signature,
     }
+
+
+def test_state_path_parity_compares_the_full_public_state_surface(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    study_status = ResearchService.study_status
+
+    def inject_extra_public_field(service: ResearchService) -> dict[str, object]:
+        return {**study_status(service), "extra_surface_witness": None}
+
+    monkeypatch.setattr(ResearchService, "study_status", inject_extra_public_field)
+    observed = _observe_state_path_parity(
+        {"sequence": ["explore", "replicate"]},
+        tmp_path,
+    )
+    assert observed["paths_equal"] == 1
 
 
 def _observe_scope_registration_race(
@@ -2242,9 +2578,7 @@ def _observe_scope_registration_race(
             outcomes = list(pool.map(run, contenders))
 
         winners = [value for value in outcomes if isinstance(value, Mapping)]
-        rejections = [
-            value for value in outcomes if isinstance(value, ScientificStateError)
-        ]
+        rejections = [value for value in outcomes if isinstance(value, ScientificStateError)]
         after = project.science_state()
         registrations_after = len(_registration_events(project.service))
         terminals_after = len(_terminal_events(project.service))
@@ -2260,8 +2594,7 @@ def _observe_scope_registration_race(
             }
         ]
         cleanup_calls = sum(
-            request.get("operation") == Operation.CLEANUP.value
-            for request in project.requests()
+            request.get("operation") == Operation.CLEANUP.value for request in project.requests()
         )
         workspace_root = project.control / "runtime" / "workspaces"
         remaining_workspaces = list(workspace_root.iterdir()) if workspace_root.exists() else []
@@ -2324,9 +2657,7 @@ def _observe_authority_surfaces(
         proposal_input = Proposal.from_mapping(
             _object(FIXTURE_ROOT / "m1c-proposal-explore.json")
         ).to_dict()
-        baseline_service = project.service.baseline(
-            evaluation_scope_id="development"
-        )
+        baseline_service = project.service.baseline(evaluation_scope_id="development")
         baseline_cli = _cli_json(
             [
                 "--project",
@@ -2341,6 +2672,10 @@ def _observe_authority_surfaces(
             proposal=project.proposal_explore_path,
         )
         registration = project.registration(str(run_service["experiment_id"]))
+        _record_terminal_diagnosis(
+            project.service,
+            str(run_service["experiment_id"]),
+        )
         project.service.baseline(evaluation_scope_id="replication-1")
         run_cli = _cli_json(
             [
@@ -2352,9 +2687,7 @@ def _observe_authority_surfaces(
                 str(project.proposal_replicate_path),
             ]
         )
-        study_status_cli = _cli_json(
-            ["--project", str(project.project), "study-status"]
-        )
+        study_status_cli = _cli_json(["--project", str(project.project), "study-status"])
         replay_cli = _cli_json(["--project", str(project.project), "replay"])
         observed_surfaces: dict[str, Mapping[str, object]] = {
             "proposal_input": proposal_input,
@@ -2370,9 +2703,7 @@ def _observe_authority_surfaces(
         assert set(observed_surfaces) == set(declared_surfaces)
         surfaces = [observed_surfaces[name] for name in declared_surfaces]
         recursive_values = [
-            item
-            for surface in surfaces
-            for item in _authorized_action_values(surface)
+            item for surface in surfaces for item in _authorized_action_values(surface)
         ]
 
     return {
@@ -2497,15 +2828,9 @@ def test_transition_dsl_resolves_without_case_id_dispatch(tmp_path: Path) -> Non
     captures: dict[str, object] = {
         "root": {"experiment_id": str(_fixtures()["explore_experiment_id"])},
         "diagnostic-root": {"experiment_id": "exp_diagnostic_fixture"},
-        "replication-1": {
-            "experiment_id": str(_fixtures()["replication_1_experiment_id"])
-        },
-        "replication-2": {
-            "experiment_id": str(_fixtures()["replication_2_experiment_id"])
-        },
-        "incompatible-parent": {
-            "experiment_id": "exp_10ef269d91d8cd540bc2ddcb5c840672"
-        },
+        "replication-1": {"experiment_id": str(_fixtures()["replication_1_experiment_id"])},
+        "replication-2": {"experiment_id": str(_fixtures()["replication_2_experiment_id"])},
+        "incompatible-parent": {"experiment_id": "exp_10ef269d91d8cd540bc2ddcb5c840672"},
     }
     for case in cases:
         assert isinstance(case, Mapping)
@@ -2524,7 +2849,11 @@ def test_transition_dsl_resolves_without_case_id_dispatch(tmp_path: Path) -> Non
         )
         resolver.resolve_value(case["expected"], captures=captures)
 
-    direct = [case for case in cases if isinstance(case.get("invoke"), Mapping) and "paths" in case["invoke"]]
+    direct = [
+        case
+        for case in cases
+        if isinstance(case.get("invoke"), Mapping) and "paths" in case["invoke"]
+    ]
     assert len(cases) == 53
     assert len(direct) == 18
     assert sum(len(resolver.resolve_value(case["invoke"]["paths"])) for case in direct) == 72  # type: ignore[index,arg-type]
@@ -2569,8 +2898,7 @@ def test_document_controls_run_on_unpatched_sources_and_never_enter_payloads(
 
 def test_all_manifest_binding_nodes_are_collected(request: pytest.FixtureRequest) -> None:
     expected = {
-        "test_every_manifest_case_has_an_operation_only_expectation_binding"
-        f"[{case_id}]"
+        f"test_every_manifest_case_has_an_operation_only_expectation_binding[{case_id}]"
         for case_id in _CASE_IDS
     }
     collected = {
@@ -2582,17 +2910,19 @@ def test_all_manifest_binding_nodes_are_collected(request: pytest.FixtureRequest
 
 
 def test_no_manifest_or_matrix_case_id_is_used_as_observer_input() -> None:
-    support_source = (
-        Path(__file__).parent / "m1c_support" / "oracle.py"
-    ).read_text(encoding="utf-8")
+    support_source = (Path(__file__).parent / "m1c_support" / "oracle.py").read_text(
+        encoding="utf-8"
+    )
     module_source = Path(__file__).read_text(encoding="utf-8")
     transition_observer_source = module_source[
-        module_source.index("def _observe_transition_negatives(") :
-        module_source.index("\ndef _registry(")
+        module_source.index("def _observe_transition_negatives(") : module_source.index(
+            "\ndef _registry("
+        )
     ]
     positive_observer_source = module_source[
-        module_source.index("def _proposal_fixture_path(") :
-        module_source.index("\ndef _recompute_digest(")
+        module_source.index("def _proposal_fixture_path(") : module_source.index(
+            "\ndef _recompute_digest("
+        )
     ]
     source = support_source + transition_observer_source + positive_observer_source
     forbidden_patterns = (

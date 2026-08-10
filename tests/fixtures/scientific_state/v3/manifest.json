@@ -6,8 +6,6 @@
       "operation",
       "input"
     ],
-    "case_id_is_display_only": true,
-    "expected_is_unavailable_to_observer": true,
     "expected_comparison": "exact canonical JSON equality",
     "forbidden_dispatch": [
       "case id",
@@ -20,10 +18,7 @@
       "race selector",
       "required operations",
       "display id or label"
-    ],
-    "static_case_id_dispatches": 0,
-    "semantic_selector_inputs": 0,
-    "display_id_label_dispatches": 0
+    ]
   },
   "fixtures": {
     "project_id": "fixture-m1d",
@@ -37,11 +32,11 @@
     "diagnosis_negative_matrix": "m1d-diagnosis-negative-matrix.json",
     "diagnosis_negative_matrix_raw_sha256": "112a77493182354637ece0dd405dcca8a4093aee876f75af58f1bde437ae4fb4",
     "transition_matrix": "m1d-transition-matrix.json",
-    "transition_matrix_raw_sha256": "e526f2c2aab968cdd1d0777719ecf992216ac9469864354b4b51586987a15951",
+    "transition_matrix_raw_sha256": "92551a101bfbdbf96c92673750335a70ccd5d1bf422dc7fd80df4feeae9e3c54",
     "frontier_oracle": "m1d-frontier-oracle.json",
     "frontier_oracle_raw_sha256": "66c34953a9f2e0259e4be3c00fe24c92e8213685fff3f00f02ba93e97fa75cc5",
     "compatibility_oracle": "m1d-compat-oracle.json",
-    "compatibility_oracle_raw_sha256": "4f3f79cc593a51b5f1f33b3501f966496bc91f37cde33f2f745f26518c64b597",
+    "compatibility_oracle_raw_sha256": "680f475d7d13dfc663f4d84e1931f1a10888cf660312a6d0575d3d4a216a70fc",
     "generation_id": "generation_5d41220428bdc7434fc3a1be0b8eace4",
     "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
     "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
@@ -70,8 +65,7 @@
         "total_json_files_including_manifest": 8,
         "raw_digest_matches": 7,
         "manifest_cases": 28,
-        "duplicate_case_ids": 0,
-        "case_id_dispatches": 0
+        "duplicate_case_ids": 0
       }
     },
     {
@@ -114,7 +108,7 @@
         "decision_round_trips": 3,
         "gate_evaluation_round_trips": 2,
         "product_feasible_terminal_payloads": 22,
-        "pending_diagnosis_exact_matches": 23,
+        "pending_diagnosis_row_matches": 23,
         "generic_canonical_terminal_records": 6,
         "generic_alias_terminal_records": 7,
         "generic_retryable_terminal_records": 3,
@@ -188,8 +182,7 @@
         "narrative_text_exactness_cases": 6,
         "bool_integer_boundary_cases": 5,
         "prehash_surrogate_cases": 2,
-        "structural_parser_boundary_cases": 11,
-        "accepted_attacks": 0
+        "structural_parser_boundary_cases": 11
       }
     },
     {
@@ -211,8 +204,7 @@
         "event_valid_materialized_mutations": 113,
         "prehash_surrogate_rejections": 2,
         "materialized_event_envelopes": 832,
-        "all_declared_deltas_zero": true,
-        "case_id_dispatches": 0
+        "all_declared_deltas_zero": true
       }
     },
     {
@@ -238,7 +230,24 @@
       "operation": "verify_generic_terminal_normalization",
       "input": {
         "terminal_fixture": "m1d-terminal-corpus.json",
-        "diagnosis_fixture": "m1d-diagnosis-valid.json"
+        "diagnosis_fixture": "m1d-diagnosis-valid.json",
+        "normalization_row_order": "diagnosis_fixture_case_order",
+        "normalization_row_fields": [
+          "experiment_id",
+          "terminal_event_id",
+          "terminal_event_hash",
+          "raw_terminal_status",
+          "canonical_terminal_status",
+          "reason_code",
+          "verified",
+          "retryable",
+          "primary_metric",
+          "candidate_value",
+          "baseline_value",
+          "improvement",
+          "promotion_margin",
+          "gate_evaluations"
+        ]
       },
       "expected": {
         "generic_and_nonterminal_histories": 14,
@@ -248,7 +257,7 @@
         "retryable_terminal_statuses": 3,
         "nonretryable_terminal_statuses": 10,
         "diagnosed_terminal_histories": 13,
-        "normalization_rows_digest": "a8dcd05aeee158fac6f0680a192f9f9f69cb242d29c75fb9812557a3cb580902"
+        "normalization_rows_digest": "4c5c26054ff837ef5a70a77921e8557e06b0d761e5efa39083e309c5963800b4"
       }
     },
     {
@@ -274,7 +283,7 @@
       },
       "expected": {
         "cases": 26,
-        "exact_matches": 26,
+        "executed_rows": 26,
         "positive_rows": 7,
         "zero_rows": 19,
         "added_boundary_rows": 12,
@@ -296,7 +305,7 @@
       "expected": {
         "cases": 54,
         "event_envelopes": 452,
-        "exact_state_matches": 54,
+        "reduced_state_rows": 54,
         "state_key_count": 19,
         "generic_status_changed_cases": 29,
         "generic_terminal_observation_cases": 14,
@@ -307,8 +316,6 @@
         "nonempty_all_passed_supported_cases": 1,
         "class_limit_four_boundary_cases": 3,
         "replicated_support_persistence_cases": 3,
-        "inherited_expected_states": 0,
-        "subset_expected_states": 0,
         "scenario_inputs": 0
       }
     },
@@ -322,14 +329,13 @@
         "cases": 37,
         "accepted": 7,
         "rejected": 30,
-        "full_final_state_matches": 37,
-        "full_final_state_digest_matches": 37,
-        "final_log_head_matches": 37,
+        "final_state_observations": 37,
+        "verified_final_state_digests": 37,
+        "final_log_head_observations": 37,
         "zero_write_rejections": 30,
         "history_event_envelopes": 284,
         "appended_event_envelopes": 7,
         "prederived_predicate_inputs": 0,
-        "observer_expected_accesses": 0,
         "error_histogram": {
           "ACCEPT": 7,
           "STUDY_ACTIVE_EXPERIMENTS": 1,
@@ -375,7 +381,7 @@
         "accepted": 3,
         "diagnosis_required": 2,
         "study_active_experiments": 1,
-        "full_final_state_matches": 6,
+        "final_state_observations": 6,
         "new_generation_resets_active_state": true
       }
     },
@@ -395,7 +401,7 @@
         "closed_class_priority": 1,
         "canonical_history_unreachable_axes": 1,
         "preserved_m1c_injected_compatibility_axes": 1,
-        "full_final_state_matches": 16,
+        "final_state_observations": 16,
         "all_rejection_deltas_zero": true
       }
     },
@@ -512,8 +518,7 @@
         "action_derivation_used_replication_scopes": 4,
         "action_derivation_unused_replication_scopes": 0,
         "decisive_supported_nodes_with_passed_hard_and_support_gates": 1,
-        "selector_free_observer_rows": 46,
-        "display_id_rename_invariance_rows": 46
+        "selector_free_observer_rows": 46
       }
     },
     {
@@ -576,7 +581,7 @@
         "operation_successes": 10,
         "operation_failures": 4,
         "appended_events": 9,
-        "exact_outcome_count_assertions": 7,
+        "outcome_count_observations": 7,
         "display_id_label_rename_invariance_assertions": 7,
         "semantic_lock_operation_labels": 0,
         "generic_operation_verbs": [
@@ -588,7 +593,7 @@
         "diagnosis_events": 1,
         "duplicate_errors": 0,
         "idempotent_reuses": 1,
-        "final_states_exact": 7
+        "final_state_observations": 7
       }
     },
     {
@@ -600,7 +605,7 @@
       "expected": {
         "schedules": 7,
         "literal_schedule_rows": 14,
-        "final_states_exact": 7,
+        "final_state_observations": 7,
         "diagnosis_first_registration_successes": 1,
         "registration_first_diagnosis_required": 1,
         "closure_first_class_closed": 1,
@@ -617,8 +622,8 @@
       },
       "expected": {
         "schedules": 7,
-        "observer_input_hash_assertions": 7,
-        "display_renamed_observer_input_hash_assertions": 7,
+        "observer_input_hash_observations": 7,
+        "display_renamed_observer_input_hash_observations": 7,
         "display_id_label_rename_invariance_assertions": 7,
         "semantic_lock_operation_labels": 0
       }
@@ -656,7 +661,7 @@
         "m1c_manifest_cases": 20,
         "m1c_manifest_exact_matches": 20,
         "m1c_transition_cases": 53,
-        "m1c_transition_exact_matches": 53,
+        "m1c_transition_case_rejections": 53,
         "m1c_direct_replay_path_matches": 72,
         "legacy_event_bytes_preserved_after_replay": true,
         "legacy_event_head_preserved_after_replay": true,

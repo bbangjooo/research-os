@@ -25,7 +25,7 @@
     "proposal_negative_matrix": "m1c-proposal-negative-matrix.json",
     "proposal_negative_matrix_raw_sha256": "418ecde928d308d04453a5e3d8906bb57139ae80ef2a6c11a71d7a77f7be294a",
     "transition_negative_matrix": "m1c-transition-negative-matrix.json",
-    "transition_negative_matrix_raw_sha256": "1e9e8e60a18dfe0d610a4928ecb90933204d43c53796e00d253343093ed96dd0",
+    "transition_negative_matrix_raw_sha256": "76524d0629f909c1f5ee1eabe0ad297463f2f1e7bb7685230e2c6c5b5317288c",
     "m1b_v1_generation_events": "m1b-v1-generation-events.jsonl",
     "m1b_v1_generation_events_raw_sha256": "9624d76d3d95c02b50fb4f4aeecff97de4bb7e86333ec5630b0aedf42b2f4c13",
     "m1b_v1_compat_oracle": "m1b-v1-compat-oracle.json",
@@ -197,6 +197,7 @@
       "expected": {
         "cases": 53,
         "case_rejections": 53,
+        "declared_error_detail_subset_matches": 53,
         "direct_replay_path_matches": 72,
         "event_delta_zero_cases": 53,
         "budget_delta_zero_cases": 53,
@@ -215,6 +216,7 @@
         "scope_bound_verify_calls": 2,
         "unscoped_baseline_authorizes_typed_run": false,
         "typed_run_auto_creates_baseline": false,
+        "baseline_repetitions": [1, 1],
         "baseline_event_scope_fields": [
           "science_state_version",
           "generation_id",

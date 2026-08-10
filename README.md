@@ -148,6 +148,7 @@ research-os --project /path/to/project agent-context
 research-os --project /path/to/project run-once candidate.json \
   --graph-action explore --scientific-change "CLASS: ...; CHANGE: ..." \
   --context-token TOKEN
+research-os --project /path/to/project diagnose diagnosis.json
 research-os --project /path/to/project conclude-branch conclusion.json \
   --context-token TOKEN
 research-os --project /path/to/project status
@@ -174,6 +175,15 @@ open. Research OS binds the full declared scope to the baseline, all four
 candidate operations, experiment identity, and replay; it does not infer that
 two datasets are scientifically independent merely because their scope IDs
 differ.
+
+Every terminal experiment in a version-two generation leaves one pending
+Diagnosis. Before another registration, retry, or successor generation can be
+accepted, the agent must submit a strict `Diagnosis` JSON with `diagnose`. The
+object binds the exact terminal event and hash, Proposal, evaluation scope,
+Decision observation, and artifact evidence. The kernel—not the agent's
+narrative—derives class status, immutable closure, and the semantic/retry
+frontier. The current `agent-context` v2 does not yet author or expose this
+state; context v3 and a Diagnosis template are the next compatibility slice.
 
 Codex and Claude Code use `agent-context` plus `--context-token`; that guarded
 path requires a current independent evaluator certificate and an already sealed

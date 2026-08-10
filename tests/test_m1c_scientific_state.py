@@ -9,11 +9,15 @@ import pytest
 
 from research_os.contracts.common import sha256_json
 from research_os.errors import ScientificStateError
-from research_os.kernel.ids import new_experiment_id
+from research_os.kernel._canonical import canonical_bytes, sha256_hex
+from research_os.kernel.events import Event
+from research_os.kernel.ids import new_experiment_id, stable_id
 from research_os.science import (
+    DIAGNOSIS_EVENT_TYPE,
     EvaluationSeal,
     Proposal,
     StudyContract,
+    plan_diagnosis_append,
     plan_generation_open,
     proposal_id,
     reduce_scientific_state,
@@ -39,6 +43,30 @@ def _event(event_type: str, payload: dict[str, Any]) -> dict[str, Any]:
         "project_id": PROJECT_ID,
         "payload": payload,
     }
+
+
+def _canonical_events(events: list[dict[str, Any]]) -> list[Event]:
+    canonical: list[Event] = []
+    previous_hash: str | None = None
+    for sequence, raw in enumerate(events, 1):
+        event_type = raw["event_type"]
+        payload = copy.deepcopy(raw["payload"])
+        unsigned = {
+            "event_id": stable_id("event", PROJECT_ID, sequence, event_type),
+            "event_type": event_type,
+            "occurred_at": "2026-08-10T00:00:00.000000Z",
+            "payload": payload,
+            "prev_hash": previous_hash,
+            "project_id": PROJECT_ID,
+            "sequence": sequence,
+            "version": 1,
+        }
+        event = Event.from_mapping(
+            {**unsigned, "hash": sha256_hex(canonical_bytes(unsigned))}
+        )
+        canonical.append(event)
+        previous_hash = event.hash
+    return canonical
 
 
 def _open() -> tuple[list[dict[str, Any]], Any]:
@@ -161,23 +189,128 @@ def _terminate(
     status: str,
     *,
     retryable: bool,
+    supported: bool = False,
 ) -> Any:
     registration = state.registration(experiment_id)
     assert registration is not None
+    terminal_payload: dict[str, Any] = {
+        "experiment_id": experiment_id,
+        "status": status,
+        "attempt": registration.attempt,
+        "retry_of": registration.retry_of,
+        "retryable": retryable,
+        "authorized_action": None,
+    }
+    if supported:
+        assert status == "VALIDATED"
+        terminal_payload.update(
+            {
+                "reason_code": "PRIMARY_METRIC_IMPROVED",
+                "verified": True,
+                "primary_metric": "score",
+                "decision": {
+                    "status": "VALIDATED",
+                    "reason_code": "PRIMARY_METRIC_IMPROVED",
+                    "primary_metric": "score",
+                    "candidate_value": 2.0,
+                    "baseline_value": 1.0,
+                    "improvement": 1.0,
+                    "promotion_margin": 0.5,
+                    "gate_evaluations": [],
+                    "authorized_action": None,
+                },
+            }
+        )
     events.append(
         _event(
             "EXPERIMENT_TERMINATED",
-            {
-                "experiment_id": experiment_id,
-                "status": status,
-                "attempt": registration.attempt,
-                "retry_of": registration.retry_of,
-                "retryable": retryable,
-                "authorized_action": None,
-            },
+            terminal_payload,
         )
     )
     return reduce_scientific_state(events, project_id=PROJECT_ID)
+
+
+def _append_diagnosis(
+    events: list[dict[str, Any]],
+    experiment_id: str,
+    *,
+    supported: bool = False,
+) -> Any:
+    canonical = _canonical_events(events)
+    state = reduce_scientific_state(canonical, project_id=PROJECT_ID)
+    registration = state.registration(experiment_id)
+    assert registration is not None
+    assert registration.is_terminal
+    assert registration.terminal_event_id is not None
+    assert registration.terminal_event_hash is not None
+    assert state.active_generation_id is not None
+    assert state.evaluation_seal is not None
+    observation = (
+        {
+            "terminal_status": "VALIDATED",
+            "reason_code": "PRIMARY_METRIC_IMPROVED",
+            "verified": True,
+            "retryable": False,
+            "primary_metric": "score",
+            "candidate_value": 2.0,
+            "baseline_value": 1.0,
+            "improvement": 1.0,
+            "promotion_margin": 0.5,
+            "gate_evaluations": [],
+        }
+        if supported
+        else {
+            "terminal_status": registration.terminal_status,
+            "reason_code": "TERMINATED",
+            "verified": False,
+            "retryable": registration.retryable,
+            "primary_metric": None,
+            "candidate_value": None,
+            "baseline_value": None,
+            "improvement": None,
+            "promotion_margin": None,
+            "gate_evaluations": [],
+        }
+    )
+    plan = plan_diagnosis_append(
+        canonical,
+        project_id=PROJECT_ID,
+        diagnosis={
+            "diagnosis_schema_version": 1,
+            "generation_id": state.active_generation_id,
+            "compatibility_digest": state.evaluation_seal.compatibility_digest,
+            "experiment_id": experiment_id,
+            "proposal_id": registration.proposal_id,
+            "proposal_digest": registration.proposal_digest,
+            "hypothesis_class_id": registration.proposal.hypothesis_class_id,
+            "evaluation_scope_id": registration.evaluation_scope_id,
+            "terminal_evidence": {
+                "experiment_id": experiment_id,
+                "event_id": registration.terminal_event_id,
+                "event_hash": registration.terminal_event_hash,
+            },
+            "artifact_evidence": [],
+            "observation": observation,
+            "interpretation": (
+                "The verified primary metric improved under the frozen evidence contract."
+                if supported
+                else "The terminal event has no verified quantitative decision evidence."
+            ),
+            "failure_type": "supported" if supported else "evidence",
+            "falsifier": (
+                "A preregistered replication fails the frozen promotion threshold."
+                if supported
+                else "A new experiment supplies verified quantitative decision evidence."
+            ),
+            "recommendation": "replicate" if supported else "explore",
+            "authorized_action": None,
+        },
+    )
+    assert plan.append_required is True
+    events.append(_event(DIAGNOSIS_EVENT_TYPE, plan.payload))
+    canonical = _canonical_events(events)
+    events[:] = [event.to_dict() for event in canonical]
+    return reduce_scientific_state(canonical, project_id=PROJECT_ID)
 
 
 def _assert_code(code: str, operation: Any) -> ScientificStateError:
@@ -256,6 +389,12 @@ def test_replication_and_retry_inherit_canonical_proposal_without_double_countin
         root_payload["experiment_id"],
         "VALIDATED",
         retryable=False,
+        supported=True,
+    )
+    state = _append_diagnosis(
+        events,
+        root_payload["experiment_id"],
+        supported=True,
     )
     state = _add_baseline(
         events,
@@ -282,6 +421,7 @@ def test_replication_and_retry_inherit_canonical_proposal_without_double_countin
         "TIMED_OUT",
         retryable=True,
     )
+    state = _append_diagnosis(events, replication_payload["experiment_id"])
     retry_payload = _registration_payload(
         state,
         ROOT_CANDIDATE,
@@ -382,6 +522,7 @@ def test_actual_candidate_diff_and_declared_intervention_must_match() -> None:
         "VALIDATED",
         retryable=False,
     )
+    state = _append_diagnosis(events, root_payload["experiment_id"])
     candidate = {"x": 2.0, "y": 2.0}
     proposal = _load("m1c-proposal-explore.json")
     proposal.update(
@@ -436,6 +577,14 @@ def test_successor_generation_resets_all_typed_ledgers() -> None:
     )
     state = _append_registration(events, state, payload)
     assert state.proposal_count == 1
+    state = _terminate(
+        events,
+        state,
+        payload["experiment_id"],
+        "REJECTED",
+        retryable=False,
+    )
+    state = _append_diagnosis(events, payload["experiment_id"])
 
     changed_raw = _load("m1c-contract.json")
     changed_raw["budget"]["max_attempts"] = 13

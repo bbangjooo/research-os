@@ -212,6 +212,26 @@ The same contract and seal cannot be used to reset a generation. A genuinely
 changed successor receives a fresh per-generation budget; repeated successors
 are auditable but there is not yet a study-lifetime cap.
 
+## Terminal Diagnosis gate
+
+After every terminal experiment in a version-two generation, stop proposing
+experiments and prepare one strict Diagnosis bound to the returned experiment,
+terminal event ID/hash, persisted Proposal and scope, Decision observation, and
+verified artifacts. Record it before any next registration, retry, or successor:
+
+```text
+research-os --project PATH diagnose /ABS/PATH/diagnosis.json
+research-os --project PATH study-status
+research-os --project PATH replay
+```
+
+Research OS derives `ClassState`, immutable class closure, and the
+semantic/retry frontiers from verified evidence. Treat the agent's
+interpretation, falsifier, and recommendation as bounded research provenance,
+not as execution or closure authority. Current `agent-context` v2 does not
+expose these fields or generate the strict JSON, so the caller must preserve the
+exact IDs until context v3 and the Diagnosis authoring template land.
+
 ## Scientific graph workflow
 
 Research follows a phase machine rather than unconstrained sequential parameter

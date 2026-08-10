@@ -168,22 +168,22 @@
     "certified-ready": {
       "project_profile": "v2-ready",
       "steps": [],
-      "expected_state": {"active_generation_id": null, "baseline_scope_ids": [], "attempts_used": 0, "retries_used": 0, "registrations": [], "terminal_experiment_ids": [], "replication_count": 0}
+      "expected_state_subset": {"active_generation_id": null, "baseline_scope_ids": [], "attempts_used": 0, "retries_used": 0, "registrations": [], "terminal_experiment_ids": [], "replication_count": 0}
     },
     "certified-no-scope-capability": {
       "project_profile": "v2-no-scope-capability",
       "steps": [],
-      "expected_state": {"active_generation_id": null, "baseline_scope_ids": [], "attempts_used": 0, "retries_used": 0, "registrations": [], "terminal_experiment_ids": [], "replication_count": 0}
+      "expected_state_subset": {"active_generation_id": null, "baseline_scope_ids": [], "attempts_used": 0, "retries_used": 0, "registrations": [], "terminal_experiment_ids": [], "replication_count": 0}
     },
     "v2-open": {
       "extends": "certified-ready",
       "steps": [{"driver": "generation.open", "contract": {"$doc": "contract-v2"}}],
-      "expected_state": {"active_generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54", "baseline_scope_ids": [], "attempts_used": 0, "retries_used": 0, "registrations": [], "terminal_experiment_ids": [], "replication_count": 0}
+      "expected_state_subset": {"active_generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54", "baseline_scope_ids": [], "attempts_used": 0, "retries_used": 0, "registrations": [], "terminal_experiment_ids": [], "replication_count": 0}
     },
     "v2-dev-baseline": {
       "extends": "v2-open",
       "steps": [{"driver": "baseline.record", "evaluation_scope_id": "development"}],
-      "expected_state": {"active_generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54", "baseline_scope_ids": ["development"], "attempts_used": 0, "retries_used": 0, "registrations": [], "terminal_experiment_ids": [], "replication_count": 0}
+      "expected_state_subset": {"active_generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54", "baseline_scope_ids": ["development"], "attempts_used": 0, "retries_used": 0, "registrations": [], "terminal_experiment_ids": [], "replication_count": 0}
     },
     "v1-open-baseline": {
       "extends": "certified-ready",
@@ -191,7 +191,7 @@
         {"driver": "generation.open", "contract": {"$doc": "contract-v1"}},
         {"driver": "baseline.record", "evaluation_scope_id": null}
       ],
-      "expected_state": {"active_generation_id": "generation_08f733649223ece73cbf47eb3b734e0d", "contract_schema_version": 1, "baseline_scope_ids": [null], "attempts_used": 0, "retries_used": 0, "registrations": [], "terminal_experiment_ids": [], "replication_count": 0}
+      "expected_state_subset": {"active_generation_id": "generation_08f733649223ece73cbf47eb3b734e0d", "contract_schema_version": 1, "baseline_scope_ids": [null], "attempts_used": 0, "retries_used": 0, "registrations": [], "terminal_experiment_ids": [], "replication_count": 0}
     },
     "root-running": {
       "extends": "v2-dev-baseline",
@@ -199,17 +199,17 @@
         {"driver": "baseline.record", "evaluation_scope_id": "diagnostic-1"},
         {"driver": "registration.append", "candidate": {"$doc": "candidate-root"}, "proposal": {"$doc": "proposal-explore"}, "capture": "root"}
       ],
-      "expected_state": {"active_generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54", "baseline_scope_ids": ["development", "diagnostic-1"], "attempts_used": 1, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192"], "terminal_experiment_ids": [], "replication_count": 0}
+      "expected_state_subset": {"active_generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54", "baseline_scope_ids": ["development", "diagnostic-1"], "attempts_used": 1, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192"], "terminal_experiment_ids": [], "replication_count": 0}
     },
     "root-terminal": {
       "extends": "root-running",
       "steps": [{"driver": "experiment.terminate", "experiment_id": "exp_14dab599bb9be91cbac8751a5c0da192", "status": "VALIDATED", "retryable": false}],
-      "expected_state": {"attempts_used": 1, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192"], "terminal_experiment_ids": ["exp_14dab599bb9be91cbac8751a5c0da192"], "replication_count": 0}
+      "expected_state_subset": {"attempts_used": 1, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192"], "terminal_experiment_ids": ["exp_14dab599bb9be91cbac8751a5c0da192"], "replication_count": 0}
     },
     "root-retryable": {
       "extends": "root-running",
       "steps": [{"driver": "experiment.terminate", "experiment_id": "exp_14dab599bb9be91cbac8751a5c0da192", "status": "TIMED_OUT", "retryable": true}],
-      "expected_state": {"attempts_used": 1, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192"], "terminal_experiment_ids": ["exp_14dab599bb9be91cbac8751a5c0da192"], "replication_count": 0}
+      "expected_state_subset": {"attempts_used": 1, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192"], "terminal_experiment_ids": ["exp_14dab599bb9be91cbac8751a5c0da192"], "replication_count": 0}
     },
     "diagnostic-root-terminal": {
       "extends": "v2-dev-baseline",
@@ -218,7 +218,7 @@
         {"driver": "registration.append", "candidate": {"$doc": "candidate-root"}, "proposal": {"$doc": "proposal-explore", "patches": [{"op": "replace", "path": "/evaluation_scope_id", "value": "diagnostic-1"}]}, "capture": "diagnostic-root"},
         {"driver": "experiment.terminate", "experiment_id": {"$capture": "diagnostic-root.experiment_id"}, "status": "VALIDATED", "retryable": false}
       ],
-      "expected_state": {"baseline_scope_ids": ["development", "diagnostic-1"], "attempts_used": 1, "retries_used": 0, "registrations": ["exp_c7d45c0c88065c8525c7e3d4f0ab06b1"], "terminal_experiment_ids": ["exp_c7d45c0c88065c8525c7e3d4f0ab06b1"], "terminal_count": 1, "replication_count": 0}
+      "expected_state_subset": {"baseline_scope_ids": ["development", "diagnostic-1"], "attempts_used": 1, "retries_used": 0, "registrations": ["exp_c7d45c0c88065c8525c7e3d4f0ab06b1"], "terminal_experiment_ids": ["exp_c7d45c0c88065c8525c7e3d4f0ab06b1"], "terminal_count": 1, "replication_count": 0}
     },
     "rep1-terminal": {
       "extends": "root-terminal",
@@ -227,7 +227,7 @@
         {"driver": "registration.append", "candidate": {"$doc": "candidate-root"}, "proposal": {"$doc": "proposal-replicate"}, "capture": "replication-1"},
         {"driver": "experiment.terminate", "experiment_id": "exp_6de5a6123dad0a28f3bb630f11db9af4", "status": "VALIDATED", "retryable": false}
       ],
-      "expected_state": {"baseline_scope_ids": ["development", "diagnostic-1", "replication-1"], "attempts_used": 2, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192", "exp_6de5a6123dad0a28f3bb630f11db9af4"], "terminal_experiment_ids": ["exp_14dab599bb9be91cbac8751a5c0da192", "exp_6de5a6123dad0a28f3bb630f11db9af4"], "terminal_count": 2, "replication_count": 1, "used_candidate_scope_pairs": 2}
+      "expected_state_subset": {"baseline_scope_ids": ["development", "diagnostic-1", "replication-1"], "attempts_used": 2, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192", "exp_6de5a6123dad0a28f3bb630f11db9af4"], "terminal_experiment_ids": ["exp_14dab599bb9be91cbac8751a5c0da192", "exp_6de5a6123dad0a28f3bb630f11db9af4"], "terminal_count": 2, "replication_count": 1, "used_candidate_scope_pairs": 2}
     },
     "rep12-terminal": {
       "extends": "rep1-terminal",
@@ -236,7 +236,7 @@
         {"driver": "registration.append", "candidate": {"$doc": "candidate-root"}, "proposal": {"$doc": "proposal-replicate", "patches": [{"op": "replace", "path": "/evaluation_scope_id", "value": "replication-2"}]}, "capture": "replication-2"},
         {"driver": "experiment.terminate", "experiment_id": "exp_3c757d5fc62c10a52b741759acdf377b", "status": "VALIDATED", "retryable": false}
       ],
-      "expected_state": {"baseline_scope_ids": ["development", "diagnostic-1", "replication-1", "replication-2"], "attempts_used": 3, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192", "exp_6de5a6123dad0a28f3bb630f11db9af4", "exp_3c757d5fc62c10a52b741759acdf377b"], "terminal_experiment_ids": ["exp_14dab599bb9be91cbac8751a5c0da192", "exp_6de5a6123dad0a28f3bb630f11db9af4", "exp_3c757d5fc62c10a52b741759acdf377b"], "terminal_count": 3, "replication_count": 2, "used_candidate_scope_pairs": 3}
+      "expected_state_subset": {"baseline_scope_ids": ["development", "diagnostic-1", "replication-1", "replication-2"], "attempts_used": 3, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192", "exp_6de5a6123dad0a28f3bb630f11db9af4", "exp_3c757d5fc62c10a52b741759acdf377b"], "terminal_experiment_ids": ["exp_14dab599bb9be91cbac8751a5c0da192", "exp_6de5a6123dad0a28f3bb630f11db9af4", "exp_3c757d5fc62c10a52b741759acdf377b"], "terminal_count": 3, "replication_count": 2, "used_candidate_scope_pairs": 3}
     },
     "root-dev-only": {
       "extends": "v2-dev-baseline",
@@ -244,22 +244,22 @@
         {"driver": "registration.append", "candidate": {"$doc": "candidate-root"}, "proposal": {"$doc": "proposal-explore"}, "capture": "root"},
         {"driver": "experiment.terminate", "experiment_id": "exp_14dab599bb9be91cbac8751a5c0da192", "status": "VALIDATED", "retryable": false}
       ],
-      "expected_state": {"baseline_scope_ids": ["development"], "attempts_used": 1, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192"], "terminal_experiment_ids": ["exp_14dab599bb9be91cbac8751a5c0da192"], "terminal_count": 1, "replication_count": 0}
+      "expected_state_subset": {"baseline_scope_ids": ["development"], "attempts_used": 1, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192"], "terminal_experiment_ids": ["exp_14dab599bb9be91cbac8751a5c0da192"], "terminal_count": 1, "replication_count": 0}
     },
     "wrong-scope-baseline": {
       "extends": "v2-open",
       "steps": [{"driver": "baseline.record", "evaluation_scope_id": "diagnostic-1"}],
-      "expected_state": {"baseline_scope_ids": ["diagnostic-1"], "attempts_used": 0, "retries_used": 0, "replication_count": 0}
+      "expected_state_subset": {"baseline_scope_ids": ["diagnostic-1"], "attempts_used": 0, "retries_used": 0, "replication_count": 0}
     },
     "unscoped-baseline-v2": {
       "extends": "v2-open",
       "steps": [{"driver": "event.append", "event_type": "BASELINE_RECORDED", "payload": {"$doc": "baseline-legacy-unscoped"}}],
-      "expected_state": {"baseline_scope_ids": [null], "attempts_used": 0, "retries_used": 0, "replication_count": 0}
+      "expected_state_subset": {"baseline_scope_ids": [null], "attempts_used": 0, "retries_used": 0, "replication_count": 0}
     },
     "incompatible-parent-view": {
       "extends": "v2-open",
       "steps": [{"driver": "parent_view.inject", "experiment_id": "exp_10ef269d91d8cd540bc2ddcb5c840672", "candidate": {"$doc": "candidate-root"}, "evaluation_scope_id": "development", "hypothesis_class_id": "class-a", "generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54", "compatibility_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "terminal": true, "capture": "incompatible-parent"}],
-      "expected_state": {"parent_view_count": 1, "attempts_used": 0, "retries_used": 0, "replication_count": 0}
+      "expected_state_subset": {"parent_view_count": 1, "attempts_used": 0, "retries_used": 0, "replication_count": 0}
     }
   },
   "cases": [

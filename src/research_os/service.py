@@ -81,6 +81,8 @@ from .science import (
     registration_payload_fields,
     reserve_registration,
     validate_registration,
+    validate_registration_preflight,
+    validate_successor_preflight,
 )
 
 REQUIRED_OPERATIONS = frozenset(operation.value for operation in Operation)
@@ -438,6 +440,8 @@ class ResearchService:
     def _verify_terminal_artifact_bindings(
         self,
         projected_records: Sequence[tuple[Mapping[str, Any], ArtifactRecord]],
+        *,
+        events: Sequence[Event] | None = None,
     ) -> None:
         """Bind every terminal result declaration to earlier canonical artifacts."""
 
@@ -449,7 +453,8 @@ class ResearchService:
                 (projected, record)
             )
 
-        for event in self.event_log.read():
+        canonical_events = self.event_log.read() if events is None else events
+        for event in canonical_events:
             event_type = _normalized_event_type(event.event_type)
             if event_type not in _TERMINAL_EVENT_TYPES:
                 continue
@@ -768,6 +773,17 @@ class ResearchService:
         complete write.
         """
 
+        explicit_successor = (
+            predecessor_generation_id is not None or change_reason is not None
+        )
+        if explicit_successor:
+            with self.event_log.locked_read() as preflight_events:
+                preflight_state = reduce_scientific_state(
+                    tuple(preflight_events),
+                    project_id=self.config.project_id,
+                )
+                validate_successor_preflight(preflight_state)
+
         raw_contract = (
             dict(contract)
             if isinstance(contract, Mapping)
@@ -777,6 +793,15 @@ class ResearchService:
         self._assert_config_unchanged()
         self.event_log.verify()
         events = tuple(self.event_log.read())
+        current_state = reduce_scientific_state(
+            events,
+            project_id=self.config.project_id,
+        )
+        if (
+            current_state.active_generation_id is not None
+            and study_contract.digest != current_state.study_contract_digest
+        ):
+            validate_successor_preflight(current_state)
 
         event: Event | None = None
         appended_events = 0
@@ -2864,6 +2889,44 @@ class ResearchService:
             self.event_log.read(),
             project_id=self.config.project_id,
         )
+        # State-derived stop and pending obligations outrank request parsing
+        # and must reject without touching the evaluator or projection.  A
+        # second intent-aware pass below adds class and replication-parent
+        # gates once the Proposal lineage is known.
+        validate_registration_preflight(preview_state, {})
+        typed_path = (
+            preview_state.contract is not None
+            and preview_state.contract.schema_version == 2
+        )
+        preview_proposal_raw: Mapping[str, Any] | None = None
+        preview_typed_proposal: Proposal | None = None
+        if typed_path:
+            preflight_payload: dict[str, Any] = {"retry_of": retry_of}
+            if retry_of is None:
+                if proposal is not None:
+                    preview_proposal_raw = (
+                        dict(proposal)
+                        if isinstance(proposal, Mapping)
+                        else self._load_json_object(proposal, label="proposal")
+                    )
+                    preflight_payload.update(
+                        {
+                            "proposal": preview_proposal_raw,
+                            "parent_id": preview_proposal_raw.get(
+                                "parent_experiment_id"
+                            ),
+                        }
+                    )
+            else:
+                prior_registration = preview_state.registration(retry_of)
+                if prior_registration is not None:
+                    preflight_payload.update(
+                        {
+                            "proposal": prior_registration.proposal.to_dict(),
+                            "parent_id": prior_registration.parent_id,
+                        }
+                    )
+            validate_registration_preflight(preview_state, preflight_payload)
         typed_path = self._validate_proposal_mode(
             preview_state,
             proposal=proposal,
@@ -2872,6 +2935,9 @@ class ResearchService:
             graph_action=graph_action,
             scientific_change=scientific_change,
         )
+        if typed_path:
+            if preview_proposal_raw is not None:
+                preview_typed_proposal = Proposal.from_mapping(preview_proposal_raw)
 
         agent_context_snapshot: dict[str, Any] | None = None
         if context_token is not None:
@@ -2907,6 +2973,33 @@ class ResearchService:
             self.event_log.read(),
             project_id=self.config.project_id,
         )
+        validate_registration_preflight(science_state, {})
+        typed_path = (
+            science_state.contract is not None
+            and science_state.contract.schema_version == 2
+        )
+        if typed_path:
+            post_recovery_payload: dict[str, Any] = {"retry_of": retry_of}
+            if retry_of is None:
+                if preview_proposal_raw is not None:
+                    post_recovery_payload.update(
+                        {
+                            "proposal": preview_proposal_raw,
+                            "parent_id": preview_proposal_raw.get(
+                                "parent_experiment_id"
+                            ),
+                        }
+                    )
+            else:
+                prior_registration = science_state.registration(retry_of)
+                if prior_registration is not None:
+                    post_recovery_payload.update(
+                        {
+                            "proposal": prior_registration.proposal.to_dict(),
+                            "parent_id": prior_registration.parent_id,
+                        }
+                    )
+            validate_registration_preflight(science_state, post_recovery_payload)
         typed_path = self._validate_proposal_mode(
             science_state,
             proposal=proposal,
@@ -2945,9 +3038,9 @@ class ResearchService:
                 raise IntegrityError("typed registration generation is unavailable")
             self._validate_typed_generation_environment(contract, report)
             if retry_of is None:
-                if proposal is None:  # pragma: no cover - mode gate above
+                if preview_typed_proposal is None:  # pragma: no cover - mode gate above
                     raise IntegrityError("typed Proposal input is unavailable")
-                typed_proposal = self._load_proposal(proposal)
+                typed_proposal = preview_typed_proposal
                 parent_id = typed_proposal.parent_experiment_id
                 attempt = 1
             else:
@@ -4295,51 +4388,87 @@ class ResearchService:
             )
             self.projection.rebuild(self.event_log)
             self._recover_incomplete_experiments()
-            count = self.projection.rebuild(self.event_log)
-            science_state = reduce_scientific_state(
-                self.event_log.read(),
-                project_id=self.config.project_id,
+            # A Diagnosis or generation append does not take the workflow lock.
+            # Rebuild first, then retain one verified shared log snapshot while
+            # every returned projection/science/evidence surface is read.  If
+            # an append linearized between rebuild and the shared snapshot,
+            # retry the rebuild rather than combining two canonical heads.
+            for _ in range(8):
+                count = self.projection.rebuild(self.event_log)
+                with self.event_log.locked_read() as replay_events:
+                    if count != len(replay_events):
+                        continue
+                    science_state = reduce_scientific_state(
+                        replay_events,
+                        project_id=self.config.project_id,
+                    )
+                    status = self.projection.project_status(
+                        self.config.project_id
+                    )
+                    expected_hash = replay_events[-1].hash if replay_events else None
+                    if (
+                        status["last_sequence"] != count
+                        or status["last_hash"] != expected_hash
+                    ):
+                        continue
+                    artifact_ids: set[str] = set()
+                    projected_records: list[
+                        tuple[Mapping[str, Any], ArtifactRecord]
+                    ] = []
+                    for record in self.projection.artifacts(
+                        self.config.project_id
+                    ):
+                        stored = self._verify_projected_artifact(record)
+                        artifact_ids.add(stored.artifact_id)
+                        projected_records.append((record, stored))
+                    self._verify_terminal_artifact_bindings(
+                        projected_records,
+                        events=replay_events,
+                    )
+                    for event in replay_events:
+                        if (
+                            _normalized_event_type(event.event_type)
+                            != "BASELINE_RECORDED"
+                        ):
+                            continue
+                        compatibility = event.payload.get("compatibility_digest")
+                        if not isinstance(compatibility, str) or not compatibility:
+                            raise IntegrityError(
+                                "historical baseline compatibility digest is invalid"
+                            )
+                        baseline = self._validate_baseline_payload(
+                            event.payload,
+                            compatibility,
+                            enforce_current_policy=False,
+                        )
+                        baseline_artifacts = cast(
+                            Sequence[Mapping[str, Any]], baseline["artifacts"]
+                        )
+                        for record in baseline_artifacts:
+                            expected = ArtifactRecord.from_mapping(record)
+                            artifact_ids.add(expected.artifact_id)
+                    for artifact_id in sorted(artifact_ids):
+                        self.catalog.get(artifact_id)
+                    # Direct ProjectionStore.apply() writers do not acquire the
+                    # canonical EventLog lock retained above.  Recheck the full
+                    # projection observation after every independent query so
+                    # this result linearizes before such a writer or retries
+                    # after rebuilding its non-canonical cache mutation away.
+                    if self.projection.project_status(
+                        self.config.project_id
+                    ) != status:
+                        continue
+                    return {
+                        "project_id": self.config.project_id,
+                        "events_replayed": count,
+                        "artifacts_verified": len(artifact_ids),
+                        "status": status,
+                        "science": science_state.to_dict(),
+                        "authorized_action": None,
+                    }
+            raise IntegrityError(
+                "canonical history changed too frequently for a coherent replay"
             )
-            artifact_ids: set[str] = set()
-            projected_records: list[
-                tuple[Mapping[str, Any], ArtifactRecord]
-            ] = []
-            for record in self.projection.artifacts(self.config.project_id):
-                stored = self._verify_projected_artifact(record)
-                artifact_ids.add(stored.artifact_id)
-                projected_records.append((record, stored))
-            self._verify_terminal_artifact_bindings(projected_records)
-            for event in self.event_log.read():
-                if _normalized_event_type(event.event_type) != "BASELINE_RECORDED":
-                    continue
-                compatibility = event.payload.get("compatibility_digest")
-                if not isinstance(compatibility, str) or not compatibility:
-                    raise IntegrityError(
-                        "historical baseline compatibility digest is invalid"
-                    )
-                baseline = self._validate_baseline_payload(
-                    event.payload,
-                    compatibility,
-                    enforce_current_policy=False,
-                )
-                baseline_artifacts = cast(
-                    Sequence[Mapping[str, Any]], baseline["artifacts"]
-                )
-                for record in baseline_artifacts:
-                    expected = ArtifactRecord.from_mapping(
-                        record
-                    )
-                    artifact_ids.add(expected.artifact_id)
-            for artifact_id in sorted(artifact_ids):
-                self.catalog.get(artifact_id)
-            return {
-                "project_id": self.config.project_id,
-                "events_replayed": count,
-                "artifacts_verified": len(artifact_ids),
-                "status": self.projection.project_status(self.config.project_id),
-                "science": science_state.to_dict(),
-                "authorized_action": None,
-            }
 
 
 DESIGN_PROVENANCE = {
