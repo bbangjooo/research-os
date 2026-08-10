@@ -67,10 +67,14 @@ from .memory.findings import make_finding_event
 from .policy import Decision, decide
 from .provenance import environment_fingerprint, project_fingerprints
 from .science import (
+    DIAGNOSIS_EVENT_TYPE,
     GENERATION_EVENT_TYPE,
+    Diagnosis,
+    DiagnosisEventPayload,
     EvaluationSeal,
     Proposal,
     StudyContract,
+    plan_diagnosis_append,
     plan_generation_open,
     proposal_id,
     reduce_scientific_state,
@@ -101,6 +105,14 @@ class _GenerationAlreadyOpen(RuntimeError):
 
 class _ProjectAlreadyInitialized(RuntimeError):
     """Internal control flow for an initialization race loser."""
+
+
+class _DiagnosisAlreadyRecorded(RuntimeError):
+    """Internal control flow for an identical Diagnosis append race loser."""
+
+    def __init__(self, event_id: str):
+        super().__init__(event_id)
+        self.event_id = event_id
 
 
 def _normalized_event_type(value: str) -> str:
@@ -780,17 +792,53 @@ class ResearchService:
                     report.fingerprints,
                     events=events,
                 )
-                plan = plan_generation_open(
-                    events,
-                    project_id=self.config.project_id,
-                    contract=study_contract,
-                    evaluation_seal=evaluation_seal,
-                    predecessor_generation_id=predecessor_generation_id,
-                    change_reason=change_reason,
-                )
-                if not plan.append_required:
-                    generation_id = plan.generation_id
-                else:
+                # Planning failures and idempotent confirmations are also
+                # scientific-state decisions. Keep the verified snapshot
+                # locked while deriving them; append-required plans are then
+                # rerun under the exclusive append lock below.
+                with self.event_log.locked_read() as planning_events:
+                    plan = plan_generation_open(
+                        tuple(planning_events),
+                        project_id=self.config.project_id,
+                        contract=study_contract,
+                        evaluation_seal=evaluation_seal,
+                        predecessor_generation_id=predecessor_generation_id,
+                        change_reason=change_reason,
+                    )
+                    if not plan.append_required:
+                        fresh_report = self._doctor_snapshot(
+                            event_count=len(planning_events)
+                        )
+                        fresh_seal = self._evaluation_seal_from_report(fresh_report)
+                        self._validate_typed_generation_environment(
+                            study_contract,
+                            fresh_report,
+                        )
+                        if (
+                            fresh_report.capabilities != report.capabilities
+                            or fresh_report.side_effects != report.side_effects
+                            or fresh_report.adapter_fingerprint
+                            != report.adapter_fingerprint
+                            or fresh_report.fingerprints != report.fingerprints
+                            or fresh_seal.digest != evaluation_seal.digest
+                        ):
+                            raise IntegrityError(
+                                "evaluation seal changed before generation confirmation"
+                            )
+                        locked_plan = plan_generation_open(
+                            tuple(planning_events),
+                            project_id=self.config.project_id,
+                            contract=study_contract,
+                            evaluation_seal=fresh_seal,
+                            predecessor_generation_id=predecessor_generation_id,
+                            change_reason=change_reason,
+                        )
+                        if locked_plan.append_required:
+                            raise IntegrityError(
+                                "study generation plan changed before idempotent confirmation"
+                            )
+                        generation_id = locked_plan.generation_id
+                if plan.append_required:
                     proposed_payload = dict(plan.payload)
 
                     def validate_locked_plan(locked_events: tuple[Event, ...]) -> None:
@@ -859,6 +907,128 @@ class ResearchService:
         if event is not None:
             result["event_sequence"] = event.sequence
         return normalize_json_object(result, field_name="generation open result")
+
+    def record_diagnosis(
+        self,
+        diagnosis: str | Path | Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Append one exact terminal Diagnosis or reuse its canonical event.
+
+        Diagnosis is scientific-state authority rather than adapter work, so it
+        serializes directly on EventLog's exclusive append lock.  The pure plan
+        is rerun against the verified locked history immediately before and
+        after the provisional write.  This keeps Diagnosis, registration, and
+        generation races on one canonical ordering without a process-local
+        workflow-lock decision seam.
+        """
+
+        raw_diagnosis = (
+            diagnosis
+            if isinstance(diagnosis, Mapping)
+            else self._load_json_object(diagnosis, label="diagnosis")
+        )
+        typed_diagnosis = Diagnosis.from_mapping(raw_diagnosis)
+        self._assert_config_unchanged()
+
+        with self.event_log.locked_read() as planning_events:
+            initial_plan = plan_diagnosis_append(
+                tuple(planning_events),
+                project_id=self.config.project_id,
+                diagnosis=typed_diagnosis,
+            )
+        appended = False
+        canonical_event_id = initial_plan.existing_event_id
+        if initial_plan.append_required:
+            proposed_payload = dict(initial_plan.payload)
+
+            def validate_locked_plan(locked_events: tuple[Event, ...]) -> None:
+                locked_plan = plan_diagnosis_append(
+                    locked_events,
+                    project_id=self.config.project_id,
+                    diagnosis=typed_diagnosis,
+                )
+                if not locked_plan.append_required:
+                    existing_event_id = locked_plan.existing_event_id
+                    if not isinstance(existing_event_id, str):  # pragma: no cover
+                        raise IntegrityError(
+                            "idempotent Diagnosis plan omitted its canonical event ID"
+                        )
+                    raise _DiagnosisAlreadyRecorded(existing_event_id)
+                if (
+                    locked_plan.event_type != initial_plan.event_type
+                    or locked_plan.diagnosis_id != initial_plan.diagnosis_id
+                    or locked_plan.diagnosis_digest
+                    != initial_plan.diagnosis_digest
+                    or dict(locked_plan.payload) != proposed_payload
+                ):
+                    raise IntegrityError(
+                        "Diagnosis append plan changed before canonical commit"
+                    )
+
+            try:
+                event = self.event_log.append(
+                    initial_plan.event_type,
+                    proposed_payload,
+                    precondition=validate_locked_plan,
+                    postcondition=validate_locked_plan,
+                )
+            except _DiagnosisAlreadyRecorded as raced:
+                canonical_event_id = raced.event_id
+            else:
+                appended = True
+                canonical_event_id = event.event_id
+
+        if not isinstance(canonical_event_id, str):  # pragma: no cover - plan invariant
+            raise IntegrityError("Diagnosis plan omitted its canonical event identity")
+
+        # Replay a fresh, fully verified stream before returning.  This rejects
+        # persisted duplicate Diagnosis corruption while still allowing a
+        # legitimate successor generation to commit after this operation's
+        # linearization point.
+        canonical_events = tuple(self.event_log.read())
+        reduce_scientific_state(
+            canonical_events,
+            project_id=self.config.project_id,
+        )
+        matches = tuple(
+            event
+            for event in canonical_events
+            if event.event_id == canonical_event_id
+        )
+        if len(matches) != 1:
+            raise IntegrityError("canonical Diagnosis event identity is not unique")
+        canonical_event = matches[0]
+        if canonical_event.event_type != DIAGNOSIS_EVENT_TYPE:
+            raise IntegrityError("canonical Diagnosis event has the wrong event type")
+        parsed_payload = DiagnosisEventPayload.from_mapping(
+            canonical_event.payload,
+            project_id=self.config.project_id,
+        ).to_dict()
+        if parsed_payload["diagnosis"] != typed_diagnosis.to_dict():
+            raise IntegrityError("canonical Diagnosis body changed after append")
+        if (
+            parsed_payload["diagnosis_id"] != initial_plan.diagnosis_id
+            or parsed_payload["diagnosis_digest"]
+            != initial_plan.diagnosis_digest
+        ):
+            raise IntegrityError("canonical Diagnosis identity changed after append")
+
+        self._sync()
+        result = {
+            "project_id": self.config.project_id,
+            "event_type": DIAGNOSIS_EVENT_TYPE,
+            "event_id": canonical_event.event_id,
+            "event_hash": canonical_event.hash,
+            "event_sequence": canonical_event.sequence,
+            "experiment_id": typed_diagnosis.experiment_id,
+            "diagnosis_id": initial_plan.diagnosis_id,
+            "diagnosis_digest": initial_plan.diagnosis_digest,
+            "appended": appended,
+            "appended_events": int(appended),
+            "idempotent_reuse": not appended,
+            "authorized_action": None,
+        }
+        return normalize_json_object(result, field_name="Diagnosis record result")
 
     def _require_evaluation_scope_capability(
         self,
@@ -2845,9 +3015,16 @@ class ResearchService:
                 ),
                 "evaluation_scope_id": evaluation_scope_id,
             }
-            # The same pure authority runs again under EventLog's exclusive
-            # append lock. This early call preserves zero-delta semantic errors.
-            reserve_registration(science_state, registration)
+            # Derive even an early zero-delta rejection from a verified locked
+            # snapshot. The same pure authority runs again under EventLog's
+            # exclusive append lock at the canonical registration boundary.
+            with self.event_log.locked_read() as locked_events:
+                locked_state = reduce_scientific_state(
+                    tuple(locked_events),
+                    project_id=self.config.project_id,
+                )
+                reserve_registration(locked_state, registration)
+            science_state = locked_state
             evaluation_scope = next(
                 (
                     scope
@@ -3075,7 +3252,7 @@ class ResearchService:
                 registration["agent_context_snapshot"] = agent_context_snapshot
                 if agent_context_snapshot is None:  # pragma: no cover - guarded above
                     raise IntegrityError("agent context snapshot is unavailable")
-            if generation_id is not None:
+            if generation_id is not None and not typed_path:
                 reserve_registration(science_state, registration)
             registration_event_id = new_id("event")
             self._append_registration_event(
@@ -4172,6 +4349,10 @@ DESIGN_PROVENANCE = {
         "Bounded mutable surface",
         "Reversible ratchet",
         "Experiment DAG",
+        "Typed provenance",
+    ),
+    "ResearchService.record_diagnosis": (
+        "Durable graph memory",
         "Typed provenance",
     ),
     "ResearchService.replay": ("Durable graph memory",),

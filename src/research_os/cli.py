@@ -170,6 +170,16 @@ def _parser() -> argparse.ArgumentParser:
         help="require the canonical agent-context snapshot to still be current",
     )
 
+    diagnose = subparsers.add_parser(
+        "diagnose",
+        help="record one evidence-bound Diagnosis for a terminal experiment",
+    )
+    diagnose.add_argument(
+        "diagnosis",
+        type=Path,
+        help="strict Diagnosis JSON",
+    )
+
     open_generation = subparsers.add_parser(
         "open-generation",
         help="open an evaluation-sealed study generation from a strict contract",
@@ -303,6 +313,8 @@ def _dispatch(args: argparse.Namespace) -> Any:
             args.conclusion,
             context_token=args.context_token,
         )
+    if args.command == "diagnose":
+        return service.record_diagnosis(args.diagnosis)
     if args.command == "open-generation":
         return service.open_generation(
             args.contract,
