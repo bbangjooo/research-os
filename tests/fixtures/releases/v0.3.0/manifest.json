@@ -56,7 +56,7 @@
     "required_no_write_codes": [
       "BUDGET_ATTEMPTS_EXCEEDED",
       "HYPOTHESIS_CLASS_CLOSED",
-      "PENDING_DIAGNOSIS_REQUIRED",
+      "DIAGNOSIS_REQUIRED",
       "PROPOSAL_REQUIRED"
     ]
   },

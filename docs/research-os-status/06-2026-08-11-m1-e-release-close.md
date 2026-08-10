@@ -52,7 +52,7 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 - active v2 generation의 registration은 typed Proposal 없이는 no-write
   `PROPOSAL_REQUIRED`다.
 - pending Diagnosis는 tokenless registration, retry, successor를 모두 event/budget
-  delta 0의 `PENDING_DIAGNOSIS_REQUIRED`로 차단한다.
+  delta 0의 existing stable `DIAGNOSIS_REQUIRED`로 차단한다.
 - closed class와 locked budget은 각각 `HYPOTHESIS_CLASS_CLOSED`,
   `BUDGET_ATTEMPTS_EXCEEDED` no-write다.
 - generation 이전 legacy registration은 typed Proposal/Diagnosis/ClassState로 자동
@@ -124,3 +124,13 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 ## 06.7 Next action
 
 이 pre-spec을 local checkpoint로 고정한 뒤 A1~A5를 변경 없이 구현한다.
+
+## 06.8 Pre-result specification correction
+
+- Initial pre-spec `27423b1`은 pending gate의 설명용 code를
+  `PENDING_DIAGNOSIS_REQUIRED`로 잘못 적었다. Existing M1-D public contract와 frozen
+  transition fixture의 stable code는 `DIAGNOSIS_REQUIRED`다.
+- 새 제품/test를 작성하거나 실행하기 전에 manifest와 A3를 기존 code에 맞췄다.
+  Case 수 7, no-write 의미, threshold, M1-E conjunct는 변경하지 않았다.
+- Corrected pre-spec commit이 이 phase의 controlling pre-spec이다. 이 정정 뒤 code나
+  acceptance가 다시 바뀌면 CONFIRMATORY close를 금지한다.
