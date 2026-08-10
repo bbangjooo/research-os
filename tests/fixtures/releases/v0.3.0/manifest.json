@@ -168,13 +168,65 @@
         "sha256": "5e7654d2913dc7bde67eff937126cf25808b92b4cf87625aa6f354a7f4da429e"
       }
     },
-    "case_ids": [
-      "explicit-upgrade-required",
-      "exact-managed-upgrade-retains-prior-backup",
-      "drifted-managed-tree-rejected-no-write",
-      "unknown-managed-release-rejected-no-write",
-      "two-target-commit-failure-restores-both",
-      "publish-then-fail-restores-prior-and-retains-new-recovery"
+    "cases": [
+      {
+        "id": "explicit-upgrade-required",
+        "operation": "reject-exact-prior-without-upgrade",
+        "expected": {
+          "error_type": "ConfigurationError",
+          "destination_unchanged": true,
+          "transactions_empty": true
+        }
+      },
+      {
+        "id": "exact-managed-upgrade-retains-prior-backup",
+        "operation": "upgrade-exact-prior",
+        "expected": {
+          "status": "upgraded",
+          "from_release": "0.2.0",
+          "to_release": "0.3.0",
+          "destination_is_current": true,
+          "recovery_count": 1,
+          "recovery_is_prior": true
+        }
+      },
+      {
+        "id": "drifted-managed-tree-rejected-no-write",
+        "operation": "reject-drifted-prior",
+        "expected": {
+          "error_type": "ConfigurationError",
+          "destination_unchanged": true,
+          "transactions_empty": true
+        }
+      },
+      {
+        "id": "unknown-managed-release-rejected-no-write",
+        "operation": "reject-unknown-managed-release",
+        "expected": {
+          "error_type": "ConfigurationError",
+          "destination_unchanged": true,
+          "transactions_empty": true
+        }
+      },
+      {
+        "id": "two-target-commit-failure-restores-both",
+        "operation": "fail-second-target-commit",
+        "expected": {
+          "error_type": "OSError",
+          "codex_unchanged": true,
+          "claude_unchanged": true
+        }
+      },
+      {
+        "id": "publish-then-fail-restores-prior-and-retains-new-recovery",
+        "operation": "fail-after-new-tree-publish",
+        "expected": {
+          "error_type": "OSError",
+          "destination_is_prior": true,
+          "recovery_count": 1,
+          "recovery_is_current": true
+        }
+      }
     ]
   },
   "release_gate": {

@@ -1,10 +1,10 @@
 # §06 — M1-E v0.3 release close (2026-08-11)
 
-> Status: **SECOND CORRECTION VERIFIED — independent re-audit pending**
+> Status: **PROGRESS AUDIT FAIL — installer executable correction pre-specified**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§05](05-2026-08-11-m1-e-usable-context.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §5, §7~§10
-> Active milestone: `M1-E` at `5/5`; independent re-audit pending
+> Active milestone: `M1-E` at `4/5`; installer matrix correction active
 
 ## 06.0 TL;DR
 
@@ -100,6 +100,10 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 - Second audit에서 실제 filesystem/policy binding 요구가 드러나 original total이 `1,140`에
   도달했으므로 `PIVOT`: correction cap을 product+tests `<=700`, fixture+docs `<=600`, total
   `<=1,350`으로 재동결한다. A1~A5 semantics/threshold는 바꾸지 않는다.
+- Progress audit의 structured installer six-case binding은 pre-implementation tracked total을
+  `1,344`까지 올렸으므로 두 번째 `PIVOT`: product+tests `<=800`, fixture+docs+README `<=700`,
+  release tooling `<=350`, total `<=1,600`으로 재동결한다. A1~A5 semantics, six-case denominator,
+  public behavior와 release threshold는 바꾸지 않는다.
 
 ## 06.4 Verification plan
 
@@ -142,9 +146,9 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
   (`2026-08-11T05:09:53+09:00`). Frozen Context v2 compatibility observer가 새
   default v3를 암묵 호출하던 두 곳을 explicit `schema_version=2`로 고쳤다. 제품,
   fixture denominator, public code, acceptance는 바꾸지 않았다.
-- Original corrected pre-spec 이후 added lines는 product+tests `565` (cap `700`),
-  fixture+docs+README `390` (cap `600`), release tooling `304`, metadata `2`, total `1,261`
-  (cap `1,350`)이다.
+- Exact range `27423b1..58b731e`의 added lines는 product+tests `565`,
+  fixture+docs+README `388`, release tooling `304`, metadata `2`, total `1,259`다.
+  확인 명령은 `git diff --numstat 27423b1..58b731e`이며 PIVOT total cap `1,350` 이하이다.
 
 ### 06.6.2 Verification evidence
 
@@ -153,7 +157,7 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 | Release/default/v2/tokenless/installer focused bundle | fresh executable binding + authority bundle `7 PASS` | PASS |
 | Scientific agent compatibility | `17 passed` | PASS |
 | Frozen tokenless boundary | structured `7/7`; case-level observer/source/path/code/event+budget delta exact | PASS |
-| Frozen installer matrix | `6/6`; actual published 0.2 tree two-target upgrade, retained backup 2, drift writer delta 0 | PASS |
+| Frozen installer matrix | 기존 test names는 green이나 manifest case ID가 실행 outcome에 미결합 | **RESULT-INVALID / 0/1** |
 | Base suite without recursive M1-C/M1-D meta-oracles (diagnostic) | `508 passed, 115 subtests passed` | PASS |
 | Corrected full Python 3.12 suite | single verifier `602 passed, 115 subtests passed` | PASS |
 | Static checks | single verifier ruff/ty/diff/clean-tree | PASS |
@@ -183,12 +187,13 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 | Context v3 scientific state | default v3 = explicit v3; explicit v2 exact; cold no-write; focused PASS | PASS |
 | v1 event / Context v2 / branch conclusion v1 compatibility | frozen bytes/digest, explicit v2, snapshot v2, full suite PASS | PASS |
 | tokenless v2 legacy boundary | structured `7/7` actual outcomes exact; reject event/budget delta 0 | PASS |
-| managed 0.2→0.3 upgrade/rollback | exact published tree, `6/6`, actual two-target upgrade/backup/drift rejection | PASS |
+| managed 0.2→0.3 upgrade/rollback | product tests green; manifest six IDs가 실행 outcome에 미결합 | FAIL |
 | docs/version 0.3.0 + full release | receipt `58b731e`: `602+115`, exact four-doc/version/product-tree/external snapshots, static, clean tree, wheel/temp install | PASS |
 
-Second correction의 fresh single verifier가 Q2/Q5 결함을 직접 재측정했으므로 현재 decision은
-**ADVANCE (`5/5` verified; independent re-audit pending)**다. Re-audit PASS 전에는 M1-E나
-parent M1을 `CLOSE`하지 않는다.
+Progress audit가 installer `case_ids`가 어느 executable dispatcher에서도 소비되지 않음을
+발견했으므로 기존 `6/6` 청구를 **RESULT-INVALID**로 내렸다. 현재 decision은
+**ADVANCE (`4/5`; installer executable correction active)**다. Structured six-case manifest와
+ID별 actual outcome, single-verifier receipt가 fresh PASS하기 전에는 M1-E/M1을 `CLOSE`하지 않는다.
 
 ### 06.6.5 End-state positioning
 
@@ -285,3 +290,10 @@ Second-correction receipt를 durable하게 고정한 뒤 progress critic과 inde
   stale “external access 0/read 0” 표현을 FAIL했다. 실제 verifier 정책은 처음부터 read-only
   snapshot + writer delta 0이므로 acceptance/product/result는 바꾸지 않고 위 scope와 critic
   response를 그 사실에 맞게 정정했다. 이 문서 correction 뒤 strict re-audit은 pending이다.
+- Strict Q1~Q8 re-audit은 `f379c4c`에서 PASS했다. 후속 independent progress audit은 Schema와
+  Q2/Q5 policy seals를 인정했지만 Reproducibility에서 `managed_skill_upgrade.case_ids` 미소비를
+  Severity-1로 FAIL했다. 기존 installer `6/6`은 close 분자에서 제외한다.
+- Correction acceptance는 구현/결과 전에 이 manifest에 고정한다: exactly six structured
+  `id/operation/expected` cases, literal six IDs 각각이 별도 pytest node로 실행되고 actual outcome이
+  canonical exact match하며, single verifier가 exact six node를 실행해 `case_ids`와 `passed=6`을
+  receipt에 기록한다. 일부 ID skip, unknown/fallback dispatch, aggregate test-name 대리는 FAIL이다.

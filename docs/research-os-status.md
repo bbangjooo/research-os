@@ -35,7 +35,8 @@
     docs/filesystem/product-tree binding을 FAIL했다. Second-correction pre-spec `ff608af` 뒤
     implementation `58b731e`의 fresh single verifier가 `602+115`, exact executed path/typed-zero,
     product tree와 외부 `.research-os` pre/post no-write, authority 0, wheel/install을 PASS했다.
-    M1-E는 `5/5` verified이며 independent re-audit 전까지 open이다.
+    Q1~Q8 strict re-audit은 PASS했지만 progress audit이 installer manifest case ID 미소비를
+    Severity-1로 FAIL했다. 기존 installer `6/6`은 RESULT-INVALID이며 M1-E는 `4/5` open이다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 
@@ -48,25 +49,26 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 - M1-E second-correction single verifier: `602 passed, 115 subtests`; tokenless structured
   `7/7`; installer `6/6`; actual published 0.2 two-target upgrade, product tree seal, three external
-  control-tree pre/post no-write, authority 0 PASS.
+  control-tree pre/post no-write, authority 0 PASS. 단, installer `6/6` case-ID binding은 audit 뒤
+  RESULT-INVALID로 제외했다.
 - 제품 버전: `0.3.0`; built wheel metadata와 temp-installed managed manifest도 `0.3.0`.
 - 승인된 기존 certification 수정은 M1-A checkpoint `ed76067`에 포함됐다.
 - canonical StudyContract/generation/budget은 M1-B `df2c900`, typed Proposal/scope/replication은 M1-C `a783a88`과 후속 test-only checkpoints에 포함됐다. M1-D Diagnosis/ClassState/frontier는 `f570f92`에 포함됐다.
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** §06 second-correction receipt를 independent re-audit한다.
+- [ ] **단일 최우선 행동:** §06 structured installer six-case binding과 fresh receipt를 구현한다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
 | 항목 | 위치 | 상태 | 근거 |
 |---|---|---|---|
-| v0.3 제품 + M1-A~E implementation | `src/research_os/` | implemented; re-audit pending | Context v3 default, exact managed upgrade; second correction verified |
-| 기존+M1-E 테스트 | `tests/` | corrected green | single verifier `602+115`; tokenless structured `7/7`; authority 0 |
-| 진행 상태 core | `docs/research-os-status.md` | active | M1-E `5/5` verified; independent re-audit pending |
+| v0.3 제품 + M1-A~E implementation | `src/research_os/` | product implemented; installer evidence correction | Context v3 default, exact managed upgrade; case-ID binding open |
+| 기존+M1-E 테스트 | `tests/` | product green; evidence correction active | `602+115`; tokenless `7/7`; installer aggregate invalidated |
+| 진행 상태 core | `docs/research-os-status.md` | active | M1-E `4/5`; structured installer correction pre-specified |
 | M1-E vertical slice | `docs/research-os-status/05-2026-08-11-m1-e-usable-context.md` | complete; independent audit PASS | opt-in Context v3 + Diagnosis template + disposable example PASS |
-| M1-E release close | `docs/research-os-status/06-2026-08-11-m1-e-release-close.md` | second correction verified | receipt `58b731e`; independent re-audit pending |
-| 방법론 pipeline core | `docs/research-os-pipeline.md` | active | Cycle 06 re-audit pending |
+| M1-E release close | `docs/research-os-status/06-2026-08-11-m1-e-release-close.md` | progress audit FAIL | installer ID→outcome binding correction active |
+| 방법론 pipeline core | `docs/research-os-pipeline.md` | active | Cycle 06 installer correction active |
 
 ### 0.5 알려진 잔여 이슈
 
@@ -177,7 +179,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 - **Active M_i.j**: `M1-E`
 - **직전 close가 가능하게 한 작업**: M1-D가 terminal evidence-bound Diagnosis, derived ClassState와 semantic/retry frontier를 canonical state로 만들고 five conjunct 5/5를 충족했다.
-- **현재 close audit**: second correction `5/5` verified; independent re-audit pending.
+- **현재 close audit**: Q1~Q8 PASS 뒤 progress audit installer reproducibility FAIL; M1-E `4/5`.
 - **이 M.j가 닫혀야 다음에 가능해지는 작업**: ProgramManifest가 stable M1 identity를 bind하고 M2 ProgramLog가 Diagnosis/ClassState origin을 exact 검증할 수 있다.
 - **M1 parent close까지 남은 sub**: `M1-E`.
 
@@ -189,7 +191,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | M1-B | Study generation과 누적 budget | 4/4 ✅ | closed | 02 | phase §02.4~§02.6.4; manifest `29/29`; checkpoint `df2c900`; critic + auditor PASS |
 | M1-C | Typed Proposal과 replication identity | 4/4 ✅ | closed | 03 | phase §03.4~§03.6.4; manifest `20/20`; critic + auditor PASS |
 | M1-D | Diagnosis·ClassState·semantic frontier | 5/5 ✅ | closed | 04 | phase §04.5~§04.6.4; transition `26/23/54/37/7`; negative `460/460`; critic + auditor PASS |
-| M1-E | Context v3·legacy compatibility·v0.3 release | 5/5 ✅ | active; re-audit pending | — | `58b731e`; `602+115`; exact path/typed-zero/external/product-tree receipt |
+| M1-E | Context v3·legacy compatibility·v0.3 release | 4/5 ✅ | active; installer correction | — | `602+115` retained history; installer aggregate RESULT-INVALID |
 | M2-A | ProgramManifest·ProgramLog | 0/4 ✅ | open | — | pipeline §9.4 |
 | M2-B | Conditional Claim과 evidence 관계 | 0/5 ✅ | open | — | pipeline §9.4 |
 | M2-C | Deterministic retrieval·Context integration | 0/5 ✅ | open | — | pipeline §9.4 |
@@ -209,7 +211,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | 03 | 2026-08-10 | M1-C | 4/4 | close | manifest `20/20`; transition/direct `53/72`; full `442+111`; critic + auditor PASS |
 | 04 | 2026-08-10~11 | M1-D | 5/5 | close | final corrected manifest/transition, direct `67`, bounded `56`, compatibility `20/20`, single floor PASS; auditor PASS |
 | 05 | 2026-08-11 | M1-E | 1/5 | advance | opt-in v3 + template + disposable E2E PASS; M1-E close는 아님 |
-| 06 | 2026-08-11 | M1-E | 5/5 | advance | second correction verified; independent re-audit pending |
+| 06 | 2026-08-11 | M1-E | 4/5 | advance | Q1~Q8 PASS; progress audit installer reproducibility FAIL |
 
 #### 2.3.5 Gate-bypass 기록
 
@@ -233,18 +235,18 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | 03 | 2026-08-10 / M1-C | [`research-os-status/03-2026-08-10-m1-c-typed-proposal-replication.md`](research-os-status/03-2026-08-10-m1-c-typed-proposal-replication.md) | typed Proposal·scope-bound identity·replication 4/4; critic + independent auditor PASS |
 | 04 | 2026-08-10~11 / M1-D | [`research-os-status/04-2026-08-10-m1-d-diagnosis-class-frontier.md`](research-os-status/04-2026-08-10-m1-d-diagnosis-class-frontier.md) | Diagnosis·ClassState·frontier 5/5 closed; corrected oracle + critic + auditor PASS |
 | 05 | 2026-08-11 / M1-E vertical slice | [`research-os-status/05-2026-08-11-m1-e-usable-context.md`](research-os-status/05-2026-08-11-m1-e-usable-context.md) | Context v3 + Diagnosis template + disposable E2E; independent audit PASS |
-| 06 | 2026-08-11 / M1-E release close | [`research-os-status/06-2026-08-11-m1-e-release-close.md`](research-os-status/06-2026-08-11-m1-e-release-close.md) | second correction verified; M1-E `5/5`; re-audit pending |
+| 06 | 2026-08-11 / M1-E release close | [`research-os-status/06-2026-08-11-m1-e-release-close.md`](research-os-status/06-2026-08-11-m1-e-release-close.md) | progress audit FAIL; M1-E `4/5`; installer correction active |
 
 ---
 
 ## 11. 한 페이지 요약 (TL;DR)
 
-- 현재 상태: 제품 version `0.3.0`; M1-E second correction `5/5` verified, independent re-audit
-  pending이다. Product checkpoint `d1499b3`, current correction checkpoint `58b731e`이다.
-- 마지막 측정: single verifier `602+115`, tokenless `7/7`, installer `6/6`, ruff/ty/diff,
-  external no-write, exact product tree와 wheel/temp install PASS. Initial implicit-v3 legacy
-  observer full과 first aggregate gate는 RESULT-INVALID/history로 제외했다.
-- 다음 1행동: Cycle 06 independent re-audit PASS 후 M1-E/M1 close와 M2-A 활성화.
+- 현재 상태: 제품 version `0.3.0`; M1-E `4/5`, installer manifest executable correction
+  active다. Product checkpoint `d1499b3`, latest product correction `58b731e`이다.
+- 마지막 유효 측정: single verifier `602+115`, tokenless `7/7`, ruff/ty/diff, external no-write,
+  exact product tree와 wheel/temp install PASS. Installer aggregate `6/6`, initial implicit-v3
+  legacy observer full과 first aggregate gate는 RESULT-INVALID/history로 제외했다.
+- 다음 1행동: installer structured `6/6` fresh receipt와 independent audit PASS 후 M1-E/M1 close.
 - 가장 큰 갭: program Claim/retrieval과 autonomous loop/unseen benchmark가 M2/M3에 남아 있다.
 
 ---
@@ -267,10 +269,10 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | NS1. 무결성·권한 하위호환 | 기존 262 tests와 모든 신규 suite 100% PASS ∧ versioned `tests/fixtures/protocol_attacks/v1/manifest.json`의 전체 위반 행 차단률 100% ∧ `authorized_action` non-null 0건 ∧ v1 event replay 100% | M1-E single verifier `602+115`, recursive authority non-null 0, v1 bytes/replay and explicit Context v2 PASS | M1 scope 충족; M2/M3 신규 surface regression 유지 | §06.6.2~.4; checkpoint `58b731e`; wheel/install 0.3.0 | v3 default/upgrade가 기존 fail-closed·no-deployment 보장을 약화하지 않는다 |
 | NS2. 기계 강제 scientific state | generation/contract·누적 budget·diagnosis gate·class closure·semantic frontier·legacy isolation 6/6 동작 ∧ `tests/fixtures/scientific_state/v1/manifest.json`의 모든 입력 상태/transition/거절 code/closure threshold 판정 일치 | **6/6 (`5→6/6`)**; tokenless frozen `7/7`가 Proposal/Diagnosis/class/budget gate와 pre-generation opaque legacy를 exact 분리 | M1 scope 충족; actual telemetry/lifetime governance는 별도 limitation | phases §02, §04~§06; M1-D `26/23/54/37/7`; M1-E `7/7`, corrected full | kernel state와 legacy boundary가 default agent context/release에서도 기계 강제된다 |
 | NS3. Durable learning 객체 | typed Proposal·Diagnosis·ClassState·Claim 4/4가 exact event/artifact evidence와 digest로 replay | **3/4 (`1→3/4`)**; Proposal/Diagnosis/ClassState exact replay + Context v3 direct exposure; denominator advance는 없음 | Claim 1 typed object | phases §03~§05; `science/{proposals,diagnoses,state}.py`; v3 exact state equality | durable object가 대화 요약이 아닌 authoring/context의 canonical 입력이 된다 |
-| NS4. Program memory 정확도 | versioned `tests/fixtures/program_memory/retrieval-v1.json`의 exact ordered oracle에서 relevant claim recall 100% ∧ contradiction recall 100% ∧ superseded exclusion 100% ∧ shuffled/irrelevant contamination 0% | 0/4; program log/retrieval/oracle 없음 | 4 retrieval criteria + oracle manifest | pipeline §5.2의 분모·empty/tie/scope 규칙과 향후 fixture digest | 다음 proposal이 관련 지식만 근거로 사용하고 오염된 memory를 배제한다 |
+| NS4. Program memory 정확도 | versioned `tests/fixtures/program_memory/retrieval-v1.json`의 exact ordered oracle에서 relevant claim recall 100% ∧ contradiction recall 100% ∧ superseded exclusion 100% ∧ shuffled/irrelevant contamination 0% | 0/4; program log/retrieval/oracle 없음 | 4 retrieval criteria + oracle manifest | pipeline §5.2의 frozen 분모·empty/tie/scope 계약 | 다음 proposal이 관련 지식만 근거로 사용하고 오염된 memory를 배제한다 |
 | NS5. 단일 자율 루프 완결성 | context→proposal→preflight→run→diagnosis→synthesis→next/stop 7 transition 모두 canonical state로 재개 가능 ∧ closed-class registration 0건 | 0/7; context→template→diagnose→refresh 수동 vertical slice는 usable하지만 canonical FSM/resume가 아님 | 7 transitions + resume | phase §05 demo; `docs/agent-usage.md`; vertical `4/4` | agent 수작업은 줄었지만 자율 완결성 분모를 조기 증가시키지 않는다 |
-| NS6. Fixed-budget 학습 효과 | M3 code freeze 뒤 precommitted generator와 새 256-bit nonce로 만든 unseen acceptance 36 episodes에서 protocol block 100% ∧ evidence-bound conclusion 100% ∧ closed-class retry 0 ∧ next-hypothesis choice accuracy ≥ `min(90%, v0.2+20%p)` ∧ correct terminal decision ≥ `min(90%, v0.2+20%p)` ∧ positive-waste aggregate ≤ v0.2의 70% | comparator·generator·unseen suite 미구현; 측정 전 | oracle/generator/one-shot receipt 구축 + sealed v0.2/v0.5 paired 측정 | pipeline §7의 choice oracle·freeze/nonce/receipt 계약과 향후 `docs/benchmark.md` | terminal 정답뿐 아니라 각 비종결 상태에서 더 나은 다음 class/action을 선택해 동일 예산의 판단 정확도·효율을 높였는지 직접 판별한다 |
-| NS7. 기존 프로젝트 read-only 호환성 | `crypto-new`, `manager`, `BinancePredictionStrategy` 각각 (기존 complete event bytes/hash/derived v1 state 무변환 replay 3/3) ∧ (typed schema가 없는 legacy free text 100% `legacy_unstructured`, 자동 typed inference 0건) ∧ (외부 writer/file 변경 0건) | release verifier에서 세 `.research-os` control tree pre/post byte snapshot 무변경; v0.3~v0.5 replay/import 판정 0/3 | replay 3건 + opaque classification 3건; broader writer audit는 M2-D | receipt `58b731e` external snapshots, 향후 replay/import report | 기존 증거는 실제로 보존하면서 의미가 불명확한 기록만 명시적으로 격리한다 |
+| NS6. Fixed-budget 학습 효과 | M3 code freeze 뒤 precommitted generator와 새 256-bit nonce로 만든 unseen acceptance 36 episodes에서 protocol block 100% ∧ evidence-bound conclusion 100% ∧ closed-class retry 0 ∧ next-hypothesis choice accuracy ≥ `min(90%, v0.2+20%p)` ∧ correct terminal decision ≥ `min(90%, v0.2+20%p)` ∧ positive-waste aggregate ≤ v0.2의 70% | comparator·generator·unseen suite 미구현; 측정 전 | oracle/generator/one-shot receipt 구축 + sealed v0.2/v0.5 paired 측정 | pipeline §7 choice-oracle·freeze·nonce·receipt 계약 | terminal 정답뿐 아니라 각 비종결 상태에서 더 나은 다음 class/action을 선택해 동일 예산의 판단 정확도·효율을 높였는지 직접 판별한다 |
+| NS7. 기존 프로젝트 read-only 호환성 | `crypto-new`, `manager`, `BinancePredictionStrategy` 각각 (기존 complete event bytes/hash/derived v1 state 무변환 replay 3/3) ∧ (typed schema가 없는 legacy free text 100% `legacy_unstructured`, 자동 typed inference 0건) ∧ (외부 writer/file 변경 0건) | release verifier에서 세 `.research-os` control tree pre/post byte snapshot 무변경; v0.3~v0.5 replay/import 판정 0/3 | replay 3건 + opaque classification 3건; broader writer audit는 M2-D | receipt `58b731e` external snapshot digests 3/3 | 기존 증거는 실제로 보존하면서 의미가 불명확한 기록만 명시적으로 격리한다 |
 
 > NS6 choice 판정: 모든 non-terminal decision point가 exact 허용/최적 `(hypothesis_class, action)` oracle set을 가지며, 선택이 set 밖이거나 closed/duplicate class를 고르거나 필요한 결정을 건너뛰면 오류다. 분모는 양 arm의 모든 oracle decision point다.
 >
@@ -282,7 +284,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 | # | 작업 | 추정 LOC | 어떤 §북극성 행을 움직이나 | 시스템 영향 (예상) |
 |---|---|---|---|---|
-| 1 | M1-E/M1 independent re-audit | 0~50 | NS1, NS2, NS3 | corrected release evidence를 독립 검증하고 M2 prerequisite를 닫음 |
+| 1 | M1-E installer executable correction + audit | 80~180 | NS1, NS2, NS3 | six case IDs를 actual outcome/receipt에 bind하고 M2 prerequisite를 닫음 |
 | 2 | M2 Program Memory | 1,200~2,500 | NS1, NS3, NS4, NS7 | 실패·조건부 claim을 다음 연구에 재사용 |
 | 3 | M3 Autonomous Loop | 1,000~2,200 | NS1, NS5, NS6, NS7 | 단일 agent가 유한 연구 episode를 자동 완결 |
 
@@ -290,10 +292,10 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 | 단계 | 이전 | 현재 (비관) | 사유 | 반례/근거 |
 |---|---|---|---|---|
-| Integrity kernel | 평가상 우수 | ○ | observer/fixture도 adversarial audit 대상으로 유지. A3/A5 executable correction과 single receipt가 PASS | phase §06; `602+115`; authority 0; wheel/install PASS |
+| Integrity kernel | 직전 ○ | △ | stricter reviewer assumption: manifest의 모든 선언 field/case ID는 실제 dispatcher가 소비하고, policy 문구는 filesystem/product-tree seal로 증명해야 한다. Path/typed-zero/filesystem/tree는 PASS했지만 installer six IDs는 미결합 | progress audit FAIL; aggregate `6/6` RESULT-INVALID |
 | Evidence semantics | arbitrary constraint 중심 | ○ | directional delta·typed slack·verify symmetry 구현; 외부 metric 의미는 아직 contract 밖 | phase §01 E1~E9 |
 | Scientific State | 문서상 일부 존재 | ○ | Proposal/Diagnosis/ClassState/frontier와 legacy isolation `6/6`이 executable. Actual telemetry·lifetime cap과 program Claim은 없음 | NS2 = 6/6; NS3 = 3/4; M1-E `7/7`; full `602+115` |
-| Relevant Context | recent v2 packet | △ | default v3/upgrade와 release policy/path binding은 verified; Claim/retrieval reason은 M2에 남음 | phase §06; M1-E `5/5`, re-audit pending |
+| Relevant Context | recent v2 packet | △ | default v3와 path/policy binding은 verified; installer release evidence와 Claim/retrieval reason이 남음 | phase §06; M1-E `4/5` |
 | Program Memory | Finding 존재 | ✗ | Diagnosis/ClassState는 생겼지만 project-bound free-form Finding은 conditional Claim graph가 아님 | NS3 = 3/4, NS4 = 0/4 |
 | Autonomous Loop | agent workflow 존재 | ✗ | 외부 대화가 수동으로 각 단계를 이어주며 resume 가능한 loop state가 없음 | NS5 = 0/7 |
 | 학습 효과 | 미측정 | ✗ | collection 589 composite regression은 PASS했지만 v0.2 comparator와 pre-fixed unseen learning benchmark가 없음 | NS6 측정 전 |
@@ -310,7 +312,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | 03 M1-C | implementation `+7068/-233` + test evidence follow-ups | 21 implementation files; Python 총 LOC `40,954` | checkpoints `a783a88`~`2e14096`; manifest `20/20`; transition/direct `53/72`; full `442+111`; critic + auditor PASS |
 | 04 M1-D | cycle base `a5f232d` 대비 tracked `+126,150/-331` + untracked support `9,955` lines (`git diff --numstat a5f232d`; untracked `wc -l`) | product core보다 frozen JSON fixtures/observer/correction harness가 압도적으로 커진 과잉설계 비용을 명시; `state.py` 3,171 lines, oracle 2,724, rebuild script 2,256 | final transition `92551a…c54`; `26/23/54/37/7`; negative `460/460`; direct `67`; bounded `56`; compatibility `20/20`; floor PASS; auditor PASS |
 | 05 M1-E vertical | pre-spec `38446f1` → product `7fcfd10`: source `+365/-8`, commit 11 files `+686/-8` | 1,200-line cap 이하; 신규 manifest/graph reducer 없음; temp replay O(n) limitation 명시 | vertical `4`; final focused/compatibility `127+23`; demo/ruff/ty/diff와 independent audit PASS |
-| 06 M1-E release close correction | first `3eaba21→1aa9c58`; second `ff608af→58b731e` | Rule9 PIVOT cap total 1,350; nested latency | second receipt `602+115`; Q2/Q5 correction verified, re-audit pending |
+| 06 M1-E release close correction | first `3eaba21→1aa9c58`; second `ff608af→58b731e`; installer correction pre-spec current | Rule9 second PIVOT cap total 1,600; nested latency | Q1~Q8 PASS; progress audit installer binding FAIL |
 
 ---
 

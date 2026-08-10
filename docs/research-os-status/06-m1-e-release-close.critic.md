@@ -49,10 +49,11 @@ Compatibility/authority 영역의 upgrade manifest는 byte-exact managed 0.2.0 t
 
 **Response:**
 
-DIRECT. Frozen six-case installer matrix와 source commit `6f36a1b`의 five-file/two-directory
-signature만 recognized prior다. Actual published bytes로 two-target upgrade와 backup 2를
-확인했고 drift rejection writer delta는 0이다. Unknown/unmanaged도 no-write이며 기존 0.1
-path와 transaction recovery tests가 full suite에 포함됐다.
+FAIL on progress audit; executable correction pre-specified. Source commit `6f36a1b`의
+five-file/two-directory signature는 product classifier에 bind됐지만 기존 manifest `case_ids`
+여섯 개는 test dispatcher/verifier가 소비하지 않아 aggregate `6/6`을 대리 청구했다. New
+structured `id/operation/expected` six-case denominator를 literal pytest nodes로 각각 실행하고
+canonical exact outcome을 비교하며, single receipt에 exact IDs와 `passed=6`을 기록해야 DIRECT다.
 
 ## Q5 [external-validation]
 
