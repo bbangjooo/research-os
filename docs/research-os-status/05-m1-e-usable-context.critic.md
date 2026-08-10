@@ -1,6 +1,6 @@
 # M1-E usable Context v3 pre-spec critic
 
-> Status: **PRE-SPEC PASS (simulated independence)**
+> Status: **IMPLEMENTATION VERIFY PASS; independent progress audit PASS**
 > Scope: §05 vertical slice only; M1-E release close는 포함하지 않음
 
 ## Q1 [proxy-vs-real]
@@ -55,3 +55,17 @@ disposable history E2E와 작은 negative/parity test만 추가한다. 추가 �
 **PASS (simulated independence).** 현 session의 새 subagent 생성 금지 때문에 root가
 별도 read-only critic pass로 작성했다. Acceptance 1~6 전부 DIRECT이며
 criterion 약화나 M1-E close 조기 청구는 없다.
+
+Implementation verify evidence는 vertical `4 PASS`, final compatibility
+`127 + 23 subtests`, disposable demo, ruff/ty/diff PASS다. Context v2 default
+shape와 snapshot/token version 2는 보존됐고 v3는 opt-in이다. Template은 four
+sentinel 외 exact kernel fields를 fixture Diagnosis와 일치시켰고, fill→diagnose→refresh에서
+pending `1→0`을 재현했다. V3은 canonical snapshot을 temp EventLog/projection에
+replay해 cold call에서도 project event/projection byte diff 0을 만족했다. Q1~Q6 final
+response는 모두 **DIRECT / PASS**다.
+
+Chronology verify는 pre-spec `38446f18…` at `03:31:58+09:00` → first
+result-bearing `7fcfd100…` at `03:48:51+09:00`의 exact parent relation을 확인했다.
+라벨은 vertical slice에 한해 **CONFIRMATORY**이며 M1-E는 `ADVANCE 1/5`,
+prerequisite M1-D는 closed, parent M1은 open이다. First harness setup result는
+`RESULT-INVALID`로 제외했고 corrected product acceptance는 변경하지 않았다.
