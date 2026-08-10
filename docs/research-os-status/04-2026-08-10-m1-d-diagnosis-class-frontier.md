@@ -1,6 +1,6 @@
 # §04 — M1-D Diagnosis, ClassState, and Semantic Frontier (2026-08-10)
 
-> Status: **PRE-SPEC PASS — implementation forbidden until docs+fixture checkpoint commit**
+> Status: **IMPLEMENTATION OPEN — pre-spec checkpoint `091af24` frozen before product code**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §02
 > 직전 phase: [`§03 M1-C`](03-2026-08-10-m1-c-typed-proposal-replication.md)
 > Pipeline 영향: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §3, §8.4 Study inference, §9.4 M1-D
@@ -243,7 +243,17 @@ Anti-self-echo:
 
 ### 04.6.7 Claim Mode ★
 
-**현재 라벨**: _CONFIRMATORY CANDIDATE_. 구현 전 기준선은 `a5f232d`다. Phase/critic/v3 fixture만 포함한 pre-spec checkpoint, supporting raw SHA, manifest raw/sorted-compact SHA, independent critic PASS가 첫 product/result-bearing commit보다 앞서야 한다. Commit/tree/parent/time과 digest는 checkpoint 뒤 기록한다.
+**현재 라벨**: _CONFIRMATORY_. 구현 전 기준선은 `a5f232d`다. Phase/critic/v3 fixture만 포함한 pre-spec checkpoint `091af24`가 supporting raw SHA, manifest raw/public SHA, independent Q1–Q8 PASS를 고정했고 첫 product/result-bearing commit보다 앞선다.
+
+Pre-spec checkpoint provenance:
+
+- commit `091af241524e8ebdba657bc29758c5234fd9d501`
+- parent `a5f232d4e44d3b5aa04ae36990db5230f3c1a4e1`
+- tree `fc342a8443ea96b458b9f83753db6545db98287f`
+- author/committer time `2026-08-10T22:53:51+09:00`
+- subject `docs: pre-spec Research OS M1-D diagnosis state`
+- scope: phase/critic docs 2 + v3 JSON fixture 8; product source/test implementation 0
+- manifest raw/public and supporting seals: 아래 sixth-review PASS snapshot과 exact 동일
 
 최초 full-policy-review 후보 supporting raw SHA-256 — **SUPERSEDED; 현재 seal 아님**:
 
@@ -320,5 +330,5 @@ Oracle expected나 criterion을 구현/관찰 뒤 고치면 이전 결과를 `RE
 
 ## 04.10 다음 1행동
 
-- exact PASS verdict와 v3 fixture 8개를 docs+fixture-only pre-spec checkpoint로 commit한다.
-- checkpoint provenance를 별도 문서 commit에 기록한 뒤 Diagnosis product implementation을 시작한다.
+- 이 checkpoint provenance를 correction-free documentation commit으로 고정한다.
+- frozen oracle을 수정하지 않고 strict Diagnosis model과 executable observer부터 구현한다.

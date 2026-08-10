@@ -1,6 +1,6 @@
 # Critic — Phase 04 (2026-08-10) — m1-d-diagnosis-class-frontier
 
-> Status: **PRE-SPEC PASS — docs+fixture checkpoint pending; product implementation remains blocked until commit**
+> Status: **PRE-SPEC PASS — checkpoint `091af24`; product implementation authorized against frozen oracle**
 
 ## Q1 — Diagnosis schema와 evidence binding이 exact·replay-safe한가?
 
@@ -226,3 +226,10 @@ checkpoint 자격이 있으며, 그 checkpoint commit이 생성되기 전에는 
 nested regression subprocess의 return code `-15`였고, 같은 exact case를 간섭 없이 재실행해
 `1 passed in 256.08s`를 얻었다. 이 provenance를 숨기거나 단일-command 442 PASS로 표현하지
 않는다.
+
+Checkpoint realized: commit `091af241524e8ebdba657bc29758c5234fd9d501`, parent
+`a5f232d4e44d3b5aa04ae36990db5230f3c1a4e1`, tree
+`fc342a8443ea96b458b9f83753db6545db98287f`, time
+`2026-08-10T22:53:51+09:00`. 이 checkpoint는 phase/critic docs와 v3 JSON fixture만
+포함하고 product source/test implementation은 0이다. 이후 product result가 oracle defect를
+드러내면 expected를 관찰 결과에 맞추지 않고 `RESULT-INVALID`/correction chronology를 적용한다.
