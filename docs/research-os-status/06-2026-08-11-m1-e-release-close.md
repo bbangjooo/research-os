@@ -20,8 +20,9 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 - Target milestone: `M1-E`의 남은 네 conjunct와 Cycle 05 첫 conjunct 재검증;
   모두 PASS할 때만 `CLOSE`한다.
 - M chain 정의·분모·threshold는 변경하지 않는다. Rule 9 trigger 없음.
-- `crypto-new`, `manager`, `BinancePredictionStrategy`는 read-only 경계만 유지하고
-  이번 phase에서 읽거나 쓰지 않는다. Live pilot/migration은 v0.5 이후다.
+- `crypto-new`, `manager`, `BinancePredictionStrategy`는 read-only 경계만 유지한다.
+  Release verifier가 각 `.research-os` control tree를 pre/post byte snapshot으로 읽지만 writer
+  delta는 0이고 live pilot/migration은 v0.5 이후다.
 - 제품 multi-agent는 추가하지 않는다. 모든 연구 산출물의 `authorized_action`은 null이다.
 
 ## 06.2 Frozen acceptance
@@ -280,3 +281,7 @@ Second-correction receipt를 durable하게 고정한 뒤 progress critic과 inde
   tree `37`/`52cbf8…277d`, 세 sibling project `.research-os`의 pre/post exact byte snapshot을
   manifest에서 소비한다. Clean `58b731e`의 fresh verifier는 `602+115`, authority `0`, wheel
   `cdc451…2ad1`로 PASS했고 durable receipt를 교체했다. Independent re-audit은 아직 pending이다.
+- Independent re-audit은 Q1~Q5/Q7/Q8과 Q2/Q5 defect closure를 PASS했지만 Q6 문서 두 곳의
+  stale “external access 0/read 0” 표현을 FAIL했다. 실제 verifier 정책은 처음부터 read-only
+  snapshot + writer delta 0이므로 acceptance/product/result는 바꾸지 않고 위 scope와 critic
+  response를 그 사실에 맞게 정정했다. 이 문서 correction 뒤 strict re-audit은 pending이다.

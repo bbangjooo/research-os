@@ -79,9 +79,10 @@ migration과 제품 multi-agent를 계속 제외하며, 이를 숨기려고 §8.
 
 **Response:**
 
-DIRECT. §06.6.5는 Context와 Compatibility/authority의 before/after만 구체화하고
-Claim/retrieval은 M2에 남긴다. 외부 프로젝트 접근 0, live migration 유예, 제품 multi-agent
-0/NS6 이후 조건을 그대로 유지한다. §8.2/§8.3 경계를 축소하지 않는다.
+DIRECT after documentation correction. §06.6.5는 Context와 Compatibility/authority의
+before/after만 구체화하고 Claim/retrieval은 M2에 남긴다. 외부 프로젝트 접근은 actual
+`.research-os` pre/post **read-only snapshot**뿐이고 writer delta 0이며, live migration 유예와
+제품 multi-agent 0/NS6 이후 조건을 그대로 유지한다. §8.2/§8.3 경계를 축소하지 않는다.
 
 ## Q7 [proxy-vs-real]
 
