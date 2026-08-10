@@ -127,8 +127,9 @@ new compatible baseline after an approved semantic change.
 2. Require a current digest-matching evaluator certificate, passing golden cases,
    a frozen universe/split manifest, and an absent or inaccessible locked holdout.
    A missing, failed, or stale gate returns the project to setup/change-control.
-3. Run `doctor`, then `replay`, then `agent-context --limit N`. Use a small `N`
-   appropriate to the remaining budget.
+3. Run `doctor`, then `replay`, then `agent-context --limit N`. This emits
+   Context v3 by default; `--schema-version 2` is compatibility-only. Use a small
+   `N` appropriate to the remaining budget.
 4. Take `snapshot.context_token` from the context packet. Refresh context before
    proposing if it is missing or stale.
 5. Read the research brief, candidate schema, graph frontier, retryable attempts,
@@ -156,7 +157,7 @@ not consume experiment budget because no experiment was registered.
 2. **Diagnose:** after every terminal result, run no experiment. Inspect the
    reason code, metrics, constraints, and relevant artifacts; state whether the
    mechanism, implementation, evidence, or constraint failed. For a version-two
-   generation, refresh `agent-context --schema-version 3`, invoke
+   generation, refresh `agent-context`, invoke
    `research-os --project ABS diagnosis-template > /ABS/PATH/diagnosis.json`
    (add `--experiment exp_ID` when several are pending), and replace only the
    four `REPLACE_ME` interpretation/failure/falsifier/recommendation fields.

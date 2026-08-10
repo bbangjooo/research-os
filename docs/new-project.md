@@ -348,8 +348,8 @@ must run `baseline` explicitly before obtaining that context; an implicit
 baseline changes canonical state and correctly makes an older token stale. The
 tokenless path is retained only for direct API/CLI compatibility and does not
 enforce the agent certification gate. After a generation opens, tokenless and
-context-token registrations share the same generation binding and atomic budget
-gate. Explicit baseline setup also isolates
+context-token registrations share the same generation binding, typed Proposal,
+pending Diagnosis, class-closure, and atomic budget gates. Explicit baseline setup also isolates
 reproducibility and cleanup failures before candidate work.
 Baseline artifacts are captured into the same content-addressed catalog as
 candidate artifacts and embedded in `BASELINE_RECORDED`. The `artifacts`
@@ -366,8 +366,9 @@ instance intentionally fails closed on configuration drift.
 The installed Research OS skill makes Codex or Claude Code the sole user-facing
 researcher. It runs the following loop:
 
-1. Run `doctor`, `replay`, and `agent-context`; read the bounded graph, brief,
-   schema, findings, artifacts, and snapshot token.
+1. Run `doctor`, `replay`, and `agent-context`; Context v3 is the default. Read
+   the bounded scientific state, graph, brief, schema, findings, artifacts, and
+   snapshot token. Use explicit `--schema-version 2` only for compatibility.
 2. Explore independent pre-registered hypothesis classes as root nodes.
 3. After every terminal node, diagnose the exact status, constraints, and
    relevant artifacts without running another experiment.

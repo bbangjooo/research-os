@@ -183,7 +183,10 @@ that exact digest, preventing a PASS review from being replayed after drift.
 
 Certification enforcement is the context-token-backed Codex/Claude boundary.
 The tokenless direct service/CLI path remains available for legacy integrations
-and intentionally does not claim agent research readiness.
+and intentionally does not claim agent research readiness. Before a generation it
+remains untyped; inside a version-two generation it cannot bypass typed Proposal,
+pending Diagnosis, class-closure, or locked budget gates. Default Context v3 is
+the agent-facing path, while explicit Context v2 preserves the prior packet contract.
 
 The evaluation universe, selection cutoff, development/replication splits, and
 holdout boundary are similarly pre-registered before the first baseline. Locked

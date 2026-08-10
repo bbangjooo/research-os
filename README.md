@@ -37,14 +37,16 @@ uv pip install --python .venv/bin/python -e .
 .venv/bin/research-os install-agent-skill --target all
 ```
 
-To replace an exact, unmodified Research OS 0.1.0 skill installation, use the
-explicit safe-upgrade path:
+To replace an exact, unmodified Research OS 0.1.0 installation or a byte-exact
+managed Research OS 0.2.0 skill, use the explicit safe-upgrade path:
 
 ```bash
 .venv/bin/research-os install-agent-skill --target all --upgrade
 ```
 
-Unknown or locally modified skill trees are never overwritten.
+Unknown or locally modified skill trees are never overwritten. A successful
+upgrade retains the prior inode tree in the reported `recovery_backup`; inspect
+that recovery before deleting it manually.
 
 This installs the skill at:
 
@@ -185,15 +187,16 @@ accepted, the agent must submit a strict `Diagnosis` JSON with `diagnose`. The
 object binds the exact terminal event and hash, Proposal, evaluation scope,
 Decision observation, and artifact evidence. The kernel—not the agent's
 narrative—derives class status, immutable closure, and the semantic/retry
-frontier. The current `agent-context` v2 does not yet author or expose this
-state; context v3 and a Diagnosis template are the next compatibility slice.
+frontier. Context v3 and the Diagnosis template expose that state without
+changing the canonical event contract.
 
-The current M1-E preview exposes that slice explicitly. After a typed terminal
-result, run `agent-context --schema-version 3`, then `diagnosis-template`
+Research OS 0.3 emits Context v3 by default. After a typed terminal result, run
+`agent-context`, then `diagnosis-template`
 (add `--experiment ID` if more than one is pending). The generated body is
 fail-closed until the agent replaces only `interpretation`, `failure_type`,
 `falsifier`, and `recommendation`, after which it can be submitted to
-`diagnose`. Context schema 2 remains the default during this preview.
+`diagnose`. Use `agent-context --schema-version 2` only for explicit compatibility;
+its packet and context-token snapshot schema remain unchanged.
 
 Codex and Claude Code use `agent-context` plus `--context-token`; that guarded
 path requires a current independent evaluator certificate and an already sealed

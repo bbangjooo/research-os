@@ -719,7 +719,7 @@ class AgentScientificControlTests(unittest.TestCase):
             "findings",
             side_effect=racing_findings,
         ):
-            context = service.agent_context()
+            context = service.agent_context(schema_version=2)
         self.assertIsNotNone(injected_event)
         assert injected_event is not None
         self.assertEqual(context["snapshot"]["last_sequence"], injected_event.sequence)

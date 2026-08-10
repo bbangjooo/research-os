@@ -113,8 +113,8 @@ def _parser() -> argparse.ArgumentParser:
         "--schema-version",
         type=int,
         choices=(2, 3),
-        default=2,
-        help="agent context packet schema (default: 2)",
+        default=3,
+        help="agent context packet schema (default: 3; use 2 for compatibility)",
     )
 
     baseline = subparsers.add_parser(

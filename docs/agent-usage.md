@@ -33,19 +33,19 @@ From the Research OS checkout:
 ~/research-os/.venv/bin/research-os install-agent-skill --target all
 ```
 
-Existing exact 0.1.0 installations require the explicit recognized-release
-upgrade:
+Existing exact 0.1.0 installations and byte-exact managed 0.2.0 installations
+require the explicit recognized-release upgrade:
 
 ```bash
 ~/research-os/.venv/bin/research-os install-agent-skill --target all --upgrade
 ```
 
-A successful legacy upgrade reports `recovery_backup` and retains the original
-0.1.0 inode tree there. The installer never deletes that backup automatically,
+A successful upgrade reports `from_release`, `to_release`, and `recovery_backup`,
+and retains the original inode tree there. The installer never deletes that backup automatically,
 because another process may still hold an open descriptor to an old skill file.
 Before any manual deletion, inspect and diff the retained tree against the new
 installation, preserve or merge every late write, and verify its provenance.
-Writer shutdown and a working 0.2.0 installation are necessary but not
+Writer shutdown and a working 0.3.0 installation are necessary but not
 sufficient: retention exists specifically so edits through an already-open old
 descriptor are not silently discarded.
 
@@ -97,7 +97,8 @@ request.
 
 ## Agent context and stale-proposal protection
 
-`agent-context` is a bounded read model containing:
+`agent-context` emits Context v3 by default. Explicit `--schema-version 2`
+preserves the prior packet for compatibility. The bounded read model contains:
 
 - the resolved scientific contract and authority boundary;
 - the research brief and candidate JSON Schema;

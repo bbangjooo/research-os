@@ -56,6 +56,38 @@ _LEGACY_0_1_0_FILES: Final[dict[Path, tuple[int, str]]] = {
 }
 _LEGACY_0_1_0_DIRECTORIES: Final = frozenset({Path("agents"), Path("references")})
 
+# Managed releases are eligible for replacement only when the complete installed
+# tree is byte-identical to a published checkpoint.  The 0.2.0 signature is from
+# commit 6f36a1b; the manifest itself is part of the signed tree rather than a
+# source of authority supplied by the installation being inspected.
+_KNOWN_MANAGED_RELEASE_FILES: Final[dict[str, dict[Path, tuple[int, str]]]] = {
+    "0.2.0": {
+        Path(".research-os-managed.json"): (
+            595,
+            "3001753fa5f0908ccdfa63f5f3e4c9e8dabe596b73c20584b26b990075e11be0",
+        ),
+        Path("SKILL.md"): (
+            14409,
+            "0cab9ff5279b7715c02688d4e26c4c745200400fb2ffad657924a6cec1a59a9f",
+        ),
+        Path("agents/openai.yaml"): (
+            218,
+            "a4e0ea2cb6b7ee315c578092a09c09e961e86cb729b457fe276b056c903b359b",
+        ),
+        Path("references/scientific-protocol.md"): (
+            13411,
+            "b05812c5bc7bf10f55c216f36a15693dcb30f89601564abf8ab93bb0850354d8",
+        ),
+        Path("references/status-actions.md"): (
+            2686,
+            "5e7654d2913dc7bde67eff937126cf25808b92b4cf87625aa6f354a7f4da429e",
+        ),
+    }
+}
+_KNOWN_MANAGED_RELEASE_DIRECTORIES: Final = frozenset(
+    {Path("agents"), Path("references")}
+)
+
 _StateKind = Literal["absent", "current", "legacy"]
 
 
@@ -72,6 +104,7 @@ class _TargetState:
     destination: Path
     kind: _StateKind
     snapshot: _TreeSnapshot | None = None
+    prior_release: str | None = None
 
 
 @dataclass
@@ -357,6 +390,21 @@ def _is_legacy_0_1_0(snapshot: _TreeSnapshot) -> bool:
     return True
 
 
+def _known_managed_release(snapshot: _TreeSnapshot) -> str | None:
+    if snapshot.directories != _KNOWN_MANAGED_RELEASE_DIRECTORIES:
+        return None
+    for release, signature in _KNOWN_MANAGED_RELEASE_FILES.items():
+        if set(snapshot.files) != set(signature):
+            continue
+        if all(
+            len(snapshot.files[relative]) == expected_size
+            and hashlib.sha256(snapshot.files[relative]).hexdigest() == expected_digest
+            for relative, (expected_size, expected_digest) in signature.items()
+        ):
+            return release
+    return None
+
+
 def _safe_directory(path: Path, *, create: bool) -> None:
     try:
         info = path.lstat()
@@ -442,9 +490,16 @@ def _classify_one(
     snapshot = _snapshot_tree(destination)
     if _is_current(snapshot, expected):
         return _TargetState(target, destination, "current", snapshot)
-    if _is_legacy_0_1_0(snapshot):
+    prior_release = "0.1.0" if _is_legacy_0_1_0(snapshot) else _known_managed_release(snapshot)
+    if prior_release is not None:
         if upgrade:
-            return _TargetState(target, destination, "legacy", snapshot)
+            return _TargetState(
+                target,
+                destination,
+                "legacy",
+                snapshot,
+                prior_release,
+            )
         raise ConfigurationError(
             "existing Research OS agent skill is a recognized prior release; "
             f"rerun with --upgrade to replace it: {destination}"
@@ -623,7 +678,8 @@ def _stage_one(state: _TargetState, home: Path, expected: Mapping[Path, bytes]) 
             "filesystems; mounted skill directories cannot be installed safely: "
             f"{parent} and {recovery_root}"
         )
-    phase = "upgrade-0.1.0" if state.kind == "legacy" else f"install-{__version__}"
+    prior_release = state.prior_release or "unknown"
+    phase = f"upgrade-{prior_release}" if state.kind == "legacy" else f"install-{__version__}"
     transaction = Path(tempfile.mkdtemp(prefix=f"{state.target}-{phase}-", dir=recovery_root))
     transaction_info = transaction.lstat()
     transaction_identity = _identity(transaction_info)
@@ -641,7 +697,7 @@ def _stage_one(state: _TargetState, home: Path, expected: Mapping[Path, bytes]) 
         transaction_identity=transaction_identity,
         staged=staged,
         staged_identity=staged_identity,
-        backup=transaction / "prior-0.1.0-recovery",
+        backup=transaction / f"prior-{prior_release}-recovery",
         exposed_recovery=transaction / "exposed-new-recovery",
     )
 
@@ -1054,7 +1110,9 @@ def _records(
             "status": status,
         }
         if state.kind == "legacy":
-            record["from_release"] = "0.1.0"
+            if state.prior_release is None:  # pragma: no cover - classifier invariant
+                raise ConfigurationError("recognized prior agent skill omitted its release")
+            record["from_release"] = state.prior_release
             record["to_release"] = __version__
             record["recovery_backup"] = str(prepared_by_target[state.target].backup)
         records.append(record)
@@ -1067,10 +1125,10 @@ def install_agent_skill(
     """Install or explicitly upgrade the packaged Research OS agent skill.
 
     A normal install accepts only a missing target or the exact current managed
-    tree.  ``upgrade=True`` additionally accepts the one byte-exact, unmarked
-    0.1.0 release.  All selected targets are staged before either target is
-    changed, and ordinary exceptions (including cancellation) restore any
-    already-replaced target before propagating.
+    tree.  ``upgrade=True`` additionally accepts the byte-exact unmarked 0.1.0
+    tree and byte-exact known managed releases.  All selected targets are staged
+    before either target is changed, and ordinary exceptions (including
+    cancellation) restore any already-replaced target before propagating.
     """
 
     if target not in {"all", *_DESTINATIONS}:

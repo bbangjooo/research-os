@@ -27,6 +27,42 @@ _FAKE_LEGACY = {
 }
 
 
+def _fake_managed_release(release: str) -> dict[Path, bytes]:
+    packaged = {
+        Path("SKILL.md"): b"managed prior skill\n",
+        Path("agents/openai.yaml"): b"managed prior agent\n",
+        Path("references/scientific-protocol.md"): b"managed prior protocol\n",
+        Path("references/status-actions.md"): b"managed prior actions\n",
+    }
+    manifest = {
+        "files": [
+            {
+                "path": relative.as_posix(),
+                "sha256": hashlib.sha256(content).hexdigest(),
+                "size_bytes": len(content),
+            }
+            for relative, content in sorted(
+                packaged.items(), key=lambda item: item[0].as_posix()
+            )
+        ],
+        "owner": installer._MANIFEST_OWNER,
+        "release": release,
+        "schema_version": 1,
+    }
+    return {
+        **packaged,
+        installer._MANIFEST_PATH: (
+            json.dumps(
+                manifest,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            + "\n"
+        ).encode("utf-8"),
+    }
+
+
 def _write_files(root: Path, files: dict[Path, bytes]) -> None:
     root.mkdir(parents=True)
     for relative, content in files.items():
@@ -83,6 +119,21 @@ def _recognize_fake_legacy():
     }
     with mock.patch.object(installer, "_LEGACY_0_1_0_FILES", signatures):
         yield
+
+
+@contextmanager
+def _recognize_fake_managed_0_2():
+    files = _fake_managed_release("0.2.0")
+    signatures = {
+        relative: (len(content), hashlib.sha256(content).hexdigest())
+        for relative, content in files.items()
+    }
+    with mock.patch.object(
+        installer,
+        "_KNOWN_MANAGED_RELEASE_FILES",
+        {"0.2.0": signatures},
+    ):
+        yield files
 
 
 def _assert_no_transactions(test: unittest.TestCase, home: Path) -> None:
@@ -173,6 +224,52 @@ class AgentInstallUpgradeTests(unittest.TestCase):
                 home.resolve() / installer._BACKUP_ROOT_NAME,
             )
             self.assertTrue(recovery.parent.name.startswith("codex-upgrade-0.1.0-"))
+
+    def test_exact_managed_0_2_requires_upgrade_and_retains_recovery(self):
+        with tempfile.TemporaryDirectory() as temporary, _recognize_fake_managed_0_2() as prior:
+            home = Path(temporary)
+            destination = home / _TARGETS["codex"]
+            _write_files(destination, prior)
+            before = _capture_tree(destination)
+
+            with self.assertRaisesRegex(ConfigurationError, "--upgrade"):
+                install_agent_skill("codex", home=home)
+            self.assertEqual(_capture_tree(destination), before)
+
+            records = install_agent_skill("codex", home=home, upgrade=True)
+            self.assertEqual(records[0]["status"], "upgraded")
+            self.assertEqual(records[0]["from_release"], "0.2.0")
+            self.assertEqual(records[0]["to_release"], "0.3.0")
+            self.assertEqual(_capture_tree(destination)[0], installer._expected_files())
+            recovery = Path(records[0]["recovery_backup"])
+            self.assertEqual(_capture_tree(recovery)[0], prior)
+            self.assertTrue(recovery.name.startswith("prior-0.2.0-recovery"))
+
+    def test_managed_0_2_two_target_failure_restores_both_exactly(self):
+        with tempfile.TemporaryDirectory() as temporary, _recognize_fake_managed_0_2() as prior:
+            home = Path(temporary)
+            destinations = {target: home / relative for target, relative in _TARGETS.items()}
+            for destination in destinations.values():
+                _write_files(destination, prior)
+            before = {
+                target: _capture_tree(destination)
+                for target, destination in destinations.items()
+            }
+            original_commit = installer._commit_one
+
+            def fail_second(prepared, expected):
+                if prepared.state.target == "claude":
+                    raise OSError("managed 0.2 second target failure")
+                return original_commit(prepared, expected)
+
+            with (
+                mock.patch.object(installer, "_commit_one", side_effect=fail_second),
+                self.assertRaisesRegex(OSError, "second target failure"),
+            ):
+                install_agent_skill("all", home=home, upgrade=True)
+
+            for target, destination in destinations.items():
+                self.assertEqual(_capture_tree(destination), before[target])
 
     def test_all_can_upgrade_one_target_and_first_install_the_other(self):
         with tempfile.TemporaryDirectory() as temporary, _recognize_fake_legacy():

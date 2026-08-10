@@ -4103,7 +4103,7 @@ class ResearchService:
         self,
         *,
         limit: int = 20,
-        schema_version: int = 2,
+        schema_version: int = 3,
     ) -> dict[str, Any]:
         """Return one bounded evidence packet for Codex or Claude Code."""
 

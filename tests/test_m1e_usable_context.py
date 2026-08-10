@@ -85,15 +85,15 @@ def test_context_v3_exposes_exact_scientific_state_and_preserves_v2(tmp_path: Pa
     assert service.projection.path.read_bytes() == projection_before
     assert hash_tree(service.config.root) == tree_before
 
-    default_v2 = service.agent_context()
+    default_v3 = service.agent_context()
     explicit_v2 = service.agent_context(schema_version=2)
     scientific_state = reduce_scientific_state(
         service.event_log.read(), project_id=service.config.project_id
     ).to_dict()
 
-    assert default_v2 == explicit_v2
-    assert default_v2["schema_version"] == 2
-    assert "science" not in default_v2
+    assert default_v3 == context
+    assert explicit_v2["schema_version"] == 2
+    assert "science" not in explicit_v2
     assert context["schema_version"] == 3
     assert context["science"] == scientific_state
     assert context["science"]["pending_diagnosis_experiment_ids"]
@@ -175,15 +175,7 @@ def test_context_v3_and_template_are_available_through_cli(tmp_path: Path) -> No
     template_stdout = io.StringIO()
     stderr = io.StringIO()
     with redirect_stdout(context_stdout), redirect_stderr(stderr):
-        context_code = main(
-            [
-                "--project",
-                str(project),
-                "agent-context",
-                "--schema-version",
-                "3",
-            ]
-        )
+        context_code = main(["--project", str(project), "agent-context"])
     with redirect_stdout(template_stdout), redirect_stderr(stderr):
         template_code = main(["--project", str(project), "diagnosis-template"])
 
