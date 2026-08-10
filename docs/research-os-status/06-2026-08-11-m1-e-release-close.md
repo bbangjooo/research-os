@@ -1,10 +1,10 @@
 # §06 — M1-E v0.3 release close (2026-08-11)
 
-> Status: **PRE-SPEC FROZEN — implementation not started**
+> Status: **AUDIT FAIL — executable release-gate correction pre-specified**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§05](05-2026-08-11-m1-e-usable-context.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §5, §7~§10
-> Active milestone: `M1-E` at `1/5`; M1-D prerequisite closed
+> Active milestone: `M1-E` at `3/5`; A3/A5 evidence invalidated; M1-D prerequisite closed
 
 ## 06.0 TL;DR
 
@@ -47,7 +47,9 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 
 ### A3 — tokenless v2 legacy boundary
 
-`tests/fixtures/releases/v0.3.0/manifest.json`의 7개 case 전부를 실행한다.
+`tests/fixtures/releases/v0.3.0/manifest.json`의 7개 structured case 전부를 실행한다.
+각 case는 observer, 실제 source case/path, expected public code와 reject event/budget delta를
+직접 bind하며, ID 집합이나 code 집합만 비교해서는 PASS할 수 없다.
 
 - active v2 generation의 registration은 typed Proposal 없이는 no-write
   `PROPOSAL_REQUIRED`다.
@@ -80,6 +82,10 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
    Release manifest의 모든 case가 PASS하고 recursive `authorized_action` non-null은 0이다.
 4. Ruff, offline ty, `git diff --check`, built wheel metadata와 packaged resource test가
    모두 PASS한다.
+5. 위 네 항목과 release manifest, recursive authority scan, 외부 프로젝트 read-only/no-live
+   경계, 제품 multi-agent 부재를 `scripts/verify_release.py` 한 명령이 fail-closed로 실행한다.
+   일부 command를 건너뛰는 release mode는 제공하지 않으며 하나라도 실패하면 receipt를
+   발행하지 않는다.
 
 ## 06.3 Bounded implementation plan
 
@@ -121,9 +127,119 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 - NS5 autonomous FSM/crash-resume는 생기지 않으므로 `0/7`; Claim/retrieval은 M2,
   autonomous loop/unseen benchmark는 M3에 그대로 남는다.
 
+### 06.6.1 Implementation result and checkpoints
+
+- Controlling corrected pre-spec: `3ca21156f815805f54005eb790b2bf31ceaf48f6`
+  (`2026-08-11T04:11:43+09:00`).
+- First result-bearing product checkpoint: `d1499b38749c570961c1e36c0a9d090ae80168d0`
+  (`2026-08-11T04:22:18+09:00`). Context v3 default, exact managed 0.2
+  classifier/transaction report, version/docs/tests를 구현했다.
+- Result-triggered test-only correction: `888cd9610e16c4fb610d5a5b3f5b43b40283cc00`
+  (`2026-08-11T05:09:53+09:00`). Frozen Context v2 compatibility observer가 새
+  default v3를 암묵 호출하던 두 곳을 explicit `schema_version=2`로 고쳤다. 제품,
+  fixture denominator, public code, acceptance는 바꾸지 않았다.
+- Corrected pre-spec 이후 product+tests added lines는 `303`이고 cap `650` 이하이다.
+  전체 tracked delta도 phase cap `1,150` 이하이다.
+
+### 06.6.2 Verification evidence
+
+| Evidence | Corrected result | 판정 |
+|---|---:|---|
+| Release/default/v2/tokenless/installer focused bundle | `34 passed, 12 subtests passed` | history; A3/A5 claim invalid |
+| Scientific agent compatibility | `17 passed` | PASS |
+| Frozen tokenless boundary | IDs/code-set only; not all case outcomes executable-bound | RESULT-INVALID |
+| Frozen installer matrix | `6/6`; actual published 0.2 tree two-target upgrade, retained backup 2, drift writer delta 0 | PASS |
+| Base suite without recursive M1-C/M1-D meta-oracles (diagnostic) | `508 passed, 115 subtests passed` | PASS |
+| Corrected full Python 3.12 suite | `597 passed, 115 subtests passed in 2579.27s` | PASS |
+| Static checks | ruff PASS; offline ty `src` PASS; `git diff --check` PASS | history; not single-gate bound |
+| Wheel/install | wheel metadata `0.3.0`; temp install PASS; generated managed manifest release `0.3.0`, packaged files 4 | history; not single-gate bound |
+| Authority/live boundary | recursive non-null `authorized_action=0`; external project reads/writes `0`; product multi-agent additions `0` | RESULT-INVALID aggregate claim |
+
+### 06.6.3 Invalid and diagnostic runs
+
+- 첫 full run은 `3 failed, 594 passed, 115 subtests passed`이므로 release evidence에서
+  제외하고 **RESULT-INVALID**로 기록한다. Product/base suite는 `508+115`로 green이었지만
+  M1-C/M1-D legacy compatibility observer 두 곳이 Context v2를 명시하지 않아 default v3의
+  additive keys를 v2 drift로 오판했다.
+- Wheel install 첫 probe는 `install_agent_skill(targets=...)`라는 존재하지 않는 keyword를
+  사용해 **RESULT-INVALID / HARNESS**다. 동일 wheel을 documented `target="codex"` API로
+  즉시 재실행한 결과 install/manifest/resource가 PASS했다.
+- Focused compatibility 재실행 한 번은 동일 meta-oracle이 다시 4단 nested full suite를
+  시작한 것을 확인한 뒤 release evidence가 아니므로 `KeyboardInterrupt`로 중단했다.
+  판정에는 사용하지 않는다.
+- 최초 focused release harness의 fixture group key와 expected code field 오기는 각각
+  `cases→gate_cases`, `rejection_code→error_code`로 기존 frozen manifest를 읽도록만 고쳤다.
+  Case 수·ID·expected code는 바꾸지 않았고 이전 출력은 **RESULT-INVALID / HARNESS**다.
+
+### 06.6.4 M1-E and parent M1 conjunction
+
+| M1-E frozen conjunct | Direct evidence | 상태 |
+|---|---|---|
+| Context v3 scientific state | default v3 = explicit v3; explicit v2 exact; cold no-write; focused PASS | PASS |
+| v1 event / Context v2 / branch conclusion v1 compatibility | frozen bytes/digest, explicit v2, snapshot v2, full suite PASS | PASS |
+| tokenless v2 legacy boundary | prior ID/code-set proof lacked seven case-level executable binding | RESULT-INVALID |
+| managed 0.2→0.3 upgrade/rollback | exact published tree, `6/6`, actual two-target upgrade/backup/drift rejection | PASS |
+| docs/version 0.3.0 + full release | individual results exist but no single fail-closed verifier | RESULT-INVALID |
+
+Independent critic이 A3의 case별 executable binding과 A5의 단일 fail-closed verifier가
+없음을 발견했으므로 현재 판정은 **ADVANCE (`3/5`)**다. A1, A2, A4 evidence는 유지하지만
+A3/A5의 기존 PASS와 parent M1 close eligibility는 RESULT-INVALID다. Correction checkpoint
+뒤 새 focused/full/single-verifier 결과와 independent audit가 모두 PASS해야 `CLOSE`할 수 있다.
+
+### 06.6.5 End-state positioning
+
+- **Context after:** 생략 default v3가 generation/budget/pending Diagnosis/ClassState/frontier를
+  제공하고 explicit v2는 frozen 12-key compatibility surface로 남는다. Relevant Claim과
+  retrieval reason은 여전히 M2 범위다.
+- **Compatibility/authority after:** v1 bytes와 branch conclusion v1/snapshot v2는 무변환이고,
+  pre-generation legacy는 opaque다. Byte-exact published 0.2만 recoverable 0.3 upgrade가 가능하며
+  drift/unknown/local tree는 no-write다. 모든 연구 surface authority는 null이다.
+- 세 외부 프로젝트 live pilot/migration은 수행하지 않았고 v0.5 이후로 유지한다. 제품
+  multi-agent도 추가하지 않았으며 NS6 이후 조건을 유지한다.
+
+### 06.6.6 Pipeline MATCH / PIVOT
+
+`MATCH`. Pipeline §9.4의 M1-E 다섯 AND-conjunct, §8.2 행동, §8.3 제외 범위,
+§8.4 Context/Compatibility 종착지를 축소하거나 재정의하지 않았다. 새 event schema,
+graph reducer, provider SDK, autonomous loop를 추가하지 않았다.
+
+### 06.6.7 Claim mode and chronology
+
+**Claim mode: CONFIRMATORY.** 기존 A3/A5 출력은 결과 분자에서 제거한다. Independent critic이
+지적한 measurement binding을 새 correction pre-spec commit에서 먼저 고정하며, case 수·public
+code·product semantics·release threshold는 바꾸지 않는다. 그 commit 뒤 처음 실행한 결과만
+corrected confirmatory evidence로 사용할 수 있다.
+
+`3ca2115` corrected pre-spec의 parent/tree/timestamp는
+`27423b1` / `3fb3cac…` / `2026-08-11T04:11:43+09:00`이다. First result-bearing
+`d1499b3`의 parent가 exact `3ca2115`이고 timestamp는
+`2026-08-11T04:22:18+09:00`이다. 따라서 acceptance와 release manifest가 제품 결과보다
+먼저 고정됐다. 후속 `888cd96`은 실패 결과를 보고 compatibility test가 explicit v2를
+호출하도록 한 test-only correction이며 §06.6.3의 initial full result를 invalidated했다.
+
+### 06.6.8 Result-invalid discipline
+
+Initial full/harness outputs와 critic이 무효화한 A3/A5 aggregate PASS는 close 분자에서 제외한다.
+기존 `597+115`는 regression 실행 사실로만 보존하고 A5 single-gate PASS로 대리하지 않는다.
+새 structured manifest와 single-verifier pre-spec 뒤 fresh 결과만 A3/A5 close evidence다.
+
+### 06.6.9 Residuals and north-star movement
+
+- NS1: full M1/release/authority/legacy evidence를 충족했다.
+- NS2: legacy isolation을 더해 M1 target `6/6`이다.
+- NS3: M1 target Proposal/Diagnosis/ClassState `3/3`; program Claim이 없어 전체 target은
+  여전히 `3/4`다.
+- NS5: finite FSM/crash-resume를 만들지 않았으므로 `0/7` 유지다.
+- NS6/NS7: unseen learning benchmark와 three-project read-only compatibility는 M3/M2-D에
+  남는다.
+- Test infrastructure limitation: historical M1-C/M1-D floor가 full suite를 최대 네 겹
+  중첩해 최종 run이 42분 59초 걸린다. 증거는 유효하지만 이후 cycle latency 부채다.
+
 ## 06.7 Next action
 
-이 pre-spec을 local checkpoint로 고정한 뒤 A1~A5를 변경 없이 구현한다.
+Structured seven-case executable binding과 single fail-closed verifier를 구현하고 fresh
+focused/full/build 결과를 얻은 뒤 progress critic과 independent 7-pass audit를 재실행한다.
+둘 다 PASS할 때만 M1-E와 parent M1을 close하고 M2-A를 시작한다.
 
 ## 06.8 Pre-result specification correction
 
@@ -134,3 +250,17 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
   Case 수 7, no-write 의미, threshold, M1-E conjunct는 변경하지 않았다.
 - Corrected pre-spec commit이 이 phase의 controlling pre-spec이다. 이 정정 뒤 code나
   acceptance가 다시 바뀌면 CONFIRMATORY close를 금지한다.
+
+## 06.9 Independent critic FAIL and correction pre-spec
+
+- Independent critic verdict: Q1/Q2/Q5/Q8 FAIL, Q3/Q4/Q6/Q7 PASS.
+- Q1/Q8의 문서 결함은 §06.6.4의 explicit `ADVANCE`와 §06.6.7의 explicit claim-mode
+  label로 바로잡았다.
+- Q2는 기존 manifest가 ID/code 집합만 가졌고 네 transition row만 간접 참조했으므로 A3
+  PASS를 무효화했다. 새 manifest는 일곱 case 각각의 observer/source/path/expected code와
+  event·budget no-write를 구조화한다.
+- Q5는 개별 수동 command를 한 표에 모은 것을 단일 release gate로 잘못 청구했으므로 A5
+  PASS를 무효화했다. 새 verifier는 version/docs/full thresholds/manifest/recursive authority/
+  static/wheel/temp install/policy boundary를 한 fail-closed command로 묶는다.
+- 이 section과 structured manifest가 구현·fresh result보다 먼저 local checkpoint에
+  고정되어야 한다. 이전 `597+115`와 wheel 결과는 regression history이며 새 A3/A5 분자가 아니다.

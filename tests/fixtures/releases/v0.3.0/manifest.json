@@ -44,14 +44,88 @@
     "branch_conclusion_context_snapshot_schema_version": 2
   },
   "tokenless_v2": {
-    "case_ids": [
-      "registration-requires-proposal",
-      "pending-blocks-registration",
-      "pending-blocks-retry",
-      "pending-blocks-successor",
-      "closed-class-blocks-registration",
-      "locked-budget-blocks-registration",
-      "pre-generation-legacy-stays-untyped"
+    "cases": [
+      {
+        "id": "registration-requires-proposal",
+        "observer": "live-service",
+        "path": "register-first-attempt",
+        "expected": {
+          "error_code": "PROPOSAL_REQUIRED",
+          "appended": false,
+          "event_delta": 0,
+          "budget_delta": 0
+        }
+      },
+      {
+        "id": "pending-blocks-registration",
+        "observer": "m1d-transition",
+        "source_case_id": "pending-blocks-first-attempt",
+        "path": "register-first-attempt",
+        "expected": {
+          "error_code": "DIAGNOSIS_REQUIRED",
+          "appended": false,
+          "event_delta": 0,
+          "budget_delta": 0
+        }
+      },
+      {
+        "id": "pending-blocks-retry",
+        "observer": "m1d-transition",
+        "source_case_id": "pending-blocks-retry",
+        "path": "register-retry",
+        "expected": {
+          "error_code": "DIAGNOSIS_REQUIRED",
+          "appended": false,
+          "event_delta": 0,
+          "budget_delta": 0
+        }
+      },
+      {
+        "id": "pending-blocks-successor",
+        "observer": "m1d-transition",
+        "source_case_id": "pending-blocks-successor",
+        "path": "open-successor-generation",
+        "expected": {
+          "error_code": "DIAGNOSIS_REQUIRED",
+          "appended": false,
+          "event_delta": 0,
+          "budget_delta": 0
+        }
+      },
+      {
+        "id": "closed-class-blocks-registration",
+        "observer": "m1d-transition",
+        "source_case_id": "closed-class-blocks-first-attempt-before-payload",
+        "path": "register-first-attempt",
+        "expected": {
+          "error_code": "HYPOTHESIS_CLASS_CLOSED",
+          "appended": false,
+          "event_delta": 0,
+          "budget_delta": 0
+        }
+      },
+      {
+        "id": "locked-budget-blocks-registration",
+        "observer": "m1b-budget-reservation",
+        "source_case_id": "budget-attempts-overrun",
+        "path": "reserve-registration",
+        "expected": {
+          "error_code": "BUDGET_ATTEMPTS_EXCEEDED",
+          "appended": false,
+          "event_delta": 0,
+          "budget_delta": 0
+        }
+      },
+      {
+        "id": "pre-generation-legacy-stays-untyped",
+        "observer": "m1b-legacy-replay",
+        "source_case_id": "legacy-registration-before-generation",
+        "path": "replay",
+        "expected": {
+          "active_generation_id": null,
+          "legacy_unstructured_registrations": 1
+        }
+      }
     ],
     "required_no_write_codes": [
       "BUDGET_ATTEMPTS_EXCEEDED",
@@ -110,6 +184,7 @@
     "minimum_subtests": 111,
     "authorized_action_non_null": 0,
     "external_projects_mode": "read-only-no-live-migration",
-    "product_multi_agent": false
+    "product_multi_agent": false,
+    "single_verifier": "scripts/verify_release.py"
   }
 }
