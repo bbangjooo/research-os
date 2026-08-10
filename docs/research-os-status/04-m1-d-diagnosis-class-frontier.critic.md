@@ -1,6 +1,6 @@
 # Critic — Phase 04 (2026-08-10) — m1-d-diagnosis-class-frontier
 
-> Status: **PRE-SPEC PASS — checkpoint `091af24`; product implementation authorized against frozen oracle**
+> Status: **POST-CHECKPOINT RESULT-INVALID — correction audit open; M1-D EXPLORATORY**
 
 ## Q1 — Diagnosis schema와 evidence binding이 exact·replay-safe한가?
 
@@ -233,3 +233,28 @@ Checkpoint realized: commit `091af241524e8ebdba657bc29758c5234fd9d501`, parent
 `2026-08-10T22:53:51+09:00`. 이 checkpoint는 phase/critic docs와 v3 JSON fixture만
 포함하고 product source/test implementation은 0이다. 이후 product result가 oracle defect를
 드러내면 expected를 관찰 결과에 맞추지 않고 `RESULT-INVALID`/correction chronology를 적용한다.
+
+## Post-checkpoint implementation discovery — RESULT-INVALID
+
+첫 product reducer replay는 frozen full states 50/54를 byte-for-byte 일치시켰지만 다음 literal
+contradiction을 발견했다. 이는 expected state 차이가 아니라 canonical input이 기존 frozen
+parser/identity를 통과하지 못하는 prerequisite defect다.
+
+- `retry-frontier-latest-chain-full-state`: 두 Diagnosis body가 phase와 parser의 exact enum
+  `mechanism|implementation|evidence|constraint|operational|supported` 밖
+  `failure_type="execution"`을 사용해 `DIAGNOSIS_INVALID`다.
+- `class-b-limit-four-n-minus-one-open`, `class-b-limit-four-exact-threshold-close`,
+  `class-b-limit-four-post-close-n-plus-one-preserves-origin`: contract digest는
+  `e9078daf…`로 바뀌었지만 generation ID는 이전 `generation_5d412…`다. Existing M1-B
+  `generation_id(project, null, contract.digest, seal.digest)`의 canonical 결과는
+  `generation_1dcfe94c2c8299219dbf218d2b3f1f60`이므로 `STUDY_GENERATION_INVALID`다.
+- Gate census 중 `superseded-parent-attempt-not-supported`도 forbidden `execution` enum을,
+  `stopped-all-classes-closed-allows-required-diagnosis` history는 등록된
+  `base_allclosed_development` 대신 undeclared `base_m1d_development` baseline ID를 사용해
+  terminal/Diagnosis gate 전에 `STUDY_SCOPE_BASELINE_REQUIRED`가 난다.
+
+기존 Diagnosis parser와 M1-B generation identity로 root가 독립 재현했다. Fixture는 아직
+수정하지 않았다. 분류는 `RESULT-INVALID`, claim mode는 `EXPLORATORY`이며, 전체 literal census와
+minimal dependency rehash/re-ID correction-only checkpoint, 새 manifest/supporting seal, fresh
+Q1–Q8 PASS 전까지 기존 sixth PASS는 result-bearing 권한이 없다. Product semantic output을
+expected에 복사하거나 parser/identity를 약화하는 수정은 금지한다.

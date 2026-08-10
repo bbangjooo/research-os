@@ -1,6 +1,6 @@
 # §04 — M1-D Diagnosis, ClassState, and Semantic Frontier (2026-08-10)
 
-> Status: **IMPLEMENTATION OPEN — pre-spec checkpoint `091af24` frozen before product code**
+> Status: **IMPLEMENTATION — EXPLORATORY / RESULT-INVALID oracle correction audit open**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §02
 > 직전 phase: [`§03 M1-C`](03-2026-08-10-m1-c-typed-proposal-replication.md)
 > Pipeline 영향: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §3, §8.4 Study inference, §9.4 M1-D
@@ -206,7 +206,7 @@ Anti-self-echo:
 
 ## 04.5 결과 vs 가설
 
-구현 전이므로 모든 product evidence response와 measured result는 `PENDING`이다. 첫 independent pre-spec review는 full-artifact attacks, idempotency/stop/successor 충돌, ClassState/frontier/literal-history holes를 찾아 **FAIL**했다. 두 번째 fixture review는 active-nonterminal/closed-class/stop/retry/race literal coverage를, 세 번째 narrow review는 permissive Decision·Result·Artifact 비교와 history-rehash dependency를 찾아 다시 **FAIL**했다. 부분 evidence/transition 감사가 당시 범위에서 PASS했지만, 네 번째 Q1–Q8 전체 policy review는 threshold/cap hardcode, narrative authority, pending·stop ordering cardinality, pre-derived gate/race input, compatibility expected 일부 누락을 찾아 다시 **FAIL**했다. 다섯 번째 fresh review도 individual evidence fields, non-empty all-passed gates, generic/alias terminal, non-UNTRUSTED stop, support predicate 분리, limit/cap/budget parameterization, retry status allowlist, semantic selector leakage를 찾아 **FAIL**했다. Product code를 시작하지 않고 criterion/fixture만 수정했고 이전 manifest seal은 모두 checkpoint 자격이 없다. Sixth exact snapshot은 supporting hash 7/7, manifest raw `950096a8f1b4c4c46f42329d1ee77a16d741c678eba6108544280b01031f0a97`, public `sha256_json` `6f72ec9fc9ece754e40c1be6598e50eeddd9cc053338ebc2ce97a1e9872136ea`에서 fresh Q1–Q8 **전부 PASS**했다. 상세 trail은 [`04-m1-d-diagnosis-class-frontier.critic.md`](04-m1-d-diagnosis-class-frontier.critic.md)에 보존한다. 이제 이 exact docs+fixture checkpoint 뒤에만 구현하며, 구현 뒤 exact frozen oracle 관찰만 기록한다.
+구현 전 첫 independent pre-spec review부터 다섯 번째 review까지의 FAIL/repair trail 뒤, sixth exact snapshot은 supporting hash 7/7, manifest raw `950096a8f1b4c4c46f42329d1ee77a16d741c678eba6108544280b01031f0a97`, public `sha256_json` `6f72ec9fc9ece754e40c1be6598e50eeddd9cc053338ebc2ce97a1e9872136ea`에서 fresh Q1–Q8 **전부 PASS**했고 `091af24`로 product code 전에 고정됐다. 구현 첫 replay에서 valid frozen full-state 50/54가 exact 일치했으나 최소 네 literal contradiction이 발견됐다: retry-frontier history의 허용 enum 밖 `failure_type="execution"` 2개, limit-4 세 history의 contract digest `e907…`에 대한 canonical generation ID `generation_1dcfe94c2c8299219dbf218d2b3f1f60` 대신 이전 `generation_5d…` 유지. Gate replay도 superseded history의 같은 invalid enum과 all-classes history의 undeclared baseline ID를 추가로 드러냈다. 기존 Diagnosis parser와 M1-B generation identity로 독립 재현했으므로 현재 classification은 **RESULT-INVALID**, M1-D claim mode는 **EXPLORATORY**다. Fixture/manifest는 아직 수정하지 않았고, 전체 contradiction census → minimal canonical correction → correction-only checkpoint → 새 raw/public seal → fresh Q1–Q8 PASS 전에는 product 결과나 M1-D CLOSE를 청구하지 않는다. 상세 trail은 [`04-m1-d-diagnosis-class-frontier.critic.md`](04-m1-d-diagnosis-class-frontier.critic.md)에 보존한다.
 
 ## 04.6 시스템 영향 분석 ★
 
@@ -243,7 +243,7 @@ Anti-self-echo:
 
 ### 04.6.7 Claim Mode ★
 
-**현재 라벨**: _CONFIRMATORY_. 구현 전 기준선은 `a5f232d`다. Phase/critic/v3 fixture만 포함한 pre-spec checkpoint `091af24`가 supporting raw SHA, manifest raw/public SHA, independent Q1–Q8 PASS를 고정했고 첫 product/result-bearing commit보다 앞선다.
+**현재 라벨**: _EXPLORATORY / RESULT-INVALID_. 구현 전 기준선과 pre-spec chronology 자체는 깨끗하지만, `091af24` frozen oracle의 literal contradiction이 product replay 뒤 발견됐다. 기존 PASS seal은 역사적 provenance로 보존하되 현재 result-bearing 권한은 없다. Correction-only checkpoint와 새 independent Q1–Q8 PASS 없이는 CONFIRMATORY를 복원하지 않는다.
 
 Pre-spec checkpoint provenance:
 
@@ -330,5 +330,5 @@ Oracle expected나 criterion을 구현/관찰 뒤 고치면 이전 결과를 `RE
 
 ## 04.10 다음 1행동
 
-- 이 checkpoint provenance를 correction-free documentation commit으로 고정한다.
-- frozen oracle을 수정하지 않고 strict Diagnosis model과 executable observer부터 구현한다.
+- 모든 full-state/gate/race/negative literal history를 canonical parser와 M1-B identity로 재실행해 contradiction census를 닫는다.
+- 제품 결과를 expected로 복사하지 않고 prerequisite identity만 canonical하게 고친 correction-only fixture checkpoint와 새 seal을 독립 감사한다.
