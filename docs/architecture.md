@@ -188,6 +188,12 @@ remains untyped; inside a version-two generation it cannot bypass typed Proposal
 pending Diagnosis, class-closure, or locked budget gates. Default Context v3 is
 the agent-facing path, while explicit Context v2 preserves the prior packet contract.
 
+Agent-skill publication is a separate managed boundary. An existing byte-exact
+managed 0.2.0 tree moves to 0.3.0 only through explicit `install-agent-skill
+--upgrade`; unknown, drifted, or unmanaged trees are rejected without writes.
+The transaction retains the prior tree at the reported `recovery_backup` so an
+interrupted multi-target publication can be inspected or rolled back.
+
 The evaluation universe, selection cutoff, development/replication splits, and
 holdout boundary are similarly pre-registered before the first baseline. Locked
 holdout bytes stay outside the project, workspaces, configured research evidence,

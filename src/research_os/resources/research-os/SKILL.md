@@ -138,6 +138,12 @@ new compatible baseline after an approved semantic change.
 6. Stop if replay, artifact verification, baseline reproducibility, or any
    integrity gate fails.
 
+For a pre-existing byte-exact managed 0.2.0 skill, first stop every writer and
+run `research-os install-agent-skill --target TARGET --upgrade`. Do not overwrite
+unknown, drifted, or unmanaged skill trees. A successful 0.3.0 upgrade reports
+the retained prior tree as `recovery_backup`; keep it until the new install and
+managed manifest have been inspected.
+
 When `run-once` returns `error.code: STALE_AGENT_CONTEXT`, refresh
 `agent-context`, reconsider the proposal against the new graph, and retry the
 submission only if the same hypothesis remains defensible. This refresh does
