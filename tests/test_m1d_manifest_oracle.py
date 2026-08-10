@@ -962,8 +962,10 @@ def test_legacy_context_observer_detects_an_injected_m1d_key(
         service: ResearchService,
         *,
         limit: int = 20,
+        schema_version: int = 3,
     ) -> dict[str, object]:
-        observed = original(service, limit=limit)
+        assert schema_version == 2
+        observed = original(service, limit=limit, schema_version=schema_version)
         return {**observed, "diagnoses": []}
 
     monkeypatch.setattr(ResearchService, "agent_context", injected_context)

@@ -2325,7 +2325,9 @@ class M1DOracle:
         }
         study_status = service.study_status()
         replay = service.replay()
-        context = service.agent_context()
+        # This observer certifies the frozen Context v2 compatibility surface.
+        # Keep the version explicit now that the released default is v3.
+        context = service.agent_context(schema_version=2)
         return {
             "legacy_science_state_new_keys": _recursive_key_occurrences(
                 science_state, _M1D_ADDITIVE_PUBLIC_KEYS
