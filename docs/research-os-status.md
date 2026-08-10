@@ -25,6 +25,7 @@
   - 독립 7-pass auditor가 full manifest `27 passed`, collection 442, focused trust/race 5, ruff/ty/diff와 chronology·북극성·M-chain·limitation을 PASS해 M1-C를 닫고 M1-D를 활성화했다.
   - M1-D는 exact evidence-bound Diagnosis, pending gate, derived ClassState/class closure와 semantic/retry frontier를 구현했다. 두 차례 oracle `RESULT-INVALID`를 철회하고 canonical equality·anti-vacuity correction을 거친 final transition `92551a…c54`, manifest raw/public `10e037…1718`/`c34efc…f78`를 고정했다.
   - Final corrected evidence는 transition `26/23/54/37/7`, negative path `460/460`, M1-C exact `20/20`, M1-D bounded manifest `56 PASS`, direct `67 PASS`, single regression floor tests `>=442`/subtests `>=111`와 ruff/ty/diff PASS다. Five product conjuncts 5/5, critic, independent 7-pass progress audit가 모두 PASS해 M1-D를 `CLOSE`했다.
+  - M1-D audited integration은 local checkpoint `f570f92`로 고정했다. M1-E는 Context v3 + Diagnosis template + disposable example vertical slice를 §05에 pre-spec했다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 
@@ -39,22 +40,22 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 - M1-D direct state/service/CLI `67 PASS`; transition literal `26/23/54/37/7`; negative path `460/460`; correction fixed point PASS.
 - 제품 버전: `0.2.0`.
 - 승인된 기존 certification 수정은 M1-A checkpoint `ed76067`에 포함됐다.
-- canonical StudyContract/generation/budget은 M1-B `df2c900`, typed Proposal/scope/replication은 M1-C `a783a88`과 후속 test-only checkpoints에 포함됐다. M1-D product는 아직 dirty integration candidate이며 auditor PASS 뒤 atomic local checkpoint로 고정한다.
+- canonical StudyContract/generation/budget은 M1-B `df2c900`, typed Proposal/scope/replication은 M1-C `a783a88`과 후속 test-only checkpoints에 포함됐다. M1-D Diagnosis/ClassState/frontier는 `f570f92`에 포함됐다.
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** audited M1-D integration을 atomic local checkpoint로 고정한다.
-- 그 다음 M1-E `context v3 + Diagnosis authoring/template + disposable example`
-  working vertical slice를 pre-spec한다.
+- [ ] **단일 최우선 행동:** §05의 frozen acceptance대로 M1-E usable
+  Context v3 vertical slice focused test와 product를 구현한다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
 | 항목 | 위치 | 상태 | 근거 |
 |---|---|---|---|
-| v0.2 제품 + M1-A/B/C + M1-D | `src/research_os/` | M1-D closed; checkpoint pending | M1-D exact Diagnosis/ClassState/frontier; 위 §0.2 측정; independent audit PASS |
+| v0.2 제품 + M1-A/B/C + M1-D | `src/research_os/` | M1-D closed/checkpointed | M1-D exact Diagnosis/ClassState/frontier; `f570f92`; independent audit PASS |
 | 기존+M1-D 테스트 | `tests/` | 동작 | collection 589; composite floor/bounded rows PASS; transition `26/23/54/37/7`; negative `460/460` |
 | 진행 상태 core | `docs/research-os-status.md` | active | M1-D 5/5 closed/audited; M1-E active |
-| 방법론 pipeline core | `docs/research-os-pipeline.md` | active | Cycle 04 close-candidate evidence/current-state delta |
+| M1-E vertical slice pre-spec | `docs/research-os-status/05-2026-08-11-m1-e-usable-context.md` | frozen | opt-in Context v3 + Diagnosis template + disposable example acceptance |
+| 방법론 pipeline core | `docs/research-os-pipeline.md` | active | Cycle 04 closed; Cycle 05 active |
 
 ### 0.5 알려진 잔여 이슈
 
@@ -188,6 +189,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | 02 | 2026-08-10 | M1-B | 4/4 | close | manifest `29/29`; focused `81+37`; full `371+104`; checkpoint `df2c900`; critic + auditor PASS |
 | 03 | 2026-08-10 | M1-C | 4/4 | close | manifest `20/20`; transition/direct `53/72`; full `442+111`; critic + auditor PASS |
 | 04 | 2026-08-10~11 | M1-D | 5/5 | close | final corrected manifest/transition, direct `67`, bounded `56`, compatibility `20/20`, single floor PASS; auditor PASS |
+| 05 | 2026-08-11 | M1-E | context vertical slice pre-spec | advance | opt-in v3 + template + disposable E2E; M1-E close는 아님 |
 
 #### 2.3.5 Gate-bypass 기록
 
@@ -210,14 +212,15 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | 02 | 2026-08-10 / M1-B | [`research-os-status/02-2026-08-10-m1-b-study-generation-budget.md`](research-os-status/02-2026-08-10-m1-b-study-generation-budget.md) | StudyContract·generation·atomic reservation 4/4; critic + independent auditor PASS |
 | 03 | 2026-08-10 / M1-C | [`research-os-status/03-2026-08-10-m1-c-typed-proposal-replication.md`](research-os-status/03-2026-08-10-m1-c-typed-proposal-replication.md) | typed Proposal·scope-bound identity·replication 4/4; critic + independent auditor PASS |
 | 04 | 2026-08-10~11 / M1-D | [`research-os-status/04-2026-08-10-m1-d-diagnosis-class-frontier.md`](research-os-status/04-2026-08-10-m1-d-diagnosis-class-frontier.md) | Diagnosis·ClassState·frontier 5/5 closed; corrected oracle + critic + auditor PASS |
+| 05 | 2026-08-11 / M1-E vertical slice | [`research-os-status/05-2026-08-11-m1-e-usable-context.md`](research-os-status/05-2026-08-11-m1-e-usable-context.md) | Context v3 + Diagnosis template + disposable E2E pre-spec; implementation pending |
 
 ---
 
 ## 11. 한 페이지 요약 (TL;DR)
 
-- 현재 상태: 제품 version은 아직 v0.2.0; M1-D exact Diagnosis·derived ClassState·semantic/retry frontier와 corrected oracle이 구현됐고 five conjunct 5/5로 close를 청구했다. M1-E가 active다.
+- 현재 상태: 제품 version은 아직 v0.2.0; M1-D exact Diagnosis·derived ClassState·semantic/retry frontier가 `f570f92`에 closed/checkpointed됐다. M1-E가 active다.
 - 마지막 측정: transition `26/23/54/37/7`, negative `460/460`, direct `67`, bounded manifest `56`, compatibility `20/20`, single regression floor tests `>=442`/subtests `>=111`, ruff/ty/diff PASS. Historical invalid oracle 결과는 제외했다.
-- 다음 1행동: atomic M1-D local checkpoint → M1-E working vertical slice pre-spec.
+- 다음 1행동: §05 frozen acceptance의 focused test → Context v3/template 구현 → disposable E2E.
 - 가장 큰 갭: Diagnosis/ClassState는 생겼지만 context v2가 이를 agent에게 usable하게 노출하지 않고 authoring template/example도 없다. Claim/program memory와 autonomous loop는 M2/M3에 남아 있다.
 
 ---
