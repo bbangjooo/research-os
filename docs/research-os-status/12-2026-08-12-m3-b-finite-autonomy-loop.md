@@ -1,28 +1,21 @@
 # §12 — M3-B finite autonomous state machine (2026-08-12)
 
-> Status: **AUDIT ATTEMPT 3 FAIL PRESERVED — corrected; Attempt 4 pending; M3-C blocked**
+> Status: **CLOSED 6/6 — critic PASS; audit Attempt 4 PASS; M3-C active**
 > Previous phase: [§11](11-2026-08-12-m3-a-decision-packet.md)
-> Active milestone: `M3-B`; M3-C/D blocked
+> Closed milestone: `M3-B`; M3-C active
 
 ## 12.0 TL;DR
 
-M3-B는 M3-A의 value-only DecisionPacket을 실제 single-provider 연구 episode로 연결한다. 별도
-append-only `AutonomyLog`가 orchestration state만 소유하고, 기존 Project EventLog는 evaluator/terminal/
-Diagnosis, ProgramLog는 disposition/origin/Claim을 계속 소유한다. 제품 전에 literal 43-case manifest와
-여섯 exit conjunct, fixed reservation budget, expected exact outcomes를 고정한다. M3-C crash injection과
-M3-D unseen learning quality는 이 phase의 진척으로 세지 않는다.
+M3-B는 M3-A DecisionPacket을 single-provider episode로 연결한다. 별도 `AutonomyLog`는 orchestration만,
+Project EventLog는 terminal/Diagnosis, ProgramLog는 disposition/origin/Claim을 소유한다. 제품 전 43-case
+manifest·여섯 conjunct·reservation·outcome을 고정했고 M3-C crash/M3-D unseen 품질은 세지 않는다.
 
 ## 12.1 Scope, three anchors, and exclusions
 
-- **§북극성:** NS5 `0/7 → 7/7` nominal canonical transitions와 closed-class registration 0을 직접
-  측정한다. NS1은 새 surface의 exact reject/no-authority regression만 유지한다. NS6/NS7은 움직이지 않는다.
-- **§종착지 §8.4:** `Autonomy` 영역을 provider seam에서 finite episode로 **구체화·검증**한다.
-  `Context`와 `Program memory`는 next-query read/write consumer evidence를 보강하지만 rating을 자동
-  올리지 않는다.
-- **Milestone:** 이 phase는 `M3-B` 여섯 conjunct 전체를 `CLOSE` 대상으로 삼는다. M3-A/parent M2는
-  closed이며 gate bypass는 없다.
-- 제품 multi-agent, distributed worker, embedded LLM SDK, deploy/merge/trade, 외부 세 프로젝트 write/
-  migration, crash fault injection, code-freeze unseen benchmark, version 0.5.0은 범위 밖이다.
+- **§북극성:** NS5 `0/7 → 7/7`와 closed registration 0을 측정한다; NS1 regression만 유지하고 NS6/NS7은 움직이지 않는다.
+- **§종착지 §8.4:** `Autonomy`를 finite episode로 **구체화·검증**한다; Context/Program memory rating은 자동 상승하지 않는다.
+- **Milestone:** `M3-B` 여섯 conjunct를 `CLOSE`한다; M3-A/parent M2 closed, gate bypass 없음.
+- multi-agent, LLM SDK, deploy/merge/trade, 외부 write/migration, crash injection, unseen benchmark, v0.5.0은 범위 밖이다.
 
 ## 12.2 Canonical FSM and truth boundaries
 
@@ -132,7 +125,7 @@ reservation, actual M2/M3-A vertical, and exact three-log refs must refute it.
 
 ### 12.6.4 Milestone progress claim
 
-**Candidate label: `CLOSE`; engineering `6/6`; critic PASS; audit corrections complete, Attempt 4 pending.**
+**Final label: `CLOSE`; engineering `6/6`; critic PASS; audit Attempt 4 PASS (`29/29`, S1/S2 `0/0`).**
 
 | M3-B exit conjunct | 이전 | actual | receipt/test evidence |
 |---|---:|---:|---|
@@ -194,6 +187,6 @@ trim, or rebaseline it without weakening behavior. No `RESULT-INVALID` or `REQUI
 
 ## 12.10 Next action
 
-Critic and audit corrections are complete; run independent Attempt 4 before M3-C. M3-C pre-spec must freeze a
+M3-B is closed; start M3-C pre-spec by freezing a
 current-head next-packet cold restart, three-log/service duplicate-free crash witnesses, and a retain/trim/rebaseline
 decision for `2,043 > 1,600` without behavior weakening; carry all outcomes into the next claim-mode review.
