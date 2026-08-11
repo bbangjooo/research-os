@@ -1,6 +1,6 @@
 # §08 — M2-B Conditional Claim·evidence relations (2026-08-11)
 
-> Status: **CORRECTION — candidate evidence 5/5; critic Attempt 1 FAIL; audit not started**
+> Status: **CORRECTION — candidate evidence 5/5; critic Attempts 1–2 FAIL; audit not started**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§07](07-2026-08-11-m2-a-program-manifest-log.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §4, §8~§10
@@ -8,29 +8,18 @@
 
 ## 08.0 TL;DR
 
-M2-A의 exact origin을 자유 텍스트 결론으로 바로 승격하지 않는다. M2-B는 한 Claim을 한
-Diagnosis origin, terminal/artifact evidence, hypothesis class, evaluation scope, seal과 compatibility에
-exact bind한 immutable `active/observed` 객체로 기록한다. `contested`, `superseded`, `replicated`는
-원본 Claim을 수정하지 않고 canonical relation event의 reducer가 파생한다. 이름만 다른 동일
-manifest scope, 다른 evaluation seal/compatibility, 같은 origin을 replication으로 포장하는 관계는
-no-write로 거절한다.
-
-Implementation checkpoint `529283c`에서 frozen `25/25`, focused+direct `33/33`, M2-A 포함
-`55/55`, adjacent `97/97`, fresh full `668 passed, 115 subtests`가 PASS했다. 이 수치는 critic/audit
-전 candidate evidence이며 M2-B CLOSE나 v0.4 release를 뜻하지 않는다.
+M2-B는 exact Diagnosis/terminal/artifacts/class/scope/seal/compatibility에 bind한 immutable
+`active/observed` Claim을 기록한다. `contested/superseded/replicated`는 relation reducer가 파생하며
+scope/seal/compatibility/replication independence 위반은 no-write다. Initial checkpoint `529283c`의
+`25/25`, focused `33`, adjacent `97`, full `668+115`는 candidate일 뿐 CLOSE/v0.4가 아니다.
 
 ## 08.1 Scope, end state, and authority
 
-- Target §북극성: NS3 Durable learning object의 Claim/관계 conjunct와 NS1 authority regression.
-- Target milestone: pipeline §9.4 M2-B의 다섯 AND-conjunct. 한 항목이라도 독립 검증에 실패하면
-  `ADVANCE`; 전부 critic과 audit까지 PASS해야 `CLOSE`한다.
-- Claim은 evidence가 가리키는 Diagnosis의 의미를 자동 증명하지 않는다. 원문 statement는 bounded
-  synthesis assertion이며 초기 maturity는 항상 `observed`다. exact evidence는 출처와 조건을
-  증명하고, semantic quality는 relation/replication과 이후 M3 benchmark가 판정한다.
-- 모든 Claim, applicability, evidence, relation, derived snapshot의 `authorized_action`은 literal
-  null이다. merge/deploy/trade/live operation은 추가하지 않는다.
-- 외부 세 프로젝트를 읽거나 쓰지 않는다. read-only compatibility는 M2-D, live pilot/migration은
-  v0.5 이후다. 제품 multi-agent는 NS6 이후다.
+- Target은 NS3 Claim/관계와 NS1 authority; five conjunct와 critic/audit 전부 PASS해야 CLOSE한다.
+- Statement는 bounded synthesis assertion, initial maturity는 `observed`; semantic quality는 relation,
+  replication, M3 benchmark가 판정한다.
+- 모든 신규 surface는 `authorized_action=null`; merge/deploy/trade/live는 없다. 외부 세 프로젝트는
+  M2-D read-only 전까지 건드리지 않으며 live migration은 v0.5 이후, multi-agent는 NS6 이후다.
 
 ## 08.2 Frozen Claim v1 contract
 
@@ -56,13 +45,8 @@ Applicability v1은 project/generation/hypothesis class와 exact evaluation scop
 `{id, role, manifest_digest}`, scope digest, evaluation-seal digest, compatibility digest, null
 authority를 가진다. 이 값은 ProgramManifest binding과 Diagnosis body에 exact 일치해야 한다.
 
-Evidence v1은 다음을 모두 포함한다.
-
-1. linked `origin_id`와 full origin digest;
-2. Diagnosis event sequence/id/hash와 Diagnosis id/digest;
-3. canonical terminal evidence experiment/event/hash;
-4. Diagnosis에 기록된 artifact evidence의 **전체 ordered set**;
-5. evaluation-seal digest, compatibility digest, null authority.
+Evidence v1은 linked Origin ID/digest, Diagnosis event sequence/ID/hash와 body ID/digest, terminal
+experiment/event/hash, artifact evidence **전체 ordered set**, seal/compatibility digest, null authority다.
 
 `ProgramStore.append_claim`은 project EventLog shared lock 아래 Origin의 지정 head prefix를 replay하고,
 linked origin/manifest/applicability와 Diagnosis event/body, terminal/artifact evidence 전체를 비교한 뒤
@@ -78,13 +62,9 @@ Relation v1 exact root는 `claim_relation_schema_version`, `relation_id`, `relat
 reducers는 앞의 네 종류다. Relation은 source와 target이 서로 다른 prior canonical Claim이어야
 하며 `(type, source, target)` triple은 unique다.
 
-- `supports`: target의 support edge를 추가하고 status/maturity는 바꾸지 않는다.
-- `contradicts`: target effective status를 `contested`로 만든다.
-- `supersedes`: target effective status를 `superseded`로 만들고 source를 successor로 기록한다.
-- `replicates`: source와 target effective maturity를 `replicated`로 만든다.
-- status precedence는 `superseded > contested > active`; maturity는 `replicated > observed`다.
-- `derived_from`과 `applies_to`는 typed edge만 기록하고 M2-B status/maturity를 바꾸지 않는다.
-- source/target Claim의 canonical bytes와 digest는 relation 뒤에도 byte-for-byte 동일하다.
+- `supports`는 edge만, `contradicts`는 target `contested`, `supersedes`는 target `superseded`,
+  `replicates`는 양쪽 `replicated`; `derived_from/applies_to`는 typed edge만 기록한다.
+- Precedence는 `superseded > contested > active`, `replicated > observed`; Claim bytes/digest는 불변이다.
 
 ### B4 — Supersession and scope fail-closed rules
 
@@ -177,21 +157,10 @@ M2-C/D에 남는다. 따라서 M2-B alone으로 Program memory를 complete 또�
 
 ## 08.8 Result chronology and divergence
 
-- Pre-spec/frozen denominator: `5659c67`; independent critic Q1~Q8: `cf20578`; product/test
-  implementation: `529283c`. Product code와 첫 observer result는 두 pre-result commits보다 뒤다.
-- 첫 focused 실행은 `6 failed, 26 passed`였다. Five frozen semantics나 expected를 바꾸지 않았다.
-  다섯 relation no-write path가 prospective `ProgramMemoryError`를 committed-log corruption용
-  `IntegrityError`로 포장한 writer boundary와, canonical replication history helper의 필수
-  `retry_of` 인자 누락이 원인이었다.
-- Correction은 existing committed stream semantic failure는 `IntegrityError`, prospective append
-  rejection은 stable Claim error/no-write로 구분하고 helper에 `retry_of=None`을 명시했다.
-- Corrected frozen+direct는 `33 passed in 0.98s`, M2-A combined는 `55 passed`, adjacent M1-C/M1-D/
-  storage는 `97 passed`, ruff/ty/diff는 PASS했다.
-- Q4 pre-spec의 strict ClaimSnapshot replay boundary를 완성한 뒤 final focused denominator는
-  그대로 25이며 direct strict-snapshot test만 추가됐다. Frozen case/operation/expected 변경은 0이다.
-- Fresh full은 Python 3.12에서 `668 passed, 115 subtests passed in 1216.61s (0:20:16)`다.
-  Claim graph recursive authority는 `10` values / non-null `0`; 세 외부 control-tree snapshot은
-  v0.3 receipt와 `3/3` exact 동일하다.
+- Chronology: `5659c67` denominator → `cf20578` critic → `529283c` product. First focused `6F/26P`는
+  frozen semantics 변경 없이 prospective error wrapping과 missing `retry_of`를 교정해 `33P`가 됐다.
+- M2-A combined `55`, adjacent `97`, ruff/ty/diff, full `668+115` PASS; frozen diff 0, authority
+  `10/0 non-null`, external snapshots `3/3` exact다.
 
 ## 08.9 Candidate conjunct evidence
 
