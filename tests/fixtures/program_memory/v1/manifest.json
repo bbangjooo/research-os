@@ -238,6 +238,8 @@
         "deadlock": false,
         "winner_count": 1,
         "loser_error_code": "PROGRAM_HEAD_MISMATCH",
+        "loser_log_write_count": 0,
+        "loser_projection_write_count": 0,
         "program_origin_count": 1
       }
     }

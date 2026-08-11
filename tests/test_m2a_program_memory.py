@@ -6,6 +6,7 @@ import json
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Barrier, Lock, current_thread
 from threading import Event as ThreadEvent
 from typing import Any, Callable
 
@@ -446,8 +447,34 @@ def _race_project_vs_origin(root: Path) -> dict[str, Any]:
 
 def _race_same_program_head(root: Path) -> dict[str, Any]:
     project_log, store, initialized = _initialize(root)
+    ready = Barrier(3)
+    observed_lock = Lock()
+    log_writers: list[str] = []
+    projection_writers: list[str] = []
+    original_append = store.log.append
+    original_log_write = store.log._storage._write_all_fd
+    original_projection_write = store.projection._write_unlocked
 
-    def append(index: int) -> str:
+    def synchronized_append(*args: Any, **kwargs: Any) -> ProgramEvent:
+        ready.wait(timeout=5)
+        return original_append(*args, **kwargs)
+
+    def observed_log_write(fd: int, data: bytes) -> None:
+        with observed_lock:
+            log_writers.append(current_thread().name)
+        original_log_write(fd, data)
+
+    def observed_projection_write(snapshot: Any) -> None:
+        with observed_lock:
+            projection_writers.append(current_thread().name)
+        original_projection_write(snapshot)
+
+    store.log.append = synchronized_append
+    store.log._storage._write_all_fd = observed_log_write
+    store.projection._write_unlocked = observed_projection_write
+
+    def append(index: int) -> tuple[str, str]:
+        thread_name = current_thread().name
         try:
             store.append_origin(
                 _origin_raw(),
@@ -457,16 +484,21 @@ def _race_same_program_head(root: Path) -> dict[str, Any]:
                 occurred_at=f"2026-08-11T00:00:0{index}.000000Z",
             )
         except ProgramHeadMismatchError:
-            return "PROGRAM_HEAD_MISMATCH"
-        return "WIN"
+            return "PROGRAM_HEAD_MISMATCH", thread_name
+        return "WIN", thread_name
 
     with ThreadPoolExecutor(max_workers=2) as executor:
-        results = list(executor.map(append, (1, 2), timeout=10))
+        futures = [executor.submit(append, index) for index in (1, 2)]
+        ready.wait(timeout=5)
+        results = [future.result(timeout=5) for future in futures]
+    loser = next(item for item in results if item[0] != "WIN")
     snapshot, _ = store.snapshot()
     return {
         "deadlock": False,
-        "winner_count": results.count("WIN"),
-        "loser_error_code": next(item for item in results if item != "WIN"),
+        "winner_count": sum(result == "WIN" for result, _ in results),
+        "loser_error_code": loser[0],
+        "loser_log_write_count": log_writers.count(loser[1]),
+        "loser_projection_write_count": projection_writers.count(loser[1]),
         "program_origin_count": len(snapshot.origins),
     }
 
