@@ -21,6 +21,7 @@ from scripts.verify_release import (
     _installer_gate,
     _m2d_contract,
     _pytest_counts,
+    _python_tree_at_commit,
     _run,
     _sealed_release_tree,
     _static_gate,
@@ -28,6 +29,9 @@ from scripts.verify_release import (
     main,
     verify,
 )
+
+ROOT = Path(__file__).resolve().parents[1]
+CURRENT_RECEIPT = ROOT / "docs/research-os-status/v0.4.0-release-receipt.json"
 
 
 def test_v03_release_manifest_fields_are_consumed_by_static_gate() -> None:
@@ -106,6 +110,33 @@ def test_v04_contract_rejects_any_frozen_case_binding_drift() -> None:
 
     with pytest.raises(ReleaseGateError, match="case binding drifted"):
         _m2d_contract(manifest)
+
+
+def test_v04_saved_receipt_binds_actual_case_results_and_release_surfaces() -> None:
+    manifest = _strict_json(CURRENT_MANIFEST)
+    receipt = _strict_json(CURRENT_RECEIPT)
+
+    assert receipt["result"] == "PASS"
+    assert receipt["release"] == manifest["release"] == "0.4.0"
+    assert receipt["m2d_contract"]["case_ids"] == list(M2D_CASE_IDS)
+    assert receipt["m2d_contract"]["case_results"] == {
+        case_id: "PASS" for case_id in M2D_CASE_IDS
+    }
+    assert receipt["managed_skill_upgrade"] == {
+        "case_ids": list(V04_UPGRADE_CASE_IDS),
+        "passed": 6,
+    }
+    assert receipt["full_suite"]["passed"] >= manifest["release_gate"][
+        "minimum_collected_tests"
+    ]
+    assert receipt["full_suite"]["subtests_passed"] >= manifest["release_gate"][
+        "minimum_subtests"
+    ]
+    assert receipt["authorized_action_non_null"] == 0
+    assert receipt["static"]["product_multi_agent"] is False
+    assert _python_tree_at_commit(receipt["commit"]) == receipt["static"][
+        "product_python_tree"
+    ]
 
 
 def test_v03_full_verifier_refuses_reissue_from_a_later_commit(
