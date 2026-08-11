@@ -147,8 +147,8 @@ Gross additions는 product `684/900`, tests+fixture `921/1,150`, docs pre-verify
 | contamination + order/empty/shuffle | 0% + PASS | FP `0/14`; four exact query rows |
 | Context retrieval/Program-head stale | PASS | real vertical + five stale/no-write paths |
 
-Product evidence는 5/5 candidate지만 critic verify와 independent audit 전이므로 `ADVANCE`; M2-D는
-blocked다. 두 gate PASS 뒤에만 이 절을 `CLOSE`로 바꾼다.
+Product evidence는 5/5 candidate이고 critic Q1~Q8 verify는 PASS했다. Independent audit 전이므로
+`ADVANCE`; M2-D는 blocked다. Audit PASS 뒤에만 이 절을 `CLOSE`로 바꾼다.
 
 ## 09.6.5 End-state delta
 
@@ -181,5 +181,5 @@ NS4 product candidate는 `4/4`; NS1 신규 surface full regression도 PASS다. C
 
 ## 09.10 Next action
 
-Closed Q1~Q8에 DIRECT evidence를 채워 critic verify를 실행한다. PASS 후에만 independent seven-pass
-audit을 시작하며, audit PASS 전 M2-C/M2-D 상태를 바꾸지 않는다.
+Critic Q1~Q8은 independent full 재실행까지 `8/8 PASS`했다. 이제 independent seven-pass audit을
+실행하며, audit PASS 전 M2-C/M2-D 상태를 바꾸지 않는다.
