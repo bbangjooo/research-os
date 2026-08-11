@@ -17,3 +17,11 @@ Audit reproduction:
 
 Correction keeps M2-D `ADVANCE` and M3 blocked, synchronizes current state, marks critic PASS, and uses
 the cited cutoff's exact `3,027/3,200` additions.
+
+## Attempt 2 — PASS
+
+- Severity-1: `0`; Severity-2: `0`.
+- Reproducibility `23/23`; mismatched `0`; unrunnable `0`.
+- LOC: product `1,150`, tests `1,242`, verifier `398`, other `237`, total `3,027`.
+- Product/tests/receipt unchanged; auditor의 same-run full `713+115` evidence를 유지했다.
+- End-state/intent/claim/divergence/milestone discipline PASS; M2-D close를 허용한다.
