@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "kind": "research_os.program_memory_m2b_oracle",
+  "comparison": "exact canonical JSON equality",
+  "forbidden_dispatch": [
+    "case id",
+    "expected value",
+    "hidden scenario",
+    "fallback operation"
+  ],
+  "source": {
+    "m2a_manifest": "../v1/manifest.json",
+    "m2a_manifest_raw_sha256": "14a6aea97bbafeb48e95fcac950841dec4b11e9b4e94c4b8b4e509c7a65783f9",
+    "diagnosis_valid": "../../../scientific_state/v3/m1d-diagnosis-valid.json",
+    "diagnosis_valid_raw_sha256": "3c9394d0ee2ccc06b6e21dbca403dfc6b4e0e3264ffc43e13cc39c5673462336"
+  },
+  "contract": {
+    "claim_schema_version": 1,
+    "claim_applicability_schema_version": 1,
+    "claim_evidence_schema_version": 1,
+    "claim_relation_schema_version": 1,
+    "claim_projection_schema_version": 1,
+    "initial_status": "active",
+    "initial_maturity": "observed",
+    "derived_statuses": ["active", "contested", "superseded"],
+    "derived_maturities": ["observed", "replicated"],
+    "relation_types": [
+      "supports",
+      "contradicts",
+      "supersedes",
+      "replicates",
+      "derived_from",
+      "applies_to"
+    ],
+    "relation_state_reducers": [
+      "supports",
+      "contradicts",
+      "supersedes",
+      "replicates"
+    ],
+    "claim_kinds": ["effect", "constraint", "failure_mode", "invariance"],
+    "max_statement_utf8_bytes": 4096,
+    "max_falsifier_utf8_bytes": 4096,
+    "max_limitations": 8,
+    "max_limitation_utf8_bytes": 2048
+  },
+  "fixtures": {
+    "valid_claim": {
+      "claim_schema_version": 1,
+      "claim_id": "claim_be33a70e7329bbbc269038c56c192f5a",
+      "statement": {
+        "kind": "effect",
+        "summary": "For class-a in the bound development scope, the verified score improved by 8.0 over baseline.",
+        "falsifier": "A preregistered compatible replication fails to clear its frozen promotion threshold."
+      },
+      "applicability": {
+        "claim_applicability_schema_version": 1,
+        "project_id": "fixture-m1d",
+        "generation_id": "generation_5d41220428bdc7434fc3a1be0b8eace4",
+        "hypothesis_class_id": "class-a",
+        "evaluation_scope": {
+          "id": "development",
+          "role": "development",
+          "manifest_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "evaluation_scope_digest": "8277e1adef97321068a4aca24b7fc25f663bede4bb5ac8384bd306051a517cb2",
+        "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
+        "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "authorized_action": null
+      },
+      "evidence": {
+        "claim_evidence_schema_version": 1,
+        "origin_id": "origin_e20606048f6e42201757b3a98cdf9648",
+        "origin_digest": "69c5c8324dd9a02d9bb6105654de1a71cc22f3027022c1b6eba0a130423e0a4e",
+        "diagnosis_event": {
+          "sequence": 7,
+          "event_id": "evt_m1d_supported_diagnosis",
+          "event_hash": "d97421917a5f298f1289bfe66f329bc8cbb924862bcfaca89c5c9bb9798891d7"
+        },
+        "diagnosis_id": "diagnosis_7f2274bba9214219b97b241fc1e0761a",
+        "diagnosis_digest": "e8965a25c53059b524d13f13571f718cd23ff6c3d29e0110b45ff738e85e337d",
+        "terminal_evidence": {
+          "experiment_id": "exp_5a7ac7bd0ea4721e1c4119e3ec2a20f6",
+          "event_id": "evt_m1d_validated_primary_terminal",
+          "event_hash": "a65d8f8580b9792086a5e2ff32ad4a28391217a6837158b8c2af9baed5595959"
+        },
+        "artifact_evidence": [
+          {
+            "artifact_id": "art_79b8f2330b434e0f31987b930b461097",
+            "artifact_digest": "00b67bd428809adaddbbc535d26090ce727607d5bab9f9e5ed154ac70e5fc912",
+            "event_id": "evt_m1d_validated_primary_artifact_1",
+            "event_hash": "0a8c0b1a58c20cfaf056d10fc717f3f8739c43f8d5194c4ad4c76c1ae452e357"
+          }
+        ],
+        "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
+        "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "authorized_action": null
+      },
+      "claim_status": "active",
+      "claim_maturity": "observed",
+      "limitations": [
+        "This is one development-scope observation; it is not a replication or deployment authorization."
+      ],
+      "authorized_action": null
+    },
+    "valid_claim_digest": "2a7e35df6f43e85b98a8f2e389ec54f39f6e2b858123817f16ff73f4cbeb2948"
+  },
+  "cases": [
+    {"id":"claim-valid-exact","operation":"parse_valid_claim","expected":{"claim_status":"active","claim_maturity":"observed","applicability_role":"development","artifact_evidence_count":1,"authorized_action":null}},
+    {"id":"claim-extra-key","operation":"reject_claim_extra_key","expected":{"error_code":"CLAIM_INVALID","program_event_delta":0,"claim_state_delta":0}},
+    {"id":"claim-unknown-version","operation":"reject_claim_unknown_version","expected":{"error_code":"CLAIM_INVALID","program_event_delta":0,"claim_state_delta":0}},
+    {"id":"claim-forged-initial-status","operation":"reject_claim_forged_initial_status","expected":{"error_code":"CLAIM_INVALID","program_event_delta":0,"claim_state_delta":0}},
+    {"id":"claim-forged-initial-maturity","operation":"reject_claim_forged_initial_maturity","expected":{"error_code":"CLAIM_INVALID","program_event_delta":0,"claim_state_delta":0}},
+    {"id":"claim-append-exact-evidence","operation":"append_exact_evidence_claim","expected":{"program_head_sequence":3,"claim_count":1,"relation_count":0,"effective_status":"active","effective_maturity":"observed","authorized_action":null}},
+    {"id":"claim-origin-digest-forged","operation":"reject_claim_origin_digest_forgery","expected":{"error_code":"CLAIM_EVIDENCE_MISMATCH","program_event_delta":0,"claim_state_delta":0}},
+    {"id":"claim-diagnosis-event-hash-forged","operation":"reject_claim_diagnosis_event_hash_forgery","expected":{"error_code":"CLAIM_EVIDENCE_MISMATCH","program_event_delta":0,"claim_state_delta":0}},
+    {"id":"claim-terminal-event-hash-forged","operation":"reject_claim_terminal_event_hash_forgery","expected":{"error_code":"CLAIM_EVIDENCE_MISMATCH","program_event_delta":0,"claim_state_delta":0}},
+    {"id":"claim-artifact-digest-forged","operation":"reject_claim_artifact_digest_forgery","expected":{"error_code":"CLAIM_EVIDENCE_MISMATCH","program_event_delta":0,"claim_state_delta":0}},
+    {"id":"claim-evaluation-seal-forged","operation":"reject_claim_evaluation_seal_forgery","expected":{"error_code":"CLAIM_SCOPE_INCOMPATIBLE","program_event_delta":0,"claim_state_delta":0}},
+    {"id":"claim-hypothesis-class-forged","operation":"reject_claim_hypothesis_class_forgery","expected":{"error_code":"CLAIM_EVIDENCE_MISMATCH","program_event_delta":0,"claim_state_delta":0}},
+    {"id":"relation-supports-reducer","operation":"reduce_supports_relation","expected":{"target_effective_status":"active","target_effective_maturity":"observed","support_count":1,"relation_count":1}},
+    {"id":"relation-contradicts-reducer","operation":"reduce_contradicts_relation","expected":{"target_effective_status":"contested","target_effective_maturity":"observed","contradiction_count":1,"relation_count":1}},
+    {"id":"relation-supersedes-reducer","operation":"reduce_supersedes_relation","expected":{"target_effective_status":"superseded","source_effective_status":"active","superseded_by_count":1,"relation_count":1}},
+    {"id":"relation-replicates-reducer","operation":"reduce_replicates_relation","expected":{"target_effective_maturity":"replicated","source_effective_maturity":"replicated","replication_count":1,"relation_count":1}},
+    {"id":"relation-duplicate-triple","operation":"reject_duplicate_relation_triple","expected":{"error_code":"CLAIM_RELATION_DUPLICATE","relation_delta":0}},
+    {"id":"relation-unknown-claim","operation":"reject_unknown_relation_claim","expected":{"error_code":"CLAIM_RELATION_UNKNOWN","relation_delta":0}},
+    {"id":"supersession-immutable-original","operation":"verify_immutable_supersession","expected":{"original_claim_bytes_unchanged":true,"original_claim_digest_unchanged":true,"target_effective_status":"superseded","source_effective_status":"active"}},
+    {"id":"supersession-second-successor","operation":"reject_second_successor","expected":{"error_code":"CLAIM_SUPERSESSION_INVALID","relation_delta":0}},
+    {"id":"supersession-cycle","operation":"reject_supersession_cycle","expected":{"error_code":"CLAIM_SUPERSESSION_INVALID","relation_delta":0}},
+    {"id":"scope-incompatible-seal","operation":"reject_relation_incompatible_seal","expected":{"error_code":"CLAIM_SCOPE_INCOMPATIBLE","relation_delta":0}},
+    {"id":"scope-incompatible-compatibility","operation":"reject_relation_incompatible_compatibility","expected":{"error_code":"CLAIM_SCOPE_INCOMPATIBLE","relation_delta":0}},
+    {"id":"scope-overlapping-manifest","operation":"reject_relation_overlapping_manifest","expected":{"error_code":"CLAIM_SCOPE_OVERLAP","relation_delta":0}},
+    {"id":"scope-same-origin-replication","operation":"reject_same_origin_replication","expected":{"error_code":"CLAIM_REPLICATION_NOT_INDEPENDENT","relation_delta":0}}
+  ]
+}
