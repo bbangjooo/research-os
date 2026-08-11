@@ -19,3 +19,12 @@ Engineering evidence reproduced: focused `60`, adjacent `125`, correction `9`, a
 `ResearchService`, canonical ProjectLog/ProgramLog reconciliation, tamper rejection, and the seven-case
 post-terminal matrix are real. Product churn is `2,029`, tests/fixture `1,384`, and the pre-audit paired
 cycle is `3,848/3,900`. M3-B is not close-eligible and M3-C remains blocked pending correction and re-audit.
+
+## Attempt 2 — FAIL
+- Status mislabels failure-record commit `7cd7c4f` as the correction; actual correction is `e60b5dd`.
+- §12.6.7 `MIXED` is prose-only, not the required per-row CONFIRMATORY/EXPLORATORY table.
+- The prose also attributes `e60b5dd`'s type-contract correction to `f53e37c`. No S2 findings.
+- Engineering and prior fixes reproduced: `60/125/9/12`, ruff/ty PASS, exact `3,890/3,900`; 22/24 matched.
+
+## Attempt 3 — PENDING
+Awaiting corrected independent re-audit; M3-C remains blocked.
