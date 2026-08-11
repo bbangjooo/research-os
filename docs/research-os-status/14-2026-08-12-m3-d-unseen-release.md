@@ -138,3 +138,32 @@ silently regenerated or relabeled.
 
 Commit this manifest/phase, record SHA/timestamps, then obtain independent M3-D critic questions. Do not implement the
 generator or create a nonce/body before that critic artifact is committed.
+
+## 14.11 Pre-unseen critic Attempt 1 FAIL and correction contract
+
+Checkpoint `0fa3a6c` implemented the first complete release harness, but independent critic Attempt 1 at `f21ba61`
+returned **FAIL** before any acceptance draw. The failure is preserved and no nonce, generated acceptance body,
+pre-arm seal, custody transcript, arm result, or final receipt exists. External read-only compatibility alone is
+DIRECT (`1/15/32` events, replay/opaque/no-write `3/3`); the other release conjuncts remain unclaimed.
+
+The correction is pre-result and must replace, not relabel, the defective evidence:
+
+1. Separate hidden-world generation, public observation rendering, and oracle derivation. v0.5 selection consumes
+   real `ClassState`, `RetrievalResult`/Context v3, and autonomy-state serialization; six generated representative
+   episodes cross their actual nearest public boundary and check terminal/evidence/ref against the isolated oracle.
+2. Execute the exact `6f36a1b` Context v2 builder in a temporary archived checkout. The byte-fixed v0.2 packaged
+   skill must materially bind the common selector policy; current code may not stand in for historical execution.
+3. Add semantic action/priority/ID permutation and oracle-mutation isolation so literal hidden-key absence cannot
+   substitute for anti-gaming evidence.
+4. Move nonce ownership to a separate repository-external custodian. It atomically reserves one deterministic
+   code-commit path before calling `secrets.token_hex(32)`; a crash or repeated invocation remains durably blocked.
+5. Make selected actions drive trajectory. Wrong/early terminal choices omit the remaining fixed decision points,
+   wrong experiments count as waste, and v0.5 must also be non-regressive when v0.2 already exceeds 90%.
+6. Replace the imported M3-A handler table with M3-D-owned literal handlers over public validators and an actual
+   `AutonomyEpisodeLog`; replace historical-node-only boundary evidence with generated-episode E2E `6/6`.
+7. Run only the seven parametrized upgrade/rollback rows in the release verifier. Correct the discovered current
+   full-suite legacy-v1 `run_once` shape regression without changing the frozen historical oracle.
+
+All changed generator/oracle/metric/attack/release bytes require a new clean pre-nonce checkpoint and a second
+independent critic PASS. Thresholds and the eight release conjuncts are unchanged. Product multi-agent, live
+migration, and acceptance preparation remain prohibited until that PASS.
