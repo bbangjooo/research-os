@@ -1,10 +1,10 @@
 # §09 — M2-C deterministic retrieval·Context integration (2026-08-11)
 
-> Status: **PRODUCT 5/5 + CRITIC PASS — independent audit pending; ADVANCE**
+> Status: **COMPLETE — 5/5; critic + independent seven-pass audit PASS**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§08](08-2026-08-11-m2-b-conditional-claims.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §5, §8~§10
-> Active milestone: `M2-C`; `M2-D` remains blocked
+> Closed milestone: `M2-C`; next active `M2-D`
 
 ## 09.0 TL;DR
 
@@ -136,20 +136,20 @@ order/empty/shuffle를 PASS한다.
 Gross additions는 product `684/900`, tests+fixture `921/1,150`, docs pre-verify `183/500`, total
 `1,788/2,550`이다. Product는 retrieval/opt-in Context binding뿐이며 disposition/release/loop는 0이다.
 
-## 09.6.4 Milestone positioning — ADVANCE
+## 09.6.4 Milestone positioning — CLOSE
 
 Prerequisite gate: `M2-B closed` (status §2.3.3, phase §08 audit PASS).
 
 | M2-C conjunct | 이전 | 이번 phase 후 | 근거 |
 |---|---:|---:|---|
-| relevant recall | 0% | 100% candidate | receipt `11/11` |
-| contradiction recall | 0% | 100% candidate | receipt `3/3` |
-| superseded exclusion | 미구현 | 100% candidate | leak `0/2` |
-| contamination + order/empty/shuffle | 미구현 | 0% + PASS candidate | FP `0/14`; four exact query rows |
-| Context retrieval/Program-head stale | 미구현 | PASS candidate | real vertical + five stale/no-write paths |
+| relevant recall | 0% | 100% audited | receipt `11/11` |
+| contradiction recall | 0% | 100% audited | receipt `3/3` |
+| superseded exclusion | 미구현 | 100% audited | leak `0/2` |
+| contamination + order/empty/shuffle | 미구현 | 0% + PASS audited | FP `0/14`; four exact query rows |
+| Context retrieval/Program-head stale | 미구현 | PASS audited | real vertical + five stale/no-write paths |
 
-Product evidence는 5/5 candidate이고 critic Q1~Q8 verify는 PASS했다. Independent audit 전이므로
-`ADVANCE`; M2-D는 blocked다. Audit PASS 뒤에만 이 절을 `CLOSE`로 바꾼다.
+Product evidence 5/5, critic Q1~Q8, independent seven-pass audit이 모두 PASS해 `CLOSE`한다.
+M2 parent는 M2-D 전이므로 open이며 이제 M2-D만 active다.
 
 ## 09.6.5 End-state delta
 
@@ -183,8 +183,8 @@ null authority/no-write가
 
 ## 09.7 North-Star update
 
-NS4 product candidate는 `4/4`; NS1 신규 surface full regression도 PASS다. Critic/audit 전에는 status
-표에서 audited close로 승격하지 않는다.
+NS4는 audited `4/4`; NS1 신규 surface full regression도 PASS다. 이 phase는 retrieval quality와
+read-only Context binding만 close하며 disposition/v0.4는 청구하지 않는다.
 
 ## 09.9 Residual issues
 
@@ -194,5 +194,5 @@ NS4 product candidate는 `4/4`; NS1 신규 surface full regression도 PASS다. C
 
 ## 09.10 Next action
 
-Critic Q1~Q8은 independent full 재실행까지 `8/8 PASS`했다. 이제 independent seven-pass audit을
-실행하며, audit PASS 전 M2-C/M2-D 상태를 바꾸지 않는다.
+Critic Q1~Q8과 independent seven-pass audit이 PASS했다. 다음 cycle은 M2-D disposition·legacy
+opaque import·read-only compatibility·v0.4 release pre-spec을 result 전에 고정한다.
