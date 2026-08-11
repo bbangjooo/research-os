@@ -285,7 +285,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 | # | 작업 | 추정 LOC | 어떤 §북극성 행을 움직이나 | 시스템 영향 (예상) |
 |---|---|---|---|---|
-| 1 | M1-E installer executable correction + audit | 80~180 | NS1, NS2, NS3 | six case IDs를 actual outcome/receipt에 bind하고 M2 prerequisite를 닫음 |
+| 1 | M1-E/M1 independent progress re-audit + close | 0~20 | NS1, NS2, NS3 | verified receipt를 독립 재감사하고 M2 prerequisite를 닫음 |
 | 2 | M2 Program Memory | 1,200~2,500 | NS1, NS3, NS4, NS7 | 실패·조건부 claim을 다음 연구에 재사용 |
 | 3 | M3 Autonomous Loop | 1,000~2,200 | NS1, NS5, NS6, NS7 | 단일 agent가 유한 연구 episode를 자동 완결 |
 

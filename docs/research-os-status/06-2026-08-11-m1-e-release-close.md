@@ -100,8 +100,9 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 - Second audit에서 실제 filesystem/policy binding 요구가 드러나 original total이 `1,140`에
   도달했으므로 `PIVOT`: correction cap을 product+tests `<=700`, fixture+docs `<=600`, total
   `<=1,350`으로 재동결한다. A1~A5 semantics/threshold는 바꾸지 않는다.
-- Progress audit의 structured installer six-case binding은 pre-implementation tracked total을
-  `1,344`까지 올렸으므로 두 번째 `PIVOT`: product+tests `<=800`, fixture+docs+README `<=700`,
+- Progress audit의 structured installer six-case binding은 exact range
+  `git diff --numstat 3ca2115..b70a98f`에서 pre-implementation tracked total `1,348`이므로 두 번째
+  `PIVOT`: product+tests `<=800`, fixture+docs+README `<=700`,
   release tooling `<=350`, total `<=1,600`으로 재동결한다. A1~A5 semantics, six-case denominator,
   public behavior와 release threshold는 바꾸지 않는다.
 

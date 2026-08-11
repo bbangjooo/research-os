@@ -55,9 +55,9 @@
 - 3번 ○ — exact terminal-bound Diagnosis, pending gate, derived ClassState/immutable closure, semantic/retry frontier가 canonical reducer/service/replay에서 동작한다. Final transition `26/23/54/37/7`, negative path `460/460`, five conjunct `5/5`를 충족했다. Diagnosis narrative의 인과 타당성과 learned ranking은 아직 증명하지 않았다.
 - 4번 ❌ — project-bound Finding은 cross-project conditional Program Claim이 아니다.
 - 5번 △ — default Context v3가 M1 generation/budget/pending/ClassState/frontier를 노출하고
-  fail-closed Diagnosis template, explicit v2 compatibility, exact managed upgrade product와 prior
-  release receipt가 PASS했다. Installer six-case executable binding과 relevant Claim/retrieval
-  reason은 open이라 전체 단계는 △다.
+  fail-closed Diagnosis template, explicit v2 compatibility, exact managed upgrade와 installer
+  six-case executable receipt가 PASS했다. Relevant Claim/retrieval reason은 M2까지 open이라
+  전체 단계는 △다.
 - 6번 ❌ — 외부 agent가 수동으로 단계를 잇고 canonical loop resume state가 없다.
 - 7번 ❌ — v0.3 release full `609+115`, static/wheel/install은 PASS했지만 v0.2 comparator와
   precommitted unseen learning episode suite는 없다.
