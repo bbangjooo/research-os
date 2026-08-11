@@ -371,7 +371,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 
 | 단계 | 이전 | 현재 (비관) | 사유 | 반례/근거 |
 |---|---|---|---|---|
-| Integrity kernel | audit 중 △ | ○ | M3-A packet attack 24/24와 provider authority/write 0을 통과했지만 final audit 전이다 | corrected `757+115`; frozen `32/32`; critic PASS, audit pending |
+| Integrity kernel | audit 중 △ | ○ | 새 stricter assumption은 self-consistent provider echo도 신뢰하지 않고 current canonical state를 재계산해야 한다는 것; attack 24/24와 authority/write 0은 통과했지만 final audit 전이다 | corrected `757+115`; frozen `32/32`; forged snapshot/current-head witnesses; critic PASS, audit pending |
 | Evidence semantics | arbitrary constraint 중심 | ○ | directional delta·typed slack·verify symmetry 구현; 외부 metric 의미는 아직 contract 밖 | phase §01 E1~E9 |
 | Scientific State | 문서상 일부 존재 | ○ | Proposal/Diagnosis/ClassState/frontier와 Claim/relation/disposition이 executable. actual telemetry·lifetime cap은 없음 | NS2 = 6/6; NS3 4/4; current full `713+115` |
 | Relevant Context | recent v2 packet | ○ | exact Claim/reason/Program head/disposition을 DecisionPacket이 current state에 재결합한다; FSM 소비는 아직 없음 | phase §11 actual M2 vertical; frozen `32/32` |
@@ -396,7 +396,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 08 M2-B close | product `1,463`; tests+fixture `1,242`; docs `376`; total `3,081` | caps `1,500/1,250/500`, total `3,100`; PIVOT/MIXED | `25`, focused `37`, adjacent `96`, full `672+115`; critic + corrected audit PASS |
 | 09 M2-C close | product `684`; tests+fixture `921`; docs `<=500`; total `<2,550` | caps `900/1,150/500`, total `2,550`; CONFIRMATORY | receipt `100/100/100/0`; full `676+115`; critic + audit PASS |
 | 10 M2-D v0.4 close | `git diff --numstat 4b0d0a1..f1ab646`: product `1,150`, tests+fixture `1,242`, verifier `398`, other release/docs surfaces `237`; total `3,027/3,200` | frozen rows CONFIRMATORY + critic correction EXPLORATORY = MIXED; external writer/live migration 0 | frozen `23/23`; durable `1/1`; full `713+115`; upgrades `6/6`; critic + corrected audit PASS; parent M2 closed |
-| 11 M3-A close candidate | product `1,081/1,100`; M3-A tests+fixture `648/1,250`; phase+critic+receipt docs `428/450`; result-triggered verifier correction `+119/-52`; paired-core additions `59`; inclusive gross `2,335/2,800` | frozen 32 CONFIRMATORY + historical-gate correction EXPLORATORY = MIXED; product/test/script sealed at `42c7557` | frozen `32/32`; focused `41`; adjacent `103`; full `757+115`; critic PASS, audit pending |
+| 11 M3-A close candidate | product `1,081/1,100`; M3-A tests+fixture `648/1,250`; phase+critic+receipt docs `428/450`; result-triggered verifier correction `+119/-52`; paired-core additions `64`; inclusive gross `2,340/2,800` | frozen 32 CONFIRMATORY + historical-gate correction EXPLORATORY = MIXED; product/test/script sealed at `42c7557` | frozen `32/32`; focused `41`; adjacent `103`; full `757+115`; critic PASS, audit pending |
 
 ---
 
