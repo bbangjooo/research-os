@@ -67,7 +67,7 @@
   - M3-B finite episode는 frozen `43/43`, corrected focused `60`, adjacent `125`를 PASS했다.
     Critic Attempt 1의 copied-ref/proxy/boundary FAIL을 `f53e37c`에서 canonical three-log reconciliation,
     actual ResearchService E2E, post-terminal retry matrix로 교정했고 Attempt 2 Q1~Q8이 PASS했다.
-    Six conjunct `6/6` CLOSE candidate이며 independent seven-pass audit만 남았다.
+    Six conjunct `6/6`이지만 audit Attempt 1의 증거 정합성 FAIL을 교정 중이다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 
@@ -88,8 +88,8 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** M3-B paired candidate를 independent seven-pass audit하고 PASS일 때만
-  M3-B를 닫아 M3-C crash-resume pre-spec을 활성화한다.
+- [ ] **단일 최우선 행동:** M3-B audit Attempt 1의 문서·LOC·정적 타입 결함을 교정하고
+  independent re-audit가 PASS일 때만 M3-C crash-resume pre-spec을 활성화한다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
@@ -479,4 +479,5 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - [x] Cycle 11 M3-A close; M3-B active; M chain definition unchanged
 - [x] Cycle 12 status §12와 pipeline §8.4·§8.5를 M3-B `6/6` close candidate로 동기화
 - [x] Cycle 12 critic Attempt 1 FAIL 보존, correction `f53e37c`, Attempt 2 Q1~Q8 PASS
-- [ ] Cycle 12 independent seven-pass audit pending; PASS 전 M3-C 차단
+- [x] Cycle 12 independent seven-pass audit Attempt 1 — **FAIL** (LOC·상태·재평가 정합성)
+- [ ] Cycle 12 correction + independent re-audit pending; PASS 전 M3-C 차단
