@@ -257,3 +257,24 @@ repeat golden cases, submit a new independent `certify-evaluator /ABS/OUTSIDE/RE
 
 For terminal status handling and retry eligibility, follow
 [status-actions.md](status-actions.md).
+
+## Program memory disposition protocol (v0.4.0)
+
+A Proposal knowledge disposition is an immutable ProgramLog companion to one
+canonical typed Proposal registration. It binds the Proposal ID/digest,
+generation, hypothesis class, evaluation scope, combined Context v3 token,
+Program head, retrieval query digest, and retrieval result digest. Its sorted
+entries cover every returned active or contradiction Claim exactly once and
+carry the exact Claim digest, retrieval role, relation IDs, Proposal field
+references, bounded rationale, and literal-null authority. `used` applies only
+to active hits, `rejected` only to contradiction hits with their relation refs,
+and `not_applicable` only to active hits with an exact bounded reason code.
+
+Before append, recompute Context retrieval from the current Claim snapshot and
+verify the Proposal exists in canonical project registration replay. ProgramLog
+replay repeats retrieval at the referenced prefix. Any missing, duplicate,
+unknown, stale, forged, extra, or non-null field fails before write. Untyped
+legacy input is never semantically inferred: record only source metadata,
+content SHA-256 and size, literal `legacy_unstructured`, and an empty typed-Claim
+list. Raw legacy content is not part of ProgramLog. Neither record authorizes
+deployment, merge, release, capital allocation, or trading.

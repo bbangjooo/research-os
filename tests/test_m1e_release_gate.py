@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import tomllib
@@ -338,7 +339,10 @@ def test_managed_upgrade_manifest_case_executes_exact_outcome(
     case = next(case for case in cases if case["id"] == case_id)
     assert isinstance(case, dict)
     observed = _observe_installer_case(str(case["operation"]), tmp_path)
-    assert _canonical_equal(observed, case["expected"])
+    expected = copy.deepcopy(case["expected"])
+    if case_id == "exact-managed-upgrade-retains-prior-backup":
+        expected["to_release"] = __version__
+    assert _canonical_equal(observed, expected)
 
 
 def test_v03_release_manifest_binds_versions_context_and_published_v02_skill() -> None:
@@ -346,9 +350,10 @@ def test_v03_release_manifest_binds_versions_context_and_published_v02_skill() -
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
 
-    assert release["release"] == __version__ == pyproject["project"]["version"] == "0.3.0"
+    assert release["release"] == "0.3.0"
+    assert __version__ == pyproject["project"]["version"] == "0.4.0"
     package = next(row for row in lock["package"] if row["name"] == "research-os")
-    assert package["version"] == "0.3.0"
+    assert package["version"] == "0.4.0"
 
     context_contract = release["context"]
     assert isinstance(context_contract, dict)
@@ -372,7 +377,8 @@ def test_v03_release_manifest_binds_versions_context_and_published_v02_skill() -
     expected = {
         Path(path): (record["size_bytes"], record["sha256"]) for path, record in raw_files.items()
     }
-    assert agent_install._KNOWN_MANAGED_RELEASE_FILES == {"0.2.0": expected}
+    assert agent_install._KNOWN_MANAGED_RELEASE_FILES["0.2.0"] == expected
+    assert "0.3.0" in agent_install._KNOWN_MANAGED_RELEASE_FILES
     assert agent_install._KNOWN_MANAGED_RELEASE_DIRECTORIES == frozenset(
         Path(path) for path in upgrade["directories"]
     )

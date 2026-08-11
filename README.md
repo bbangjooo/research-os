@@ -190,13 +190,24 @@ narrative—derives class status, immutable closure, and the semantic/retry
 frontier. Context v3 and the Diagnosis template expose that state without
 changing the canonical event contract.
 
-Research OS 0.3.0 emits Context v3 by default. After a typed terminal result, run
+Research OS 0.4.0 emits Context v3 by default. After a typed terminal result, run
 `agent-context`, then `diagnosis-template`
 (add `--experiment ID` if more than one is pending). The generated body is
 fail-closed until the agent replaces only `interpretation`, `failure_type`,
 `falsifier`, and `recommendation`, after which it can be submitted to
 `diagnose`. Use `agent-context --schema-version 2` only for explicit compatibility;
 its packet and context-token snapshot schema remain unchanged.
+
+Version 0.4.0 adds a separate append-only ProgramLog for conditional Claims.
+An opt-in Context v3 memory binding carries the exact retrieval query, result,
+Program head, contradictions, and reasons. A registered typed Proposal may then
+record one immutable `ProposalKnowledgeDisposition` covering every returned
+Claim exactly once as `used`, `rejected`, or `not_applicable`; canonical Claim
+digests, relation IDs, and Proposal field references—not its narrative—are the
+auditable authority. Legacy free text is stored only as a digest/size
+`legacy_unstructured` record with zero inferred typed Claims and no raw body.
+These records authorize no deployment, merge, model release, capital allocation,
+or live trade.
 
 Codex and Claude Code use `agent-context` plus `--context-token`; that guarded
 path requires a current independent evaluator certificate and an already sealed

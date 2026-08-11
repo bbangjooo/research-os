@@ -239,7 +239,7 @@ class AgentInstallUpgradeTests(unittest.TestCase):
             records = install_agent_skill("codex", home=home, upgrade=True)
             self.assertEqual(records[0]["status"], "upgraded")
             self.assertEqual(records[0]["from_release"], "0.2.0")
-            self.assertEqual(records[0]["to_release"], "0.3.0")
+            self.assertEqual(records[0]["to_release"], installer.__version__)
             self.assertEqual(_capture_tree(destination)[0], installer._expected_files())
             recovery = Path(records[0]["recovery_backup"])
             self.assertEqual(_capture_tree(recovery)[0], prior)

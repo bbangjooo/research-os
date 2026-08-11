@@ -45,7 +45,7 @@ and retains the original inode tree there. The installer never deletes that back
 because another process may still hold an open descriptor to an old skill file.
 Before any manual deletion, inspect and diff the retained tree against the new
 installation, preserve or merge every late write, and verify its provenance.
-Writer shutdown and a working 0.3.0 installation are necessary but not
+Writer shutdown and a working 0.4.0 installation are necessary but not
 sufficient: retention exists specifically so edits through an already-open old
 descriptor are not silently discarded.
 
@@ -94,6 +94,19 @@ run a new experiment.
 The skill makes the agent resolve the project, run the required gates, call the
 CLI, parse JSON, and report in natural language. Raw JSON is shown only on
 request.
+
+## Program memory in 0.4.0
+
+Context v3 may be opt-in bound to a Program Claim retrieval result. The binding
+includes the exact query/result digests and Program head. Before a registered
+Proposal's knowledge disposition is appended, Research OS recomputes that read
+set and requires every returned active or contradiction Claim exactly once.
+`used`, `rejected`, and `not_applicable` entries carry canonical Claim digests,
+relation IDs, Proposal field references, and null authority; rationale text
+cannot replace those references. Legacy free text is importable only as
+digest/size metadata classified `legacy_unstructured`. It produces no typed
+Claim or relation and stores no raw body. External project migration remains
+outside this release.
 
 ## Agent context and stale-proposal protection
 

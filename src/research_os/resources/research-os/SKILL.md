@@ -138,11 +138,20 @@ new compatible baseline after an approved semantic change.
 6. Stop if replay, artifact verification, baseline reproducibility, or any
    integrity gate fails.
 
-For a pre-existing byte-exact managed 0.2.0 skill, first stop every writer and
+For a pre-existing byte-exact managed 0.2.0 or 0.3.0 skill, first stop every writer and
 run `research-os install-agent-skill --target TARGET --upgrade`. Do not overwrite
-unknown, drifted, or unmanaged skill trees. A successful 0.3.0 upgrade reports
+unknown, drifted, or unmanaged skill trees. A successful 0.4.0 upgrade reports
 the retained prior tree as `recovery_backup`; keep it until the new install and
 managed manifest have been inspected.
+
+Research OS 0.4.0 may bind deterministic Program Claim retrieval into Context
+v3. When the orchestration surface supplies a knowledge disposition, require
+every returned Claim exactly once as `used`, `rejected`, or `not_applicable`,
+with exact Claim digest, retrieval role, relation IDs, and Proposal field refs.
+Narrative rationale is never a substitute for those bindings. Treat untyped
+legacy free text only as `legacy_unstructured` digest/size metadata: infer zero
+typed Claims, store no raw body in ProgramLog, and perform no external-project
+migration. Every record keeps `authorized_action` literal null.
 
 When `run-once` returns `error.code: STALE_AGENT_CONTEXT`, refresh
 `agent-context`, reconsider the proposal against the new graph, and retry the

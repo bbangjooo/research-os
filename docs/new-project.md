@@ -382,6 +382,14 @@ researcher. It runs the following loop:
 7. Continue until the finite budget, a safety gate, or a pre-registered
    repeated-class failure threshold stops the loop.
 
+For Research OS 0.4.0 Program memory integrations, bind retrieval to Context v3
+before proposing, disposition every returned Claim exactly once, and append the
+companion only after the typed Proposal is present in canonical project replay.
+Treat old notes, findings, or branch text without a typed schema as
+`legacy_unstructured`: retain only source metadata plus content digest/size,
+never infer Claims and never store raw legacy content in ProgramLog. This setup
+does not authorize migrating an existing project or taking any live action.
+
 For example:
 
 ```text

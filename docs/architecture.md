@@ -189,10 +189,19 @@ pending Diagnosis, class-closure, or locked budget gates. Default Context v3 is
 the agent-facing path, while explicit Context v2 preserves the prior packet contract.
 
 Agent-skill publication is a separate managed boundary. An existing byte-exact
-managed 0.2.0 tree moves to 0.3.0 only through explicit `install-agent-skill
+managed 0.2.0 or 0.3.0 tree moves to 0.4.0 only through explicit `install-agent-skill
 --upgrade`; unknown, drifted, or unmanaged trees are rejected without writes.
 The transaction retains the prior tree at the reported `recovery_backup` so an
 interrupted multi-target publication can be inspected or rolled back.
+
+Program memory is a second canonical append-only stream, distinct from the
+project EventLog. Its Claim graph and retrieval projections are rebuildable from
+ProgramLog. A knowledge-disposition event stores the exact registered Proposal,
+retrieval query, full returned-Claim coverage, Claim/relation digests, and the
+combined Context v3 token. Replay recomputes retrieval at the referenced Program
+prefix before accepting it. Legacy text never enters that graph: only bounded
+digest/size metadata is recorded as `legacy_unstructured`, with an empty typed
+Claim list and no raw content. All memory records retain `authorized_action=null`.
 
 The evaluation universe, selection cutoff, development/replication splits, and
 holdout boundary are similarly pre-registered before the first baseline. Locked
