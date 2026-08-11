@@ -1,6 +1,6 @@
 # §12 — M3-B finite autonomous state machine (2026-08-12)
 
-> Status: **IMPLEMENTED — independent critic verify pending**
+> Status: **IMPLEMENTED — critic Attempt 1 FAIL corrected; reverify pending**
 > Previous phase: [§11](11-2026-08-12-m3-a-decision-packet.md)
 > Active milestone: `M3-B`; M3-C/D blocked
 
@@ -106,11 +106,13 @@ Fixture: `tests/fixtures/autonomy/v1/m3b-manifest.json`; raw SHA-256:
 | Strict rejection/no-write | 8 | `8/8` exact code and scoped no-write |
 | Total frozen cases | 43 | `43/43 PASS`; every ID consumed once, no extras |
 
-Actual outcome: all 43 literal cases PASS, focused `51 passed in 54.33s`, adjacent M2-D/M3-A/M3-B
-`116 passed in 60.69s`, M3-B six conjuncts `6/6`, and M3-A manifest SHA remained
+Actual outcome: all 43 literal cases PASS, corrected focused `60 passed in 80.92s`, adjacent M2-D/M3-A/M3-B
+`125 passed in 87.12s`, M3-B six conjuncts `6/6`, and M3-A manifest SHA remained
 `a43ba5980c257706fe49f0c5107b520683f85ff46b3d7d9848071a0382d747a2`. The exact receipt is
 `12-m3-b-finite-autonomy-loop.receipt.json`. IDs, denominators, precedence, thresholds, event schemas, and expected
-codes were not changed after result exposure.
+codes were not changed after result exposure. Critic Attempt 1 exposed copied-ref-only replay and a replay service
+proxy; correction `f53e37c` adds source-log reconciliation, one-factor tamper reject, a disposable actual
+`ResearchService` vertical, and repeated post-terminal boundary cases.
 
 ## 12.6 Bounded plan and pre-score
 
@@ -134,12 +136,12 @@ reservation, actual M2/M3-A vertical, and exact three-log refs must refute it.
 
 | M3-B exit conjunct | 이전 | actual | receipt/test evidence |
 |---|---:|---:|---|
-| transitions 7/7 | `0/7` | `7/7` | 7 manifest rows + exact cold reducer/summary |
+| transitions 7/7 | `0/7` | `7/7` | 7 manifest rows + cold reducer + canonical source reconciliation |
 | next reads M2; synthesis writes Claim/ClassState | 0 | PASS | disposition/origin/Claim `1/1/1`; current-head next packet revalidated |
 | transition idempotency | `0/7` | `7/7` | three-log delta `0/0/0` |
 | closed-class registration 0 | 미측정 | `4/4`, reg `0` | four literal guards |
 | five budget stops | `0/5` | `5/5` | fixed reservation and exact precedence |
-| sealed service + exact evidence summary | 0 | PASS | service `1`, adapter/workspace `0/0`, exact refs, authority `0` |
+| sealed service + exact evidence summary | 0 | PASS | actual `ResearchService` `1`, controller adapter/workspace `0/0`, exact source refs |
 
 - **Prerequisite gate:** M3-A is closed at `effaabd`; parent M2 is closed. No bypass.
 - M3-C remains blocked until independent critic and seven-pass progress audit both PASS.
@@ -155,23 +157,25 @@ resume remains M3-C and unseen learning quality remains M3-D; neither receives a
 ### 12.6.6 Intent-execution reconciliation
 
 **Actual label: `MATCH`.** The implementation retained the exact six-conjunct finite loop, separate truth owners,
-fixed completion reserve, and sealed service boundary. The pre-data critic caused stricter precommit validation and
-post-terminal incomplete-stop checks without changing scope. The later next-packet witness measured an already
-specified §12.3 requirement; it did not change the frozen 43-case contract.
+fixed completion reserve, and sealed service boundary. Attempt 1's corrections implement already specified exact
+three-log refs and sealed-service requirements; they do not change the frozen 43-case contract or milestone scope.
 
 ### 12.6.7 Claim mode
 
 **Actual label: `MIXED`.** Frozen 43 cases, six conjuncts, schemas, stop precedence, and expected outcomes are
 `CONFIRMATORY`: pre-spec `9069cbd` at `2026-08-12T04:05:38+09:00` precedes first product/data `ede020c` at
 `2026-08-12T04:51:09+09:00`, and the manifest SHA is unchanged. The critic's explicit next-packet witness was
-added after first data in `64d7249`, so that additional witness is `EXPLORATORY`. It strengthens but is not needed
-to reinterpret the literal `43/43`.
+added after first data in `64d7249`, so that additional witness is `EXPLORATORY`. Attempt 1 corrections at
+`f53e37c`—source reconciliation, actual-service vertical, repeated post-terminal bounds, and the terminal artifact
+capture binding—are also `EXPLORATORY`. The product footprint miss (`2,021 additions + 8 deletions = 2,029 churn`
+versus target `1,600`) is a separate `GENUINE-FINDING`/EXPLORATORY row. None reinterprets literal `43/43`.
 
 ### 12.6.8 Requirement-result divergence
 
 Functional expected and actual results match exactly: `43/43`, six conjuncts `6/6`, forbidden direct calls `0`,
-closed-class registrations `0`, and M3-A SHA unchanged. The product gross estimate missed (`1,861 > 1,600`) while
-tests+fixture (`1,081 <= 1,700`) and inclusive estimate (`3,239 <= 3,900`) remain bounded. This engineering-footprint
+closed-class registrations `0`, and M3-A SHA unchanged. The product subtarget missed: `2,021 additions + 8
+deletions = 2,029 churn > 1,600`; the former `1,861` was pre-correction churn, not “gross added.” Tests+fixture
+(`1,384 <= 1,700`) and inclusive estimate (`3,729 <= 3,900`) remain bounded. This engineering-footprint
 surprise is `GENUINE-FINDING`/EXPLORATORY, not functional release evidence; M3-C pre-spec must explicitly retain,
 trim, or rebaseline it without weakening behavior. No `RESULT-INVALID` or `REQUIREMENT-WRONG` condition occurred.
 
@@ -184,10 +188,11 @@ trim, or rebaseline it without weakening behavior. No `RESULT-INVALID` or `REQUI
   sealed unseen 36-episode comparison.
 - Python same-process provider remains cooperative code, not a hostile-code sandbox; JSON subprocess retains the
   M3-A timeout/output/process-group boundary.
-- Product gross additions exceeded the pre-score subtarget by 261 lines. M3-C must precommit whether recovery
+- Product churn exceeded the pre-score subtarget by 429 lines. M3-C must precommit whether recovery
   durability can share/refactor this reducer without behavior loss; the miss cannot silently disappear.
 
 ## 12.10 Next action
 
-Complete the independent critic verify against the receipt and responses below. Only after PASS, synchronize the
-paired status/pipeline docs and run the independent seven-pass audit; M3-C remains blocked until both gates pass.
+Run independent critic reverify against correction `f53e37c`, the receipt, responses, and pipeline Cycle 12 row.
+Only after PASS, synchronize dynamic status and run the independent seven-pass audit; M3-C remains blocked until
+both gates pass.
