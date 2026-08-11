@@ -1,6 +1,6 @@
 # §10 — M2-D knowledge disposition·legacy import·v0.4 release (2026-08-12)
 
-> Status: **CORRECTION IN PROGRESS — critic Attempt 1 FAIL; corrected release gate pending**
+> Status: **VERIFY PENDING — corrected release gate PASS; critic reverify + audit pending**
 > Previous phase: [§09](09-2026-08-11-m2-c-deterministic-retrieval.md)
 > Active milestone: `M2-D`; M3 remains blocked
 
@@ -10,8 +10,8 @@ M2-D는 M2-C retrieval의 모든 returned Claim을 durable Proposal-bound
 `used|rejected|not_applicable` companion event로 exact disposition하고, legacy free text를 typed Claim으로
 추론하지 않는 digest-only opaque event로 ProgramLog에 넣었다. Attempt 1 gate는 PASS했으나 critic이
 valid three-way의 durable real-path 측정을 FAIL했다. 그 receipt와 청구는 철회했다. 두 actual scope/origin의
-registered Proposal→Context→ProgramLog cold replay three-way test는 corrected PASS했고 single gate
-재실행 전이다. M2-D/M2는 계속 open이고 M3-A는 시작하지 않는다.
+registered Proposal→Context→ProgramLog cold replay three-way test와 corrected single gate가 PASS했다.
+M2-D/M2는 critic reverify와 audit 전까지 open이고 M3-A는 시작하지 않는다.
 
 ## 10.1 Scope, end-state, and authority
 
@@ -100,16 +100,17 @@ pre/post writer delta 0이 confirmatory gate다. Result-triggered contract 수�
 
 | Gate | 결과 | 재현 근거 |
 |---|---:|---|
-| Frozen contract | `23/23 PASS` | `m2d-manifest.json` SHA-256 `b61da8…b2a7`; corrected receipt pending |
-| Disposition | corrected durable three-way focused PASS | two actual scope/origin Claims + registered Proposal/Context/ProgramStore cold replay; frozen `14/14` 유지 |
+| Frozen contract | `23/23 PASS` | `m2d-manifest.json` SHA-256 `b61da8…b2a7`; corrected receipt literal IDs/results |
+| Disposition | frozen `14/14` + durable three-way `1/1` | two actual scope/origin Claims + registered Proposal/Context/ProgramStore cold replay |
 | Legacy opaque | `6/6 PASS` | adversarial free text append/replay; typed Claim/edge delta 0, raw substring 0 |
 | External read-only | `3/3 PASS` | actual sibling paths, frozen bytes/entry baseline independent match, gate 전후 mode/symlink digest exact; Binance surface absent |
 | Managed upgrade | `6/6 PASS` | exact 0.2/0.3, drift/unknown no-write, two-target commit/publish failure recovery |
 | Full release Attempt 1 | **WITHDRAWN** `712+115` | Q2 proxy-vs-real FAIL; final evidence로 사용하지 않음 |
-| Corrected release | pending | durable three-way node를 receipt에 별도 bind한 clean checkpoint 재실행 필요 |
+| Corrected release | **PASS** `713+115` | commit `9dbb413`; durable node `1/1`; focused authority/manifest `37`; wheel 0.4.0 |
 
 Attempt 1 receipt는 checkpoint `ef2d9a2` history에만 남기고 current tree에서 철회했다. Corrected
-single gate PASS 뒤 같은 path에 final receipt를 새로 기록한다.
+single gate receipt는 `f1ab646`에 기록했고 saved-receipt test가 exact case/durable/upgrade/product-tree
+binding을 재검증한다.
 
 ### 10.6.3 Bounded scope
 
@@ -117,20 +118,20 @@ Pre-spec `4b0d0a1` 이후 gross additions는 product Python `1,118/1,400`, tests
 `947/1,450`이다. Release verifier script `389`와 close 문서/receipt를 포함해도 total `3,200` cap
 이하다. External projects에는 file writer가 없었고 live migration·loop·product multi-agent 코드는 0이다.
 
-## 10.6.4 Milestone positioning — ADVANCE, correction 4/5
+## 10.6.4 Milestone positioning — ADVANCE, corrected evidence 5/5
 
 Prerequisite gate는 M2-C close와 independent audit PASS다(status §2.3.3, phase §09).
 
 | M2-D conjunct | 이전 | 현재 evidence | 판정 |
 |---|---:|---:|---|
-| three-way Proposal disposition | Attempt 1 proxy measurement | corrected actual two-scope append/cold replay focused PASS | ✅ |
+| three-way Proposal disposition | Attempt 1 proxy measurement | corrected actual two-scope append/cold replay + receipt node `1/1` | ✅ |
 | used/rejected exact reference audit | 미구현 | digest/role/relation/field one-factor no-write | ✅ |
 | legacy inference 0 + opaque digest import | 미구현 | frozen legacy `6/6`, raw/typed delta 0 | ✅ |
 | external snapshot 3/3 + writer delta 0 | v0.3 byte-only | v0.4 bytes/mode/symlink pre/post exact | ✅ |
-| v0.4 docs/version/upgrade/full gate | Attempt 1 withdrawn | corrected single gate pending | ⏳ |
+| v0.4 docs/version/upgrade/full gate | Attempt 1 withdrawn | corrected `713+115`, upgrades `6/6`, wheel/version PASS | ✅ |
 
-현재 corrected durable witness는 PASS지만 이 witness를 단일 release receipt에 bind하는 마지막 conjunct가
-남아 4/5 `ADVANCE`다. Corrected gate, critic, audit가 모두 PASS한 뒤에만 M2-D와 parent M2를
+다섯 product/release conjunct는 corrected evidence 5/5지만 independent critic reverify와 audit이 남아
+`ADVANCE`다. Critic과 audit가 모두 PASS한 뒤에만 M2-D와 parent M2를
 `CLOSE`하고 M3-A를 active로 바꾼다. NS7 actual external
 replay·opaque classification `3/3`은 M3-D exit에 그대로 남으며 synthetic `6/6`으로 대체하지 않는다.
 
@@ -179,5 +180,5 @@ GENUINE-FINDING이 아니다.
 
 ## 10.10 Next action
 
-Critic Q1~Q8 response를 verify하고 independent seven-pass audit을 실행한다. 둘 다 PASS한 뒤에만
+Critic Q1~Q8을 independent reverify하고 independent seven-pass audit을 실행한다. 둘 다 PASS한 뒤에만
 M2-D/parent M2를 close하고 M3-A DecisionPacket pre-spec을 연다.

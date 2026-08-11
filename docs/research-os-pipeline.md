@@ -322,11 +322,11 @@ Canonical truth boundaries:
 | Evidence semantics | 방향 보정 delta와 typed gate/slack이 veto와 무관하게 남음 | M1-A 구현: directional delta/margin, typed gate/slack, baseline/candidate VERIFY 대칭 | Cycle 01 구체화·검증 |
 | Study control | StudyContract와 cumulative budget이 atomic registration을 지배 | M1-B 구현: canonical contract/evaluation-sealed generation, replayable ledger, locked registration reservation; `29/29` exact. 단, generation별 non-refundable reservation이며 actual usage telemetry·study-lifetime cap·successor 반복 증액 방지는 없음 | Cycle 02 구체화·검증 |
 | Study inference | typed Proposal·Diagnosis·ClassState와 semantic frontier | M1-D: exact terminal-bound Diagnosis, pending gate, derived ClassState/immutable closure, semantic/retry frontier가 canonical replay. Interpretation 품질·registered-control·learned ranking은 증명하지 않음 | Cycle 04 `△→○`; transition `26/23/54/37/7`, negative `460/460`, five conjunct 5/5 |
-| Program memory | conditional Claim graph가 exact origin evidence를 참조 | Claim graph/retrieval 위에 registered Proposal-bound disposition과 digest-only legacy opaque event가 canonical ProgramLog에 저장·replay됨; critic Attempt 1 FAIL 보정 중 | Cycle 10 frozen `23/23`; corrected actual three-way cold replay focused PASS; release/audit pending |
+| Program memory | conditional Claim graph가 exact origin evidence를 참조 | Claim graph/retrieval 위에 registered Proposal-bound disposition과 digest-only legacy opaque event가 canonical ProgramLog에 저장·replay됨; critic reverify/audit pending | Cycle 10 frozen `23/23`; corrected actual three-way `1/1`; full `713+115` |
 | Context | v3가 budget/class/pending diagnosis/relevant claim/reason을 제공 | default v3/explicit v2를 보존하며 exact retrieval read set이 registered Proposal disposition write companion으로 이어짐; M3 packet 소비는 open | Cycle 10 actual Context→Proposal→ProgramLog vertical과 stale/no-write PASS |
 | Autonomy | provider-neutral finite state machine이 stop/resume | 외부 대화가 수동으로 단계를 연결 | 추가 |
 | Meta-evaluation | post-freeze unseen 36 episodes와 choice oracle로 v0.2/v0.5 paired comparison | v0.3 corrected full `609+115`와 release build는 PASS; learning benchmark/comparator/oracle/generator는 없음 | Cycle 06 release evidence 보강; learning 효과는 여전히 미측정 |
-| Compatibility/authority | v1 logs 무변환, legacy 격리, authority null 유지 | version 0.4.0, sealed 0.2/0.3 upgrade/recovery `6/6`, authority 0, external bytes/mode/symlink pre/post 3/3, wheel install Attempt 1 PASS; corrected receipt pending; actual replay/opaque 3/3은 M3-D | Cycle 10 Attempt 1 receipt withdrawn; critic/audit pending |
+| Compatibility/authority | v1 logs 무변환, legacy 격리, authority null 유지 | version 0.4.0, sealed 0.2/0.3 upgrade/recovery `6/6`, authority 0, external bytes/mode/symlink pre/post 3/3, corrected wheel install PASS; actual replay/opaque 3/3은 M3-D | Cycle 10 corrected single receipt `713+115`; critic/audit pending |
 
 ### 8.5 비전 변경 이력 ★
 
@@ -342,7 +342,7 @@ Canonical truth boundaries:
 | 07 | 2026-08-11 | 구체화·검증 | ProgramManifest/Log origin boundary와 projection을 구현하고 critic의 race gap을 barrier·loser writes `0/0`으로 보정했다; Claim/retrieval은 유지 | `d635c61→b10e1b4→704fcb8→5d02fd0`; corrected `22`, race `50/50`, fresh `635+115`; critic + corrected audit PASS; M2-A close |
 | 08 | 2026-08-11 | PIVOT·close | Immutable Claim/evidence/relation을 구현하고 critic·audit no-write gaps를 actual writer 측정으로 보강; retrieval은 유지 | `5659c67→529283c→dbd7caa→1b1e22f`; `25`, focused `37`, full `672+115`; critic + corrected audit PASS |
 | 09 | 2026-08-11 | 구체화·검증 | ProgramLog→ClaimSnapshot→deterministic retrieval→opt-in Context v3 read path를 구현; disposition은 유지 | `e6de927→e002076→bc0b79a`; receipt `100/100/100/0`; full `676+115`; critic + independent audit PASS; M2-C close |
-| 10 | 2026-08-12 | PIVOT·correction | Proposal-bound disposition과 legacy opaque event를 구체화; Attempt 1이 durable three-way를 proxy로 과장해 receipt를 철회하고 actual two-scope append/cold-replay witness로 보정; actual external replay와 M3 loop는 유지 | `4b0d0a1→f5d55ad→ef2d9a2`; Attempt 1 critic FAIL, corrected focused PASS, release re-run/audit pending |
+| 10 | 2026-08-12 | PIVOT·correction | Proposal-bound disposition과 legacy opaque event를 구체화; Attempt 1이 durable three-way를 proxy로 과장해 receipt를 철회하고 actual two-scope append/cold-replay witness로 보정; actual external replay와 M3 loop는 유지 | `4b0d0a1→f5d55ad→9dbb413→f1ab646`; corrected `713+115`, durable `1/1`; critic reverify/audit pending |
 
 ---
 

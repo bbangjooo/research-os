@@ -43,10 +43,11 @@ NS1의 단일 v0.4 release gate가 `full_suite=true` 같은 상수 receipt가 �
 
 **Response:** _DIRECT_
 Attempt 1 receipt는 Q2 결함으로 current tree에서 철회했고 checkpoint `ef2d9a2`에만 보존한다.
-Corrected `scripts/verify_release.py`는 literal 23 IDs/results와 durable-three-way node 1 pass, upgrade six
-IDs/results, sealed 0.2/0.3 reconstruction, failures 전체 tree 복원, full/authority/multi-agent,
-version/docs/product tree, wheel hash와 temp-install 0.4.0을 한 실행에 묶도록 작성됐다.
-Corrected receipt 실차 재실행과 saved-receipt test는 아직 pending이다.
+Corrected gate가 commit `9dbb413` 기준으로 PASS했고 receipt는 literal 23 IDs/results,
+durable-three-way node `1/1`, upgrade six IDs/results, sealed 0.2/0.3 reconstruction, failures 전체 tree 복원,
+full `713+115`, authority 0, product multi-agent false, version/docs/product tree, wheel hash와 temp-install
+0.4.0을 한 실행에 묶는다. `test_v04_saved_receipt_binds_actual_case_results_and_release_surfaces`가
+receipt commit의 product tree를 재계산해 PASS했다.
 
 ## Q6 [milestone-positioning]
 M2-D와 parent M2를 `CLOSE`하려면 §10.6.4에서 다섯 AND conjunct 각각의 재현 근거와 critic·audit PASS가 필요하지만 NS7의 실제 external replay·opaque classification `3/3`은 M3-D에 남는데, synthetic legacy `6/6`이나 NS3/NS4 유지 회귀로 그 잔여를 숨기지 않고 M3-A만 정확한 M2-D close 뒤 활성화함을 어떤 상태표로 판별할 것인가?
