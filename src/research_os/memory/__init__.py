@@ -11,18 +11,6 @@ from .findings import (
     make_finding_event,
     record_finding,
 )
-
-__all__ = [
-    "FINDING_RECORDED",
-    "Finding",
-    "FindingScope",
-    "FindingStore",
-    "append_finding",
-    "finding_event",
-    "finding_payload",
-    "make_finding_event",
-    "record_finding",
-]
 from .program import (
     ORIGIN_EVIDENCE_SCHEMA_VERSION,
     PROGRAM_EVENT_VERSION,
@@ -46,6 +34,10 @@ from .program import (
 )
 
 __all__ = [
+    "FINDING_RECORDED",
+    "Finding",
+    "FindingScope",
+    "FindingStore",
     "ORIGIN_EVIDENCE_SCHEMA_VERSION",
     "PROGRAM_EVENT_VERSION",
     "PROGRAM_INITIALIZED_EVENT",
@@ -61,6 +53,11 @@ __all__ = [
     "ProgramProjection",
     "ProgramSnapshot",
     "ProgramStore",
+    "append_finding",
+    "finding_event",
+    "finding_payload",
+    "make_finding_event",
+    "record_finding",
     "reduce_program_events",
     "validate_origin_evidence",
     "validate_program_manifest",
