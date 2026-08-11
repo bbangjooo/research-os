@@ -64,6 +64,23 @@ class ScientificStateError(ConfigurationError):
         super().__init__(message)
 
 
+class ProgramMemoryError(ConfigurationError):
+    """A versioned program-memory contract or transition was rejected."""
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        details: Mapping[str, object] | None = None,
+    ):
+        if not isinstance(code, str) or not code:
+            raise ValueError("program-memory error code must be a non-empty string")
+        self.code = code
+        self.details = dict(details or {})
+        super().__init__(message)
+
+
 class StaleAgentContextError(ConfigurationError):
     """An agent tried to act on a superseded canonical context snapshot."""
 
