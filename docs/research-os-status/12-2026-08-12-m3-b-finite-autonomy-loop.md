@@ -1,6 +1,6 @@
 # §12 — M3-B finite autonomous state machine (2026-08-12)
 
-> Status: **ACTIVE — PRE-SPEC FROZEN; product/result not started**
+> Status: **IMPLEMENTED — independent critic verify pending**
 > Previous phase: [§11](11-2026-08-12-m3-a-decision-packet.md)
 > Active milestone: `M3-B`; M3-C/D blocked
 
@@ -106,10 +106,11 @@ Fixture: `tests/fixtures/autonomy/v1/m3b-manifest.json`; raw SHA-256:
 | Strict rejection/no-write | 8 | `8/8` exact code and scoped no-write |
 | Total frozen cases | 43 | `43/43 PASS`; every ID consumed once, no extras |
 
-Expected outcome is all 43 literal cases PASS, M3-B six conjuncts `6/6`, focused/adjacent suites green, and
-M3-A manifest bytes unchanged. Any failure is a real M3-B failure unless fixture/runner contamination is proven
-`RESULT-INVALID`; result exposure cannot change IDs, denominators, precedence, thresholds, event schemas, or
-expected codes while retaining a confirmatory claim.
+Actual outcome: all 43 literal cases PASS, focused `51 passed in 54.33s`, adjacent M2-D/M3-A/M3-B
+`116 passed in 60.69s`, M3-B six conjuncts `6/6`, and M3-A manifest SHA remained
+`a43ba5980c257706fe49f0c5107b520683f85ff46b3d7d9848071a0382d747a2`. The exact receipt is
+`12-m3-b-finite-autonomy-loop.receipt.json`. IDs, denominators, precedence, thresholds, event schemas, and expected
+codes were not changed after result exposure.
 
 ## 12.6 Bounded plan and pre-score
 
@@ -129,46 +130,50 @@ reservation, actual M2/M3-A vertical, and exact three-log refs must refute it.
 
 ### 12.6.4 Milestone progress claim
 
-**Planned label: `CLOSE`; current pre-spec state: `ADVANCE`, engineering `0/6`.**
+**Candidate label: `CLOSE`; engineering `6/6`; blocked on independent critic and audit.**
 
-| M3-B exit conjunct | 이전 | pre-spec 후 | close evidence required |
+| M3-B exit conjunct | 이전 | actual | receipt/test evidence |
 |---|---:|---:|---|
-| transitions 7/7 | `0/7` | `0/7` | literal transition rows + cold reducer |
-| next reads M2; synthesis writes Claim/ClassState | 0 | 0 | actual retrieval/disposition/origin/Claim + derived ClassState refs |
-| transition idempotency | `0/7` | `0/7` | repeated committed transitions, three-log delta `0/0/0` |
-| closed-class registration 0 | 미측정 | 미측정 | four guards, actual registration count 0 |
-| five budget stops | `0/5` | `0/5` | fixed reservation arithmetic and exact stop precedence |
-| sealed service + exact evidence summary | 0 | 0 | real service call 1, direct call 0, exact refs |
+| transitions 7/7 | `0/7` | `7/7` | 7 manifest rows + exact cold reducer/summary |
+| next reads M2; synthesis writes Claim/ClassState | 0 | PASS | disposition/origin/Claim `1/1/1`; current-head next packet revalidated |
+| transition idempotency | `0/7` | `7/7` | three-log delta `0/0/0` |
+| closed-class registration 0 | 미측정 | `4/4`, reg `0` | four literal guards |
+| five budget stops | `0/5` | `5/5` | fixed reservation and exact precedence |
+| sealed service + exact evidence summary | 0 | PASS | service `1`, adapter/workspace `0/0`, exact refs, authority `0` |
 
 - **Prerequisite gate:** M3-A is closed at `effaabd`; parent M2 is closed. No bypass.
-- M3-C remains blocked until all rows and both independent gates PASS.
+- M3-C remains blocked until independent critic and seven-pass progress audit both PASS.
 
 ### 12.6.5 End-state delta
 
-**Planned classification: `구체화·검증`.** Before: Autonomy has a validated provider packet but no canonical
-episode state. After target: a single provider can complete one finite evidence-bound episode while three truth
-logs retain disjoint ownership. Crash fault injection remains M3-C; no §8.2 action is removed or relaxed.
+**Actual classification: `구체화·검증`.** Before: Autonomy had a validated provider packet but no canonical
+episode state. After: a single provider completes a finite evidence-bound episode; ProjectLog owns terminal/
+Diagnosis, ProgramLog owns disposition/origin/Claim, and AutonomyLog owns only orchestration refs. A written Claim
+changes the next Context and a fresh DecisionPacket is revalidated on the new Program head. Crash/incomplete-step
+resume remains M3-C and unseen learning quality remains M3-D; neither receives a rating increase here.
 
 ### 12.6.6 Intent-execution reconciliation
 
-**Planned label: `MATCH`.** The implementation must remain the exact M3-B six-conjunct finite loop. A required
-event/log boundary or completion-reservation change discovered after first result is a `PIVOT` and requires a same-
-cycle Decision-chain trigger; silently shrinking to a pure in-memory FSM is `DRIFT` and cannot close.
+**Actual label: `MATCH`.** The implementation retained the exact six-conjunct finite loop, separate truth owners,
+fixed completion reserve, and sealed service boundary. The pre-data critic caused stricter precommit validation and
+post-terminal incomplete-stop checks without changing scope. The later next-packet witness measured an already
+specified §12.3 requirement; it did not change the frozen 43-case contract.
 
 ### 12.6.7 Claim mode
 
-**Planned label: `CONFIRMATORY`.** This phase file, exact manifest, event names, budget precedence, denominators,
-and expected outcomes are committed before product/result. The final section will cite the pre-spec and first-data
-commit hashes/timestamps. Critic-driven criteria introduced after first data become `EXPLORATORY` in a `MIXED`
-breakdown.
+**Actual label: `MIXED`.** Frozen 43 cases, six conjuncts, schemas, stop precedence, and expected outcomes are
+`CONFIRMATORY`: pre-spec `9069cbd` at `2026-08-12T04:05:38+09:00` precedes first product/data `ede020c` at
+`2026-08-12T04:51:09+09:00`, and the manifest SHA is unchanged. The critic's explicit next-packet witness was
+added after first data in `64d7249`, so that additional witness is `EXPLORATORY`. It strengthens but is not needed
+to reinterpret the literal `43/43`.
 
 ### 12.6.8 Requirement-result divergence
 
-Expected exact result is `43/43`, six conjuncts `6/6`, no forbidden direct calls, and no closed-class registration.
-Fixture/runner contamination is `RESULT-INVALID` and forces remeasurement without NS update. A valid unexpected
-behavior is `GENUINE-FINDING`/EXPLORATORY with a new precommitted follow-up. If fixed reservations or AutonomyLog
-do not faithfully satisfy the approved M3-B intent, classify `REQUIREMENT-WRONG` and open a correction phase before
-M3-C; never weaken the M chain inside this phase.
+Functional expected and actual results match exactly: `43/43`, six conjuncts `6/6`, forbidden direct calls `0`,
+closed-class registrations `0`, and M3-A SHA unchanged. The product gross estimate missed (`1,861 > 1,600`) while
+tests+fixture (`1,081 <= 1,700`) and inclusive estimate (`3,239 <= 3,900`) remain bounded. This engineering-footprint
+surprise is `GENUINE-FINDING`/EXPLORATORY, not functional release evidence; M3-C pre-spec must explicitly retain,
+trim, or rebaseline it without weakening behavior. No `RESULT-INVALID` or `REQUIREMENT-WRONG` condition occurred.
 
 ## 12.7 Residual issues
 
@@ -179,8 +184,10 @@ M3-C; never weaken the M chain inside this phase.
   sealed unseen 36-episode comparison.
 - Python same-process provider remains cooperative code, not a hostile-code sandbox; JSON subprocess retains the
   M3-A timeout/output/process-group boundary.
+- Product gross additions exceeded the pre-score subtarget by 261 lines. M3-C must precommit whether recovery
+  durability can share/refactor this reducer without behavior loss; the miss cannot silently disappear.
 
 ## 12.10 Next action
 
-Commit this pre-spec and raw manifest hash, then invoke an independent progress critic in generate mode. Product
-or test handlers must not be written until the critic's closed question set is saved and committed.
+Complete the independent critic verify against the receipt and responses below. Only after PASS, synchronize the
+paired status/pipeline docs and run the independent seven-pass audit; M3-C remains blocked until both gates pass.
