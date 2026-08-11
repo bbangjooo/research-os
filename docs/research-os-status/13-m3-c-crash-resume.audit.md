@@ -42,3 +42,27 @@ Audit trail:
 - Files inspected: status, pipeline, Phase 13, critic, receipt, manifest, `loop.py`, M3-C tests
 - git range audited: `08327ad..add4e1d`
 - M3-C is not closed by this audit; M3-D remains blocked.
+
+## Attempt 2 — PASS
+
+VERDICT: PASS
+
+Correction HEAD: `4f092f2`; Attempt 1 above is preserved.
+
+### Seven-pass result
+
+- Schema PASS — Phase 13 index and exact LOC row exist; §13.6.6 now separates intent/execution with NS1/NS5, sources, samples, measurements, and supported `MATCH`.
+- Reproducibility PASS — `add4e1d..4f092f2` changes no product, test, or manifest byte; prior `14/14` reproduction remains applicable and fresh schema/hash/LOC checks pass.
+- Drift/whitewash PASS — no North-Star target, end-state target/rating, or M3-C exit conjunct changed.
+- Linguistic-weakness PASS — Cycle 13 pessimistic re-score names the competing-writer assumption, retains `△`, and preserves hostile-provider/audit limitations.
+- Intent-execution PASS — approved M3-C `31`-case crash/authority scope matches the three-log implementation and excludes NS6/NS7.
+- Claim-mode PASS — frozen evidence stays CONFIRMATORY; race evidence stays EXPLORATORY; §13.10 precommits `race-confirmation-v1`, fresh 256-bit nonce, 12 subprocess schedules, and exact `12/12` criteria before M3-D data.
+- Milestone discipline PASS — M3-B is closed at `08327ad`; critic PASS and audit1 history are synchronized; M3-C remains `ADVANCE` and M3-D blocked.
+
+Severity-1 findings: none.
+
+Severity-2 findings: none.
+
+Evidence: pre-append phase+critic+receipt+audit `395/500`, paired evidence `449`, inclusive `1631/2800`; product `353/900`, tests+fixture `829/1400`, manifest SHA `c3752c…65e27c7b`. After this Attempt 2: `419/500`, paired `473`, inclusive `1655/2800`.
+
+Audit trail: reused product checks `14/14`; fresh correction checks `8/8`; mismatched `0`; unrunnable `0`; correction range `add4e1d..4f092f2`.
