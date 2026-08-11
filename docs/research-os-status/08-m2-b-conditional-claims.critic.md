@@ -96,3 +96,12 @@ total cap `3,100`을 30줄 초과한다. Core docs를 제외한 `3,094`는 cap�
 임의로 축소한 계산이므로 PASS 근거가 아니다.
 
 **VERDICT: FAIL.** Q8/total-cap defect를 해소하고 동일 closed Q1~Q8로 재검증해야 한다.
+
+## Verify Attempt 3 — PASS
+
+| Q1 | Q2 | Q3 | Q4 | Q5 | Q6 | Q7 | Q8 |
+|---|---|---|---|---|---|---|---|
+| PASS | PASS | PASS | PASS | PASS | PASS | PASS | PASS |
+**Evidence:** cutoff `2ab1113`; focused `37`; frozen 25 diff 0; `abc20dd..2ab1113` docs-only; prior full `672+115` remains bound because product/test diff 0; external snapshot `3/3` exact.
+**LOC:** pre-append `1,463+1,241+369=3,073`; this 9-line section makes docs `378`, final total `3,082/3,100`.
+**VERDICT: PASS.** Attempts 1/2 remain preserved; all closed Q1–Q8 and the corrected total cap pass.
