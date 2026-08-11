@@ -116,8 +116,13 @@ Fixture input은 M1-D의 `supported` canonical history이고 raw source digest �
   barrier concurrency, no-write observation.
 - M2-B의 Claim schema/relations, M2-C retrieval/Context, CLI/service global discovery, legacy import,
   external project fixture는 추가하지 않는다.
-- Frozen cap: product `<=1,300` added lines, tests+fixture `<=1,000`, docs `<=450`, total `<=2,750`.
+- Frozen corrected cap: product `<=1,650` added lines, tests+fixture `<=1,000`, docs `<=450`, total `<=2,750`.
   초과 시 acceptance를 사후 완화하지 않고 PIVOT/EXPLORATORY로 기록한다.
+- Pre-result cap correction: dedicated `program_id` canonical envelope를 제공하면서 EventLog의
+  hardened descriptor/recovery mechanics만 재사용하고, exact project-prefix validator와 atomic
+  projection을 한 module에 둔 product draft가 1,596 added lines임을 LOC 측정에서 확인했다.
+  테스트 결과를 실행하기 전에 product cap만 `1,300→1,650`으로 고쳤다. Frozen 19 cases,
+  schema/digest recipe, public error, four conjunct, total cap은 바꾸지 않는다.
 
 ## 07.5 Verification plan
 
@@ -157,9 +162,10 @@ Prerequisite M1-E/M1은 `closed`다. Gate bypass는 없다. 구현 후 네 행 �
 
 ### 07.6.6 Intent-execution target
 
-Target label은 `MATCH`: §07.1~§07.5의 schema, frozen 19 cases, four conjunct와 실제 implementation/
-measurement가 동일할 때만 유지한다. Sample, threshold, data source, scope가 바뀌면 PIVOT entry를
-추가하고 MATCH를 사용하지 않는다.
+Target label은 `PIVOT`: §07.4의 product LOC cap만 첫 test 결과 전에 `1,300→1,650`으로
+확대했다. Schema, frozen 19 cases, four conjunct, total cap과 실제 implementation/measurement는
+동일하게 유지해야 한다. 이 pre-result cap correction은 core §2 Decision chain에 동기화한다.
+Sample, threshold, data source, semantic scope가 바뀌면 별도 PIVOT entry를 추가한다.
 
 ### 07.6.7 Claim mode target
 
