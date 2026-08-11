@@ -11,3 +11,8 @@
 
 Reproduction: 16 checks, 15 matched, 1 mismatched, 0 unrunnable. Product/schema, four conjuncts,
 race `50/50`, chronology, authority and exclusions otherwise passed. Corrections require re-audit.
+
+## Attempt 2 — `9fe2513`
+
+**VERDICT: PASS** — seven passes all green: schema/truth, M2-A 4/4 positioning, reproducibility,
+MIXED chronology, paired-core drift, exclusions/authority, and linguistic strength.

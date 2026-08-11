@@ -48,7 +48,7 @@
 6. **유한 자율 루프** (§6): provider의 출력은 비신뢰 packet이며 kernel preflight 뒤에만 실행된다.
 7. **비교 가능한 효과 측정** (§7): 동일 후보 언어·실험 budget에서 정확도와 낭비를 비교한다.
 
-현재 상태 (Cycle 07 M2-A candidate `4/4`; critic PASS, audit correction/reverify pending):
+현재 상태 (Cycle 07 M2-A **CLOSE**; M2-B active):
 
 - 1번 ✅/○ — directional delta, constitution-owned typed gate/slack, baseline/candidate verify 대칭과 nested/flat certification lifecycle이 구현·검증됐다.
 - 2번 ○ — checkpoint `df2c900`에서 canonical StudyContract·evaluation-sealed generation·replayable cumulative reservation ledger·locked overrun gate가 구현됐다. executable manifest `29/29`, focused `81+37`; 단, generation별 non-refundable reservation이지 actual usage telemetry나 study lifetime cap은 아니며 successor 반복 증액을 막지 않는다.
@@ -339,7 +339,7 @@ Canonical truth boundaries:
 | 04 | 2026-08-11 | 구체화·검증 | Study inference를 terminal-bound Diagnosis→derived ClassState→semantic/retry frontier까지 구현했다. 두 oracle `RESULT-INVALID`를 철회하고 canonical equality·anti-vacuity·recursion correction으로 재측정했으며, interpretation 품질·registered control·learned ranking limitation은 유지했다 | final seals `10e037…1718`/`92551a…c54`; transition `26/23/54/37/7`; negative `460/460`; direct `67`; bounded `56`; compatibility `20/20`; single floor PASS; progress critic + independent auditor PASS |
 | 05 | 2026-08-11 | 구체화·검증 | M1-D state를 opt-in Context v3에 직접 노출하고 exact evidence를 채우는 fail-closed Diagnosis template과 disposable temp-project E2E를 추가했다. Context v2/default token은 보존했고 M1-E release는 청구하지 않았다 | pre-spec `38446f1`; product `7fcfd10`; vertical `4`; final compatibility `127+23`; demo/ruff/ty/diff PASS; independent 7-pass audit PASS |
 | 06 | 2026-08-11 | 구체화·검증 | Progress audit의 installer case-ID 미소비를 structured six literal nodes와 receipt binding으로 보정하고 M1을 닫았다 | `b70a98f→e120292`; `609+115`; installer `6/6`; critic + auditor PASS; M1 close |
-| 07 | 2026-08-11 | 구체화·검증 | ProgramManifest/Log origin boundary와 projection을 구현하고 critic의 race gap을 barrier·loser writes `0/0`으로 보정했다; Claim/retrieval은 유지 | `d635c61→b10e1b4→704fcb8→5d02fd0`; corrected `22`, race `50/50`, fresh `635+115`; critic PASS, audit pending |
+| 07 | 2026-08-11 | 구체화·검증 | ProgramManifest/Log origin boundary와 projection을 구현하고 critic의 race gap을 barrier·loser writes `0/0`으로 보정했다; Claim/retrieval은 유지 | `d635c61→b10e1b4→704fcb8→5d02fd0`; corrected `22`, race `50/50`, fresh `635+115`; critic + corrected audit PASS; M2-A close |
 
 ---
 
@@ -427,8 +427,8 @@ Canonical truth boundaries:
 총평: v0.3 integrity·audit·replay와 M1-A/B study control, M1-C Proposal identity,
 M1-D Diagnosis/ClassState/frontier 위에 default Context v3, tokenless legacy boundary, exact
 managed upgrade와 structured six-case release evidence가 `5/5`로 독립 감사 PASS해 M1/v0.3을
-닫았다. M2-A의 canonical program boundary는 candidate `4/4`이며 Claim/retrieval과 autonomous
-loop·unseen gate를 M2-B→M3 순서로 진행한다.
+닫았다. M2-A의 canonical program boundary도 `4/4`로 닫았으며 Claim/retrieval과 autonomous
+loop·unseen gate를 active M2-B→M3 순서로 진행한다.
 
 ### 10.1 단계별 평가
 
@@ -437,7 +437,7 @@ loop·unseen gate를 M2-B→M3 순서로 진행한다.
 | 1. Evidence semantics | ○ | `results.py`, `config.py`, `policy.py`, `service.py`; typed gates·delta/margin·VERIFY 대칭 구현, metric 의미 타당성은 adapter/diagnosis 후속 대상 | M1-A E1~E9; M1-C 포함 full `442 tests + 111 subtests` PASS |
 | 2. Study generation | ○ | `science/{contracts,state}.py`, `service.py`, `kernel/{ids,projection}.py`; canonical contract/generation/replay와 locked cumulative reservation 구현. generation별 non-refundable reservation이며 actual telemetry·study lifetime cap·successor 반복 증액 방지는 없음 | M1-B executable manifest `29/29`, focused `81+37`, checkpoint `df2c900` |
 | 3. Study inference | ○ | `science/{proposals,diagnoses,state}.py`, `service.py`; Proposal/Diagnosis/ClassState/frontier replay와 pending/closure gate는 동작하나 interpretation quality·Claim·learned ranking은 없음 | M1-D `26/23/54/37/7`, negative `460/460`, five conjunct 5/5; NS3 `3/4` |
-| 4. Program memory | △ | `memory/program.py`; exact origin/hash-chain/recovery는 구현, Claim/retrieval 없음 | M2-A corrected `22`, race `50/50`, fresh `635+115`; critic PASS, audit pending |
+| 4. Program memory | △ | `memory/program.py`; exact origin/hash-chain/recovery는 구현, Claim/retrieval 없음 | M2-A corrected `22`, race `50/50`, fresh `635+115`; critic + audit PASS |
 | 5. Relevant context v3 | △ | default v3/explicit v2와 release path/policy/installer binding은 closed; relevant Claim/retrieval reason은 M2에 남음 | phase §06; M1-E `5/5`; auditor PASS |
 | 6. Autonomous single-agent | ✗ | provider-neutral CLI는 있으나 canonical loop state 없음 | `docs/architecture.md` |
 | 7. Meta-evaluation/release | ✗ | v0.3 corrected full/static/wheel release는 PASS했지만 learning comparator/generator/unseen benchmark는 없음 | `609+115`; installer `6/6`; wheel/install 0.3.0; NS6 측정 전 |

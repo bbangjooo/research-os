@@ -1,10 +1,10 @@
 # §07 — M2-A ProgramManifest·ProgramLog (2026-08-11)
 
-> Status: **ADVANCE — 4/4 and critic PASS; first audit FAIL, documentation correction pending**
+> Status: **COMPLETE — M2-A CLOSE; critic and corrected progress audit PASS**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§06](06-2026-08-11-m1-e-release-close.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §4, §8~§10
-> Active milestone: `M2-A` at candidate `4/4`; audit reverify pending
+> Closed milestone: `M2-A` at `4/4`; next active milestone is `M2-B`
 
 ## 07.0 TL;DR
 
@@ -148,7 +148,7 @@ original `3065d242…b1a4`, corrected expected manifest `14a6aea9…83f9`, origi
 
 **영향 받은 M_i.j**: `M2-A`
 
-**현재 라벨**: `ADVANCE (corrected candidate 4/4; critic PASS, audit pending)`
+**현재 라벨**: `CLOSE (corrected 4/4; critic and audit PASS)`
 
 | Frozen conjunct | 결과 | Reproducible evidence |
 |---|---|---|
@@ -252,5 +252,5 @@ quality나 retrieval relevance는 측정하지 않는다. EventLog와 유사한 
 
 ## 07.10 Next action
 
-Saved critic Q1~Q8은 모두 PASS했다. First progress audit의 LOC/§11/stricter-assumption FAIL을
-보정하고 같은 auditor 재검증이 PASS할 때만 M2-A를 CLOSE한다.
+Saved critic Q1~Q8과 corrected seven-pass progress audit가 모두 PASS했다. M2-A를 CLOSE하고
+conditional Claim/relation의 M2-B pre-spec과 critic 질문을 고정한다.

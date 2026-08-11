@@ -42,8 +42,8 @@
     M1-E와 parent M1/v0.3을 `CLOSE`했고 M2-A를 활성화했다.
   - M2-A는 separate ProgramManifest/ProgramLog, exact M1 origin replay와 rebuildable projection을
     구현했다. First critic의 same-head race FAIL을 barrier+thread-attributed loser writes `0/0`으로
-    보정했고 corrected `22/22`, race `50/50`, fresh full `635+115`와 critic이 PASS했다.
-    Progress audit 전이므로 candidate `4/4`다.
+    보정했고 corrected `22/22`, race `50/50`, fresh full `635+115`, critic과 corrected audit이
+    모두 PASS해 M2-A를 CLOSE하고 M2-B를 활성화했다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 
@@ -63,7 +63,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** M2-A independent progress audit를 통과한다.
+- [ ] **단일 최우선 행동:** M2-B Conditional Claim·evidence 관계 pre-spec과 critic을 고정한다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
@@ -71,11 +71,11 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 |---|---|---|---|
 | v0.3 제품 + M1-A~E implementation | `src/research_os/` | released; M1 closed | Context v3 default, exact managed upgrade, executable six-case binding |
 | 기존+M1-E 테스트 | `tests/` | corrected green | `609+115`; tokenless `7/7`; installer structured `6/6` |
-| 진행 상태 core | `docs/research-os-status.md` | active | M1/v0.3 closed; M2-A active |
+| 진행 상태 core | `docs/research-os-status.md` | active | M1 and M2-A closed; M2-B active |
 | M1-E vertical slice | `docs/research-os-status/05-2026-08-11-m1-e-usable-context.md` | complete; independent audit PASS | opt-in Context v3 + Diagnosis template + disposable example PASS |
 | M1-E release close | `docs/research-os-status/06-2026-08-11-m1-e-release-close.md` | complete; independent audit PASS | receipt `e120292`; `609+115`; installer `6/6` |
-| M2-A Program memory boundary | `docs/research-os-status/07-2026-08-11-m2-a-program-manifest-log.md` | candidate 4/4; audit pending | corrected `22`, race `50/50`, full `635+115` |
-| 방법론 pipeline core | `docs/research-os-pipeline.md` | active | M1 closed; M2-A active |
+| M2-A Program memory boundary | `docs/research-os-status/07-2026-08-11-m2-a-program-manifest-log.md` | complete; critic + audit PASS | corrected `22`, race `50/50`, full `635+115` |
+| 방법론 pipeline core | `docs/research-os-pipeline.md` | active | M1 and M2-A closed; M2-B active |
 
 ### 0.5 알려진 잔여 이슈
 
@@ -190,13 +190,12 @@ EXPLORATORY의 `MIXED`다.
 
 #### 2.3.2 현재 active checkpoint
 
-- **Active M_i.j**: `M2-A`
+- **Active M_i.j**: `M2-B`
 - **직전 close가 가능하게 한 작업**: M1-E가 Context v3, legacy compatibility, managed
   upgrade와 v0.3 release를 5/5로 닫고 parent M1의 stable identity를 확정했다.
-- **현재 close audit**: M2-A first critic FAIL(Q1/Q2/Q6/Q8) 뒤 race correction PASS;
-  paired-core sync와 critic Q1~Q8 PASS; first audit documentation FAIL correction/reverify pending.
-- **이 M.j가 닫혀야 다음에 가능해지는 작업**: M2-B Claim이 append-only ProgramLog와 exact
-  M1 Diagnosis/ClassState origin을 안전하게 참조할 수 있다.
+- **현재 close audit**: M2-A critic Q1~Q8와 corrected seven-pass audit PASS; M2-A closed.
+- **이 M.j가 닫혀야 다음에 가능해지는 작업**: M2-C retrieval이 typed Claim과 canonical
+  relation/disposition reducer를 안전하게 소비할 수 있다.
 - **M1 parent close까지 남은 sub**: 없음.
 
 #### 2.3.3 M 진척 표
@@ -208,8 +207,8 @@ EXPLORATORY의 `MIXED`다.
 | M1-C | Typed Proposal과 replication identity | 4/4 ✅ | closed | 03 | phase §03.4~§03.6.4; manifest `20/20`; critic + auditor PASS |
 | M1-D | Diagnosis·ClassState·semantic frontier | 5/5 ✅ | closed | 04 | phase §04.5~§04.6.4; transition `26/23/54/37/7`; negative `460/460`; critic + auditor PASS |
 | M1-E | Context v3·legacy compatibility·v0.3 release | 5/5 ✅ | closed | 06 | `e120292`; `609+115`; installer `6/6`; critic + auditor PASS |
-| M2-A | ProgramManifest·ProgramLog | 4/4 ✅ | candidate | — | phase 07; critic PASS, audit reverify pending |
-| M2-B | Conditional Claim과 evidence 관계 | 0/5 ✅ | open | — | pipeline §9.4 |
+| M2-A | ProgramManifest·ProgramLog | 4/4 ✅ | closed | 07 | corrected critic + audit PASS |
+| M2-B | Conditional Claim과 evidence 관계 | 0/5 ✅ | active | — | pipeline §9.4; pre-spec next |
 | M2-C | Deterministic retrieval·Context integration | 0/5 ✅ | open | — | pipeline §9.4 |
 | M2-D | Knowledge disposition·legacy import·v0.4 release | 0/5 ✅ | open | — | pipeline §9.4 |
 | M3-A | Provider-neutral DecisionPacket | 0/4 ✅ | open | — | pipeline §9.4 |
@@ -228,7 +227,7 @@ EXPLORATORY의 `MIXED`다.
 | 04 | 2026-08-10~11 | M1-D | 5/5 | close | final corrected manifest/transition, direct `67`, bounded `56`, compatibility `20/20`, single floor PASS; auditor PASS |
 | 05 | 2026-08-11 | M1-E | 1/5 | advance | opt-in v3 + template + disposable E2E PASS; M1-E close는 아님 |
 | 06 | 2026-08-11 | M1-E | 5/5 | close | third correction `609+115`; installer `6/6`; critic + auditor PASS; parent M1 closed |
-| 07 | 2026-08-11 | M2-A | 4/4 | advance | race `50/50`; fresh `635+115`; critic PASS, audit pending |
+| 07 | 2026-08-11 | M2-A | 4/4 | close | race `50/50`; fresh `635+115`; critic + corrected audit PASS |
 
 #### 2.3.5 Gate-bypass 기록
 
@@ -253,18 +252,18 @@ EXPLORATORY의 `MIXED`다.
 | 04 | 2026-08-10~11 / M1-D | [`research-os-status/04-2026-08-10-m1-d-diagnosis-class-frontier.md`](research-os-status/04-2026-08-10-m1-d-diagnosis-class-frontier.md) | Diagnosis·ClassState·frontier 5/5 closed; corrected oracle + critic + auditor PASS |
 | 05 | 2026-08-11 / M1-E vertical slice | [`research-os-status/05-2026-08-11-m1-e-usable-context.md`](research-os-status/05-2026-08-11-m1-e-usable-context.md) | Context v3 + Diagnosis template + disposable E2E; independent audit PASS |
 | 06 | 2026-08-11 / M1-E release close | [`research-os-status/06-2026-08-11-m1-e-release-close.md`](research-os-status/06-2026-08-11-m1-e-release-close.md) | M1-E 5/5 + parent M1 closed; critic + progress audit PASS |
-| 07 | 2026-08-11 / M2-A | [`research-os-status/07-2026-08-11-m2-a-program-manifest-log.md`](research-os-status/07-2026-08-11-m2-a-program-manifest-log.md) | ProgramManifest/Log candidate 4/4; critic PASS, audit pending |
+| 07 | 2026-08-11 / M2-A | [`research-os-status/07-2026-08-11-m2-a-program-manifest-log.md`](research-os-status/07-2026-08-11-m2-a-program-manifest-log.md) | ProgramManifest/Log 4/4 closed; critic + corrected audit PASS |
 
 ---
 
 ## 11. 한 페이지 요약 (TL;DR)
 
-- 현재 상태: 제품 version `0.3.0`; M1 closed, M2-A corrected candidate `4/4`다. Release
+- 현재 상태: 제품 version `0.3.0`; M1과 M2-A closed, M2-B active다. Release
   implementation checkpoint는 `e120292`다.
 - 마지막 유효 engineering 측정: Cycle 07 fresh `635+115`, focused `22`, race `50/50`,
   ruff/ty/diff와 authority `12/0 non-null` PASS. Historical v0.3 seal은 `609+115`, installer
   `6/6`, external no-write, exact product tree와 wheel/install이며 invalid runs는 제외한다.
-- 다음 1행동: M2-A independent progress audit.
+- 다음 1행동: M2-B Conditional Claim/relation pre-spec과 critic.
 - 가장 큰 갭: program Claim/retrieval과 autonomous loop/unseen benchmark가 M2/M3에 남아 있다.
 
 ---
@@ -313,7 +312,7 @@ EXPLORATORY의 `MIXED`다.
 | Evidence semantics | arbitrary constraint 중심 | ○ | directional delta·typed slack·verify symmetry 구현; 외부 metric 의미는 아직 contract 밖 | phase §01 E1~E9 |
 | Scientific State | 문서상 일부 존재 | ○ | Proposal/Diagnosis/ClassState/frontier와 legacy isolation `6/6`이 executable. Actual telemetry·lifetime cap과 program Claim은 없음 | NS2 = 6/6; NS3 = 3/4; current full `635+115` |
 | Relevant Context | recent v2 packet | △ | default v3와 release binding은 closed; Claim/retrieval reason은 M2에 남음 | phase §06; M1-E `5/5`; auditor PASS |
-| Program Memory | Finding 존재 | △ | stricter reviewer assumption: log boundary만으로 learning memory라 하지 않고 Claim/retrieval 전에는 △로 제한하며 race도 winner count 아닌 loser writes `0/0`을 요구한다 | M2-A candidate 4/4; NS3 = 3/4, NS4 = 0/4 |
+| Program Memory | Finding 존재 | △ | stricter reviewer assumption: log boundary만으로 learning memory라 하지 않고 Claim/retrieval 전에는 △로 제한하며 race도 winner count 아닌 loser writes `0/0`을 요구한다 | M2-A closed 4/4; NS3 = 3/4, NS4 = 0/4 |
 | Autonomous Loop | agent workflow 존재 | ✗ | 외부 대화가 수동으로 각 단계를 이어주며 resume 가능한 loop state가 없음 | NS5 = 0/7 |
 | 학습 효과 | 미측정 | ✗ | collection 589 composite regression은 PASS했지만 v0.2 comparator와 pre-fixed unseen learning benchmark가 없음 | NS6 측정 전 |
 
@@ -330,7 +329,7 @@ EXPLORATORY의 `MIXED`다.
 | 04 M1-D | cycle base `a5f232d` 대비 tracked `+126,150/-331` + untracked support `9,955` lines (`git diff --numstat a5f232d`; untracked `wc -l`) | product core보다 frozen JSON fixtures/observer/correction harness가 압도적으로 커진 과잉설계 비용을 명시; `state.py` 3,171 lines, oracle 2,724, rebuild script 2,256 | final transition `92551a…c54`; `26/23/54/37/7`; negative `460/460`; direct `67`; bounded `56`; compatibility `20/20`; floor PASS; auditor PASS |
 | 05 M1-E vertical | pre-spec `38446f1` → product `7fcfd10`: source `+365/-8`, commit 11 files `+686/-8` | 1,200-line cap 이하; 신규 manifest/graph reducer 없음; temp replay O(n) limitation 명시 | vertical `4`; final focused/compatibility `127+23`; demo/ruff/ty/diff와 independent audit PASS |
 | 06 M1-E release close correction | first `3eaba21→1aa9c58`; second `ff608af→58b731e`; third `b70a98f→e120292` | Rule9 second PIVOT cap total 1,600; nested latency | `609+115`; installer `6/6`; critic + auditor PASS; M1 closed |
-| 07 M2-A candidate | `61adebc..9840208`: product+release `1,635`, tests+fixture `980`, docs `404`, total `3,019` | corrected audit-ledger cutoff; category caps `1,650/1,000/450`, pivoted total cap `3,100` | corrected `22`, race `50/50`, fresh `635+115`; critic PASS; first audit FAIL corrected |
+| 07 M2-A close | `61adebc..9840208`: product+release `1,635`, tests+fixture `980`, docs `404`, total `3,019` | corrected audit-ledger cutoff; category caps `1,650/1,000/450`, pivoted total cap `3,100` | corrected `22`, race `50/50`, fresh `635+115`; critic + corrected audit PASS |
 
 ---
 
@@ -373,4 +372,4 @@ EXPLORATORY의 `MIXED`다.
 - [x] Cycle 07 first critic FAIL의 same-head race를 barrier·loser writes `0/0`으로 correction
 - [x] Cycle 07 critic Q1~Q8 corrected reverify — **PASS**
 - [x] Cycle 07 first independent audit — **FAIL** (LOC/§11/stricter-assumption docs)
-- [ ] Cycle 07 corrected independent progress re-audit
+- [x] Cycle 07 corrected independent progress re-audit — **PASS** (`research-os-status/07-m2-a-program-manifest-log.audit.md`)
