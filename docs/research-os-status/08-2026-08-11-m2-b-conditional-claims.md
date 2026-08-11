@@ -1,6 +1,6 @@
 # §08 — M2-B Conditional Claim·evidence relations (2026-08-11)
 
-> Status: **CANDIDATE 5/5 — implementation evidence PASS; critic/audit pending**
+> Status: **CORRECTION — candidate evidence 5/5; critic Attempt 1 FAIL; audit not started**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§07](07-2026-08-11-m2-a-program-manifest-log.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §4, §8~§10
@@ -208,7 +208,37 @@ critic `249`, total `2,688`; all pre-result category and total caps pass. Claim 
 `CONFIRMATORY`: schema, 25 denominator, error codes, scope rules and strict snapshot requirement were
 precommitted. The failed first run and its implementation corrections are preserved rather than counted.
 
-## 08.10 Next action
+## 08.10 Critic Attempt 1 FAIL and correction pre-spec
 
-Independent critic answers Q1~Q8 against `529283c` and the fresh evidence. PASS 뒤 candidate status와
-pipeline을 동기화하고, separate progress auditor가 PASS해야만 M2-B를 CLOSE한다.
+Independent critic은 `6327b54`를 Q1~Q8로 검증해 Q1/Q4/Q6/Q8 PASS, Q2/Q3/Q5/Q7 FAIL을 냈다.
+Product semantic defect보다 evidence witness의 약함이 원인이다.
+
+1. Frozen scope cases 22~24가 pure reducer 결과 뒤 `relation_delta=0`을 상수 반환해 actual
+   `ProgramStore.append_relation` no-write를 증명하지 않았다.
+2. Artifact reorder direct test는 real two-artifact ordered set을 뒤집은 것이 아니라 forged second
+   artifact를 추가한 뒤 parser reject를 관찰했다.
+3. Same-origin replication case는 same scope도 동시에 같아 one-factor counterfactual이 아니었다.
+   Wrong-role, same-scope/different-origin, same-origin/different-scope, class mismatch witness가 없다.
+4. Q7 응답 label `DIRECT with LIMITATION`은 허용된 단일 label 형식이 아니다.
+
+Correction acceptance는 frozen 25 case ID/operation/expected, schema, product semantics와 full threshold를
+바꾸지 않는다. Cases 22~24 operation은 canonical ProgramLog에 strict synthetic endpoint Claims를
+admit한 뒤 **actual** `ProgramStore.append_relation`을 호출하고 log bytes/relation count가 unchanged임을
+측정한다. External Claim admission은 case 6~12의 real locked M1 prefix와 별도로 유지한다.
+
+Canonical replication history에는 terminal 전에 서로 다른 두 artifact record와 일치하는 result
+artifacts를 추가한다. 그 Diagnosis에서 만든 valid two-artifact Claim을 기준으로 omission, addition,
+substitution, literal reversed order 네 요청을 각각 `ProgramStore.append_claim`에 보내 log/projection/
+Claim count delta 0을 측정한다. Replication one-factor direct matrix는 wrong source role,
+same-scope/different-origin, same-origin/different-scope Claim admission, class mismatch를 각각 단일 축으로
+바꿔 fail-closed한다. Valid case 16은 unchanged positive control이다.
+
+Critic 뒤 늘어난 counterfactual 때문에 tests+fixture cap만 `<=1,100→<=1,250`으로 PIVOT한다. Product
+`<=1,500`, docs `<=500`, total `<=3,100`은 유지한다. 이 correction evidence는 result-triggered이므로
+phase claim mode를 `MIXED`로 바꾸며 original 25 cases는 CONFIRMATORY, critic-driven extra witnesses는
+EXPLORATORY다.
+
+## 08.11 Next action
+
+Correction pre-spec checkpoint 뒤 test-only witnesses를 구현하고 focused/adjacent를 재실행한다. Q1~Q8
+critic Attempt 2가 PASS하기 전에는 progress audit을 시작하지 않는다.

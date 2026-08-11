@@ -48,7 +48,7 @@
 6. **유한 자율 루프** (§6): provider의 출력은 비신뢰 packet이며 kernel preflight 뒤에만 실행된다.
 7. **비교 가능한 효과 측정** (§7): 동일 후보 언어·실험 budget에서 정확도와 낭비를 비교한다.
 
-현재 상태 (Cycle 08 M2-B **ADVANCE candidate 5/5**; critic/audit pending):
+현재 상태 (Cycle 08 M2-B **CORRECTION**; critic Attempt 1 FAIL; audit not started):
 
 - 1번 ✅/○ — directional delta, constitution-owned typed gate/slack, baseline/candidate verify 대칭과 nested/flat certification lifecycle이 구현·검증됐다.
 - 2번 ○ — checkpoint `df2c900`에서 canonical StudyContract·evaluation-sealed generation·replayable cumulative reservation ledger·locked overrun gate가 구현됐다. executable manifest `29/29`, focused `81+37`; 단, generation별 non-refundable reservation이지 actual usage telemetry나 study lifetime cap은 아니며 successor 반복 증액을 막지 않는다.

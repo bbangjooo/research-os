@@ -67,7 +67,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** M2-B candidate Q1~Q8 critic verify와 독립 progress audit을 통과시킨다.
+- [ ] **단일 최우선 행동:** M2-B critic Attempt 1 evidence defects를 actual writer/multi-artifact/one-factor witnesses로 보정한다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
@@ -79,7 +79,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | M1-E vertical slice | `docs/research-os-status/05-2026-08-11-m1-e-usable-context.md` | complete; independent audit PASS | opt-in Context v3 + Diagnosis template + disposable example PASS |
 | M1-E release close | `docs/research-os-status/06-2026-08-11-m1-e-release-close.md` | complete; independent audit PASS | receipt `e120292`; `609+115`; installer `6/6` |
 | M2-A Program memory boundary | `docs/research-os-status/07-2026-08-11-m2-a-program-manifest-log.md` | complete; critic + audit PASS | corrected `22`, race `50/50`, full `635+115` |
-| M2-B Conditional Claim graph | `docs/research-os-status/08-2026-08-11-m2-b-conditional-claims.md` | candidate 5/5; critic/audit pending | frozen `25`, focused `33`, full `668+115` |
+| M2-B Conditional Claim graph | `docs/research-os-status/08-2026-08-11-m2-b-conditional-claims.md` | correction; critic Attempt 1 FAIL | frozen `25`, focused `33`, full `668+115`; witness gaps open |
 | 방법론 pipeline core | `docs/research-os-pipeline.md` | active | M1 and M2-A closed; M2-B candidate 5/5 |
 
 ### 0.5 알려진 잔여 이슈
@@ -198,7 +198,7 @@ EXPLORATORY의 `MIXED`다.
 - **Active M_i.j**: `M2-B`
 - **직전 close가 가능하게 한 작업**: M1-E가 Context v3, legacy compatibility, managed
   upgrade와 v0.3 release를 5/5로 닫고 parent M1의 stable identity를 확정했다.
-- **현재 close audit**: M2-B candidate evidence 5/5; Q1~Q8 verify와 independent audit pending.
+- **현재 close audit**: M2-B critic Attempt 1 FAIL; actual writer/multi-artifact/one-factor correction active; audit not started.
 - **이 M.j가 닫혀야 다음에 가능해지는 작업**: M2-C retrieval이 typed Claim과 canonical
   relation/disposition reducer를 안전하게 소비할 수 있다.
 - **M1 parent close까지 남은 sub**: 없음.
@@ -213,7 +213,7 @@ EXPLORATORY의 `MIXED`다.
 | M1-D | Diagnosis·ClassState·semantic frontier | 5/5 ✅ | closed | 04 | phase §04.5~§04.6.4; transition `26/23/54/37/7`; negative `460/460`; critic + auditor PASS |
 | M1-E | Context v3·legacy compatibility·v0.3 release | 5/5 ✅ | closed | 06 | `e120292`; `609+115`; installer `6/6`; critic + auditor PASS |
 | M2-A | ProgramManifest·ProgramLog | 4/4 ✅ | closed | 07 | corrected critic + audit PASS |
-| M2-B | Conditional Claim과 evidence 관계 | 5/5 ✅ | active candidate | — | phase §08; critic/audit pending |
+| M2-B | Conditional Claim과 evidence 관계 | 5/5 candidate | correction | — | critic Attempt 1 FAIL; audit not started |
 | M2-C | Deterministic retrieval·Context integration | 0/5 ✅ | open | — | pipeline §9.4 |
 | M2-D | Knowledge disposition·legacy import·v0.4 release | 0/5 ✅ | open | — | pipeline §9.4 |
 | M3-A | Provider-neutral DecisionPacket | 0/4 ✅ | open | — | pipeline §9.4 |

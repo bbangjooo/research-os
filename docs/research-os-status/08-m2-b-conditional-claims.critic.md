@@ -109,3 +109,21 @@ First result `6 failed, 26 passed`는 폐기하고 기준 변경 없이 writer e
 Final literal `25/25`, focused+direct `33`, full `668+115`, skip/fallback 0이며 frozen manifest bytes와
 25 case ID/operation/expected의 post-result 변경은 0이다. 이 chronology가 깨지면 CONFIRMATORY를
 철회한다.
+
+## Verify Attempt 1 — FAIL
+
+| Q | Verdict | Defect |
+|---|---|---|
+| Q1 | PASS | Claim/relation replay와 NS4 `0/4` 제한은 정확함 |
+| Q2 | FAIL | Q5/Q7 evidence defect로 five-conjunct close가 아직 불성립 |
+| Q3 | FAIL | cases 22~24가 pure reducer + constant `relation_delta=0` |
+| Q4 | PASS | strict parser/snapshot/authority boundary 확인 |
+| Q5 | FAIL | real multi-artifact external-prefix reorder witness 없음 |
+| Q6 | PASS | immutable supersession/mixed precedence/error boundary 확인 |
+| Q7 | FAIL | noncanonical response label과 one-factor independence matrix 누락 |
+| Q8 | PASS | chronology/frozen denominator/LOC/worktree 확인 |
+
+**VERDICT: FAIL.** Severity-1 correction은 actual ProgramStore no-write scope cases, real M1
+two-artifact omission/addition/substitution/reorder, wrong-role/same-scope-different-origin/
+same-origin-different-scope/class one-factor replication witnesses다. Attempt 1은 삭제하거나 PASS로
+덮어쓰지 않는다.
