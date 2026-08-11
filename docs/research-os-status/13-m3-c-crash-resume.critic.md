@@ -5,7 +5,7 @@
 ## Q1 [proxy-vs-real]
 `resume-*-call-started`가 deterministic fixture의 재호출 성공을 exactly-once recovery로 오인하지 않도록, 호출마다 다른 packet을 반환하는 nondeterministic provider에서 output 반환 후 capture 전 crash와 capture 후 crash를 분리해 전자는 reservation 재충전 없이 한 번만 재호출되어 canonical truth가 하나만 남고 후자는 절대 재호출되지 않으며 외부 billing exactly-once는 청구하지 않음을 어떻게 증명할 것인가?
 
-**Response: DIRECT + LIMITATION.**
+**Response: DIRECT.**
 `test_m3c_nondeterministic_provider_capture_boundary` uses a provider whose Diagnosis/Claim changes on every call.
 The four exploratory rows crash both kinds before and after durable capture: pre-capture restarts invoke once under
 the original reservation; post-capture restarts invoke zero times; all five truth-owner semantic counts remain one.
@@ -33,17 +33,23 @@ recovered registration projection binding, or captured-synthesis Program head. `
 `AUTONOMY_RECOVERY_STALE`/`AUTONOMY_RECOVERY_EVIDENCE_INVALID`, provider/service call zero where applicable, and
 post-mutation Project/Program delta `0/0`. Exact Claim recovery is accepted only when its event is the immediate
 successor of the stored request head and is still the current head; it cannot launder a later writer.
+The Attempt 1 correction adds `test_m3c_lookup_to_append_race_fails_closed_without_controller_write`: a callback
+advances Project generation or Program head after recovery lookup but before service/disposition/Claim append.
+All three rows return `AUTONOMY_RECOVERY_STALE`, make zero restarted provider/service calls, make zero controller
+writes after the competing writer, and preserve all existing terminal/disposition/Diagnosis/origin/Claim counts.
 
 ## Q4 [boundary]
 NS1의 authority·forbidden-operation 0이 문자열 키 검색이나 고정 상수 proxy가 아님을, captured output·state·Context·packet·Diagnosis·synthesis·Claim의 adversarial nested non-null authority를 실제 parser/reducer가 거절하고 public exports와 controller/provider의 reachable runtime call graph에서 alias·`getattr`·injected object를 포함한 service/store/log/path/callable 및 deploy/merge/trade 실행 경로가 0임을 어떤 executable evidence로 보일 것인가?
 
-**Response: DIRECT + LIMITATION.**
+**Response: LIMITATION.**
 Frozen authority rows recursively scan Context, DecisionPacket, every Autonomy event, Diagnosis request, synthesis
 request/packet, and Claim; all non-null counts are zero. The exploratory adversarial test forges nested authority in
 three actual parsers and `provider_output_captured`, proving rejection before log-byte change. Forbidden rows parse
 the controller AST for direct/name/`getattr` calls and public exports; an injected provider exposing callable
-`deploy`, `merge`, and `trade` then completes an episode with counters `0/0/0`. This proves controller reachability,
-not hostile Python sandboxing; a cooperative provider remains the stated limitation.
+`deploy`, `merge`, and `trade` then completes an episode with counters `0/0/0`. This proves the three prohibited
+controller operations, but not capability isolation from a hostile in-process Python provider: the test provider
+itself retains a ProgramStore to construct fixtures. §13.7 therefore limits the claim to cooperative provider code;
+service/store/log/path sandboxing is not claimed by M3-C.
 
 ## Q5 [end-state-positioning]
 §8.4 Autonomy를 finite-but-incomplete에서 canonical cold-restart 가능 episode로 실제 구체화하되 외부 provider billing exactly-once·distributed consensus·학습 품질은 여전히 불가능한 것으로 남기고 Context/Program memory와 NS6/NS7의 rating을 올리지 않았음을 §13.6.5와 pipeline §8.5 Cycle 13의 전후 행동·세 truth-owner 경계·잔여 갭으로 어떻게 동기화할 것인가?
@@ -51,9 +57,9 @@ not hostile Python sandboxing; a cooperative provider remains the stated limitat
 **Response: DIRECT.**
 §13.6.5 records the before/after behavior and keeps Context/Program ratings fixed: Autonomy moves from committed-only
 replay to canonical cold restart across AutonomyLog orchestration, ProjectLog scientific truth, and ProgramLog memory
-truth. §13.7 preserves external billing, distributed consensus and learning-quality gaps. The paired status/pipeline
-remain `M3-C active` until this critic verifies; only then Cycle 13 will record `MIXED` close candidate without moving
-NS6/NS7, followed by the independent audit.
+truth. §13.7 preserves external billing, distributed consensus and learning-quality gaps. Pipeline §8.5 now records
+Cycle 13 as `구체화·검증 (MIXED correction)`: only Autonomy crash recovery moves; Context/Program and NS6/NS7 do not.
+The paired status remains `ADVANCE`, critic correction active, and M3-D blocked until re-verification and audit.
 
 ## Q6 [milestone-positioning]
 M3-C를 `CLOSE`하려면 frozen 31개 literal ID가 fallback 없이 각각 실행되어 actual cold reopen `13/13`, terminal/disposition/Diagnosis/origin/Claim semantic count 각 1, stale `4/4` no-write, recursive authority `6/6`, reachable forbidden callable `3/3`을 동시에 만족하고 M3-B prerequisite와 두 independent gate를 통과해야 하는데 §13.6.4는 이를 어떤 handler·command·receipt 행에 일대일 매핑하며 그 전까지 M3-D를 어떻게 차단할 것인가?
@@ -61,17 +67,17 @@ M3-C를 `CLOSE`하려면 frozen 31개 literal ID가 fallback 없이 각각 실�
 **Response: DIRECT.**
 `tests/test_m3c_crash_resume.py` has one literal handler per manifest group and asserts all 31 unique IDs, exact group
 denominators and raw manifest SHA. Receipt frozen rows map `13/13`, duplicate `5/5`, stale `4/4`, authority `6/6`,
-forbidden `3/3`; focused is `38`, combined M3-B/C `98`, adjacent M3-A/B/C `139`. The M3-B prerequisite is `08327ad`.
-Receipt critic/audit fields remain `PENDING`, phase status is only `CLOSE CANDIDATE`, paired status keeps M3-D blocked,
-and no M3-D data exists.
+forbidden `3/3`; corrected focused is `41` and adjacent M3-A/B/C is `142`. The M3-B prerequisite is `08327ad`.
+Receipt records critic Attempt 1 FAIL and audit pending; phase/status use the valid `ADVANCE` label, keep M3-D blocked,
+and contain no M3-D data.
 
 ## Q7 [claim-mode-discipline]
 Frozen 31·cutpoint 정의·stale code·LOC cap을 `CONFIRMATORY`로 청구하려면 pre-spec `22190bf`가 첫 product/data commit보다 이르고 manifest SHA/bytes가 그대로임을 어떤 git 명령과 timestamp로 증명하며, M3-B footprint `2,043` retain 결정에 대한 M3-C product `<=900`, tests `<=1,400`, inclusive `<=2,800` 후속 결과와 critic/result 뒤 추가된 witness 또는 cap miss를 §13.6.7에서 어떤 `EXPLORATORY` 행으로 분리해 필요시 `MIXED`로 강등할 것인가?
 
 **Response: DIRECT.**
 `git show -s --format='%H %cI' 22190bf 5291945 7394246` proves `06:14:30` pre-spec and `06:16:37` critic questions
-precede first product/data at `06:37:22`; `shasum -a 256` remains `c3752c…65e27c7b`. Product churn is
-`254+59=313 <=900`; tests+fixture `657+51=708 <=1,400`; inclusive before receipt/audit is `1,283 <=2,800`.
+precede first product/data at `06:37:22`; `shasum -a 256` remains `c3752c…65e27c7b`. Corrected product churn is
+`294+59=353 <=900`; tests+fixture `778+51=829 <=1,400`; current inclusive before audit is `1,644 <=2,800`.
 §13.6.7 labels
 the frozen 31/caps CONFIRMATORY and the three critic-driven witness families EXPLORATORY, so the phase is `MIXED`.
 
@@ -79,11 +85,11 @@ the frozen 31/caps CONFIRMATORY and the three critic-driven witness families EXP
 사전 예상 `31/31`, M3-C `5/5`, duplicate truth 0, stale `4/4`, authority·forbidden callable 0 또는 세 LOC cap 중 하나라도 어긋나면 §13.6.8에서 fixture/runner 오염만 `RESULT-INVALID`로 철회·재측정하고, cutpoint·recovery 요구 자체의 결함은 `REQUIREMENT-WRONG` correction phase로, nondeterminism·race·footprint의 유효한 예상 밖 동작은 `GENUINE-FINDING`/EXPLORATORY holdout으로 보내는 판정 증거와 자동 후속 행동은 무엇인가?
 
 **Response: DIRECT.**
-§13.6.8 records no final requirement-result divergence: denominator, codes, outcomes and caps match. Two product
-defects discovered before `7394246` were corrected without fixture or requirement changes. Future fixture/runner
+§13.6.8 classifies the Attempt 1 lookup→append witness gap and boundary error translation as
+`GENUINE-FINDING`/EXPLORATORY; the frozen denominator and requirement remain unchanged. Future fixture/runner
 contamination requires `RESULT-INVALID` withdrawal and rerun; a faulty recovery requirement requires a new frozen
-`REQUIREMENT-WRONG` correction phase; a valid nondeterministic/race/footprint surprise becomes
-`GENUINE-FINDING`/EXPLORATORY and blocks close. No category is silently rebaselined.
+`REQUIREMENT-WRONG` correction phase. No category is silently rebaselined, and the correction blocks close until
+re-verification and audit.
 
 ## Verify Attempt 1 — 2026-08-12
 

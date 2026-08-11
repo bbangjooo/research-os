@@ -1,6 +1,6 @@
 # §13 — M3-C crash-resume and authority closure (2026-08-12)
 
-> Status: **CLOSE CANDIDATE 5/5 — frozen 31/31; critic verification and audit pending**
+> Status: **ADVANCE 5/5 — frozen 31/31; critic Attempt 1 correction active; audit pending**
 > Previous phase: [§12](12-2026-08-12-m3-b-finite-autonomy-loop.md)
 > Active milestone: `M3-C`; M3-D blocked
 
@@ -10,8 +10,9 @@ M3-C turns M3-B's durable pending markers into exact crash recovery. Diagnosis/s
 captured in AutonomyLog before ProjectLog/ProgramLog side effects, so a restart never asks a nondeterministic
 provider to recreate already-used truth. Thirteen frozen cutpoints must cold-restart to the same terminal episode,
 with one terminal/disposition/Diagnosis/origin/Claim each, stale heads fail-closed, recursive authority null, and
-deploy/merge/trade operation surface zero. The frozen result is `31/31`; focused `38`, combined M3-B/C `98`, and
-adjacent M3-A/B/C `139` pass. M3-D unseen quality is not claimed and remains blocked by the two independent gates.
+deploy/merge/trade operation surface zero. The frozen result is `31/31`; focused/adjacent evidence passes. Critic
+Attempt 1 exposed a lookup→append race witness gap; three exploratory interleavings now fail closed without controller
+writes. M3-D unseen quality is not claimed and remains blocked by critic re-verification plus audit.
 
 ## 13.1 Scope, anchors, and exclusions
 
@@ -117,7 +118,7 @@ decision. Durable output capture, exact source reconciliation and one-factor sta
 
 ### 13.6.4 Milestone progress claim
 
-**Current label: `CLOSE CANDIDATE`; M3-C `5/5`; no close claim before critic and audit both pass.**
+**Current label: `ADVANCE`; M3-C engineering `5/5`; no `CLOSE` before critic and audit both pass.**
 
 | M3-C exit conjunct | Previous | Required after phase | Evidence target |
 |---|---:|---:|---|
@@ -149,18 +150,20 @@ changing M3-D thresholds, external migration timing, multi-agent gate, or produc
 
 | evidence | mode | result |
 |---|---|---|
-| frozen 31 IDs, five conjuncts, stale codes and caps | `CONFIRMATORY` | `31/31`; product `313/900`; tests+fixture `708/1,400` |
+| frozen 31 IDs, five conjuncts, stale codes and caps | `CONFIRMATORY` | `31/31`; corrected product `353/900`; tests+fixture `829/1,400` |
 | nondeterministic pre/post capture `4/4` | `EXPLORATORY` | pre-capture reinvoke one; post-capture zero; truth count one |
 | actual service registration-without-terminal | `EXPLORATORY` | one `RECOVERED_INTERRUPTED_RUN` terminal after cold reopen |
 | forged nested authority and injected forbidden methods | `EXPLORATORY` | rejected before commit; calls `0/0/0` |
+| lookup→append/service race interleavings | `EXPLORATORY` | generation/disposition/Claim `3/3` stable stale code; post-writer controller delta `0/0` |
 
 ### 13.6.8 Requirement-result divergence
 
-**해당 없음 — 사유:** frozen denominator, stable codes, functional outcomes and all three caps match the pre-spec.
-Two implementation defects found before the first product checkpoint (pending-call guard ordering and exact-Claim
-successor recognition) were corrected without changing the requirement or fixture. Critic-driven extra witnesses
-are valid `EXPLORATORY` evidence, not denominator changes. No `RESULT-INVALID`, `REQUIREMENT-WRONG`, or unexpected
-`GENUINE-FINDING` remains.
+**`GENUINE-FINDING` / EXPLORATORY correction.** Frozen denominator, codes, outcomes and caps match the pre-spec.
+Critic Attempt 1 showed that the claimed Q3 counterfactual mutated before recovery rather than between lookup and
+guarded append. A real interleaving also exposed a boundary exception that needed translation to
+`AUTONOMY_RECOVERY_STALE`. The product seam and three exploratory witnesses were added without changing the frozen
+31 or requirement. This is not fixture contamination (`RESULT-INVALID`) or a faulty requirement
+(`REQUIREMENT-WRONG`); re-verification and audit remain mandatory.
 
 ## 13.7 Residual issues
 
@@ -172,5 +175,5 @@ are valid `EXPLORATORY` evidence, not denominator changes. No `RESULT-INVALID`, 
 
 ## 13.10 Next action
 
-Run independent critic verification against receipt `13-m3-c-crash-resume.receipt.json`; if PASS, synchronize the
-paired status/pipeline and run the independent seven-pass audit. M3-D remains blocked until both pass.
+Re-run independent critic verification on the Attempt 1 correction. If PASS, run the independent seven-pass audit;
+only both PASS results permit `CLOSE` and M3-D activation.

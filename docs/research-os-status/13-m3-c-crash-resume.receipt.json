@@ -23,11 +23,11 @@
     }
   },
   "focused_command": ".venv/bin/pytest -q tests/test_m3c_crash_resume.py",
-  "focused_result": "38 passed in 67.79s",
+  "focused_result": "41 passed in 70.70s",
   "combined_command": ".venv/bin/pytest -q tests/test_m3b_finite_autonomy.py tests/test_m3c_crash_resume.py",
-  "combined_result": "98 passed in 154.72s",
+  "combined_result": "101 tests included in the passing adjacent run after correction",
   "adjacent_command": ".venv/bin/pytest -q tests/test_m3a_decision_packet.py tests/test_m3b_finite_autonomy.py tests/test_m3c_crash_resume.py",
-  "adjacent_result": "139 passed in 158.94s",
+  "adjacent_result": "142 passed in 165.08s",
   "exact_witnesses": {
     "cold_new_instances": "new service, ProgramStore, provider, and FiniteAutonomyLoop reopen the same three raw logs",
     "semantic_truth_counts": {
@@ -47,6 +47,7 @@
   "exploratory_witnesses": {
     "nondeterministic_provider_capture_boundary": "4/4; pre-capture reinvokes once, post-capture reinvokes zero; canonical truth remains one",
     "registration_without_terminal": "actual ResearchService cold recovery emits one RECOVERED_INTERRUPTED_RUN terminal",
+    "lookup_to_append_interleavings": "3/3; Project generation or Program head advances after recovery lookup; stable stale code; restarted calls zero; post-writer controller delta 0/0; existing truth counts unchanged",
     "adversarial_nested_authority": "Context/DecisionPacket/Synthesis/AutonomyLog forged nested authority rejected before commit",
     "injected_forbidden_methods": "provider deploy/merge/trade methods remain uncalled"
   },
@@ -57,19 +58,19 @@
     "live_project_migration": "post-v0.5"
   },
   "loc": {
-    "product_additions": 254,
+    "product_additions": 294,
     "product_deletions": 59,
-    "product_churn": 313,
+    "product_churn": 353,
     "product_target": 900,
-    "tests_and_fixture": 708,
+    "tests_and_fixture": 829,
     "tests_and_fixture_target": 1400,
-    "phase_and_critic_before_receipt_audit": 262,
-    "inclusive_before_receipt_audit": 1283,
+    "phase_critic_receipt_and_paired_churn_before_audit": 462,
+    "inclusive_before_audit": 1644,
     "inclusive_target": 2800,
     "all_measured_targets_met_before_independent_gates": true
   },
   "claim_mode": "MIXED (frozen 31 confirmatory; critic-driven witnesses exploratory)",
-  "critic_verdict": "PENDING",
+  "critic_verdict": "Attempt 1 FAIL (Q1/Q3/Q4/Q5/Q6); correction active",
   "audit_verdict": "PENDING",
   "authorized_action": null
 }

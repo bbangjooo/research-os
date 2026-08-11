@@ -22,7 +22,7 @@ from research_os.contracts.common import (
     normalize_json_object,
     sha256_json,
 )
-from research_os.errors import ConfigurationError, IntegrityError
+from research_os.errors import ConfigurationError, IntegrityError, StaleAgentContextError
 from research_os.kernel.events import Event, EventLog
 from research_os.kernel.ids import new_id, stable_id, validate_namespaced_id
 from research_os.memory import (
@@ -30,6 +30,7 @@ from research_os.memory import (
     Claim,
     OriginEvidenceRef,
     ProgramEvent,
+    ProgramHeadMismatchError,
     ProgramSnapshot,
     ProgramStore,
     RetrievalQuery,
@@ -1799,6 +1800,12 @@ class FiniteAutonomyLoop:
                     "AUTONOMY_RECOVERY_STALE",
                     "study generation changed before experiment registration",
                 )
+            self._checkpoint("experiment_lookup_before_service")
+            if self._science().active_generation_id != state.packet.proposal.generation_id:
+                raise _fail(
+                    "AUTONOMY_RECOVERY_STALE",
+                    "study generation changed after recovery lookup",
+                )
             with tempfile.TemporaryDirectory(
                 prefix="research-os-autonomy-", dir=self.service.config.resolved_runtime_dir
             ) as directory:
@@ -1826,16 +1833,23 @@ class FiniteAutonomyLoop:
         disposition_event = self._existing_disposition(state)
         if disposition_event is None:
             expected = state.packet.program_snapshot.program_head
-            disposition_event = record_agent_context_v3_knowledge_disposition(
-                state.current_context,
-                current_project_context_token=state.current_project_context_token,
-                current_claim_snapshot=self.program_store.claim_snapshot(),
-                proposal=state.packet.proposal,
-                disposition=state.packet.knowledge_disposition,
-                program_store=self.program_store,
-                project_log=self.service.event_log,
-                expected_program_head=expected,
-            )
+            self._checkpoint("disposition_lookup_before_append")
+            try:
+                disposition_event = record_agent_context_v3_knowledge_disposition(
+                    state.current_context,
+                    current_project_context_token=state.current_project_context_token,
+                    current_claim_snapshot=self.program_store.claim_snapshot(),
+                    proposal=state.packet.proposal,
+                    disposition=state.packet.knowledge_disposition,
+                    program_store=self.program_store,
+                    project_log=self.service.event_log,
+                    expected_program_head=expected,
+                )
+            except (ProgramHeadMismatchError, StaleAgentContextError) as exc:
+                raise _fail(
+                    "AUTONOMY_RECOVERY_STALE",
+                    "Program head changed after disposition recovery lookup",
+                ) from exc
         self._checkpoint("disposition_before_experiment_link")
         terminal_ref = {
             **_event_ref(terminal),
@@ -1904,6 +1918,7 @@ class FiniteAutonomyLoop:
                 expected = self._ref_head(
                     cast(Mapping[str, Any], state.disposition_ref["program_event"])
                 )
+                self._checkpoint("origin_lookup_before_append")
                 origin, origin_event = self.program_store.link_origin(
                     self.service.event_log,
                     cast(str, diagnosis_result["diagnosis_id"]),
@@ -1923,6 +1938,17 @@ class FiniteAutonomyLoop:
                 for item in science.class_states
                 if item.hypothesis_class_id == state.packet.proposal.hypothesis_class_id
             )
+        except AutonomyLoopError as exc:
+            if exc.code.startswith("AUTONOMY_RECOVERY_"):
+                raise
+            return self._reject(
+                log, call_id=call_id, kind="diagnosis", code=exc.code, stage="diagnosis"
+            )
+        except ProgramHeadMismatchError as exc:
+            raise _fail(
+                "AUTONOMY_RECOVERY_STALE",
+                "Program head changed after origin recovery lookup",
+            ) from exc
         except Exception as exc:
             code = getattr(exc, "code", "AUTONOMY_DIAGNOSIS_INVALID")
             return self._reject(log, call_id=call_id, kind="diagnosis", code=code, stage="diagnosis")
@@ -2043,14 +2069,28 @@ class FiniteAutonomyLoop:
                     )
             else:
                 self._require_program_head(request_snapshot.program_head)
+                self._checkpoint("claim_lookup_before_append")
                 claim_event = self.program_store.append_claim(
                     packet.claim,
                     self.service.event_log,
                     expected_program_head=request_snapshot.program_head,
                 )
             self._checkpoint("claim_before_synthesis_link")
-        except AutonomyLoopError:
-            raise
+        except AutonomyLoopError as exc:
+            if exc.code.startswith("AUTONOMY_RECOVERY_"):
+                raise
+            return self._reject(
+                log,
+                call_id=call_id,
+                kind="synthesis",
+                code="AUTONOMY_SYNTHESIS_INVALID",
+                stage="synthesis",
+            )
+        except ProgramHeadMismatchError as exc:
+            raise _fail(
+                "AUTONOMY_RECOVERY_STALE",
+                "Program head changed after Claim recovery lookup",
+            ) from exc
         except Exception:
             return self._reject(
                 log,

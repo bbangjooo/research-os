@@ -48,7 +48,7 @@
 6. **유한 자율 루프** (§6): provider의 출력은 비신뢰 packet이며 kernel preflight 뒤에만 실행된다.
 7. **비교 가능한 효과 측정** (§7): 동일 후보 언어·실험 budget에서 정확도와 낭비를 비교한다.
 
-현재 상태 (Cycle 12 M3-B CLOSED `6/6`; critic + audit Attempt 4 PASS; M3-C active):
+현재 상태 (Cycle 13 M3-C `ADVANCE 5/5`; critic Attempt 1 correction active; M3-D blocked):
 
 - 1번 ✅/○ — directional delta, constitution-owned typed gate/slack, baseline/candidate verify 대칭과 nested/flat certification lifecycle이 구현·검증됐다.
 - 2번 ○ — checkpoint `df2c900`에서 canonical StudyContract·evaluation-sealed generation·replayable cumulative reservation ledger·locked overrun gate가 구현됐다. executable manifest `29/29`, focused `81+37`; 단, generation별 non-refundable reservation이지 actual usage telemetry나 study lifetime cap은 아니며 successor 반복 증액을 막지 않는다.
@@ -58,8 +58,9 @@
   three-way `1/1`, frozen `23/23`, full `713+115`, critic와 corrected audit가 PASS했다.
 - 5번 ○ — default Context v3/explicit v2를 보존하면서 exact Claim/reason/contradiction과 Program head가
   actual loop의 다음 Context·DecisionPacket으로 재소비된다. 학습 품질 평가는 M3-D에 남는다.
-- 6번 △ — M3-B finite loop·세 truth-owner reconciliation·actual ResearchService vertical은 구현됐고
-  focused `60`과 audit `29/29`가 PASS했다. Crash/incomplete-step resume는 active M3-C에 남는다.
+- 6번 △ — M3-B finite loop 위에 M3-C frozen crash-resume `13/13`, duplicate/stale/authority/forbidden
+  five-conjunct `31/31`이 구현됐다. Critic Attempt 1의 lookup→append race gap은 exploratory `3/3`으로
+  교정 중이며, critic reverify와 audit 전에는 close하지 않는다.
 - 7번 ❌ — fresh full `757+115`와 corrected historical gate는 PASS했지만 v0.2 comparator와
   precommitted unseen learning episode suite는 없다.
 
@@ -324,7 +325,7 @@ Canonical truth boundaries:
 | Study inference | typed Proposal·Diagnosis·ClassState와 semantic frontier | M1-D: exact terminal-bound Diagnosis, pending gate, derived ClassState/immutable closure, semantic/retry frontier가 canonical replay. Interpretation 품질·registered-control·learned ranking은 증명하지 않음 | Cycle 04 `△→○`; transition `26/23/54/37/7`, negative `460/460`, five conjunct 5/5 |
 | Program memory | conditional Claim graph가 exact origin evidence를 참조 | Claim graph/retrieval 위에 registered Proposal-bound disposition과 digest-only legacy opaque event가 canonical ProgramLog에 저장·replay됨; M2 closed | Cycle 10 frozen `23/23`; corrected actual three-way `1/1`; full `713+115`; critic + audit PASS |
 | Context | v3가 budget/class/pending diagnosis/relevant claim/reason을 제공 | exact retrieval/disposition read set을 finite loop의 next Context/DecisionPacket이 current Program head에서 재소비 | Cycle 12 next-packet witness; focused `60`; critic + audit PASS |
-| Autonomy | provider-neutral finite state machine이 stop/resume | finite single-provider episode와 three-log evidence reconciliation은 audited; crash resume는 active M3-C | Cycle 12 closed `6/6`; critic + audit Attempt 4 PASS |
+| Autonomy | provider-neutral finite state machine이 stop/resume | three verified logs에서 cold crash-resume `13/13`; duplicate/stale/authority/forbidden `31/31`; lookup→append race correction `3/3`; independent gates pending | Cycle 13 `ADVANCE`; critic Attempt 1 correction active |
 | Meta-evaluation | post-freeze unseen 36 episodes와 choice oracle로 v0.2/v0.5 paired comparison | corrected full `757+115`는 PASS; learning benchmark/comparator/oracle/generator는 없음 | Cycle 11 regression only; 학습 효과는 여전히 미측정 |
 | Compatibility/authority | v1 logs 무변환, legacy 격리, authority null 유지 | version 0.4.0, sealed prior upgrade `6/6`, M3-A authority/write 0, product multi-agent false; actual replay/opaque 3/3은 M3-D | Cycle 11 receipt `32/32`, full `757+115`; critic + corrected audit PASS |
 
@@ -345,6 +346,7 @@ Canonical truth boundaries:
 | 10 | 2026-08-12 | 구체화·검증 (PIVOT correction) | Proposal-bound disposition과 legacy opaque event를 구체화; Attempt 1이 durable three-way를 proxy로 과장해 receipt를 철회하고 actual two-scope append/cold-replay witness로 보정; actual external replay와 M3 loop는 유지 | `4b0d0a1→f5d55ad→9dbb413→f1ab646`; corrected `713+115`, durable `1/1`; critic + corrected audit PASS; M2 close |
 | 11 | 2026-08-12 | 구체화·검증 (PIVOT correction) | 비신뢰 provider output을 current Program/Context/retrieval/Proposal에 검증하는 DecisionPacket seam을 추가; historical v0.4 HEAD-bound verifier Attempt 1은 철회·checkpoint-bound correction; FSM/NS5는 유지 | `50ee73d→eb289c4→42c7557`; frozen `32/32`, full `757+115`; critic + corrected audit PASS; M3-A close, M3-B active |
 | 12 | 2026-08-12 | 구체화·검증 (`MIXED` correction) | single-provider finite episode와 three-log truth-owner 경계를 구현했다. Critic/audit 결함은 source reconciliation·actual service·type/schema sync로 보정했다. Crash resume·unseen quality는 유지한다 | frozen `43/43`, focused/adjacent `60/125`; critic + audit Attempt 4 PASS; M3-B close, M3-C active |
+| 13 | 2026-08-12 | 구체화·검증 (`MIXED` correction, `ADVANCE`) | AutonomyLog orchestration·ProjectLog scientific truth·ProgramLog memory truth에서 crash cold-resume를 구현했다. Context/Program rating과 NS6/NS7은 유지하며 외부 billing exactly-once·hostile-provider sandbox·distributed consensus·learning quality는 미청구다 | frozen `31/31`; nondeterministic/service/authority exploratory PASS; critic Attempt 1 lookup→append gap correction `3/3`; reverify·audit pending, M3-D blocked |
 
 ---
 
@@ -435,7 +437,7 @@ managed upgrade와 structured six-case release evidence가 `5/5`로 독립 감�
 닫았다. M2-A `4/4`, M2-B Claim/relation `5/5`, M2-C retrieval `5/5`는 closed했고,
 M2-D disposition/legacy/v0.4 evidence도 corrected 5/5, critic, audit PASS로 닫혀 parent M2가
 closed다. M3-A DecisionPacket과 M3-B finite loop도 independent gates를 통과해 closed다.
-Crash-resume·unseen gate를 M3-C→D 순서로 진행한다.
+M3-C crash-resume engineering `5/5`는 `ADVANCE`이며 critic correction/audit 뒤에만 닫는다. Unseen M3-D는 차단됐다.
 
 ### 10.1 단계별 평가
 
@@ -446,7 +448,7 @@ Crash-resume·unseen gate를 M3-C→D 순서로 진행한다.
 | 3. Study inference | ○ | `science/{proposals,diagnoses,state}.py`, `service.py`; Proposal/Diagnosis/ClassState/frontier/Claim replay는 동작하나 interpretation quality·learned ranking은 없음 | NS3 audited `4/4`; M2-B closed |
 | 4. Program memory | ○ | `memory/{program,claims,retrieval,knowledge}.py`; Claim graph/retrieval 4/4 + registered Proposal disposition + legacy opaque cold replay; M3 consumer는 open | phases §09~§10; corrected `713+115`, durable `1/1`, critic PASS |
 | 5. Relevant context v3 | ○ | exact Claim/reason/manifest/Program-head/disposition을 finite loop가 next Context/DecisionPacket에서 재소비 | phase §12 corrected focused `60`; critic + audit PASS |
-| 6. Autonomous single-agent | △ | finite canonical episode와 truth-owner reconciliation은 audited; crash incomplete-step resume는 없음 | M3-B closed `6/6`; M3-C active |
+| 6. Autonomous single-agent | △ | finite episode와 cold crash-resume engineering은 동작; hostile provider sandbox·independent close gates는 없음 | M3-C frozen `31/31`; race correction `3/3`; `ADVANCE` |
 | 7. Meta-evaluation/release | ✗ | corrected regression은 PASS했지만 learning comparator/generator/unseen benchmark는 없음 | current full `757+115`; NS6 측정 전 |
 
 범례: ◎ 우수 / ○ 양호 / △ 부분 / ✗ 미구현

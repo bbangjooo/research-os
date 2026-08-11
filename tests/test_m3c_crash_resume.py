@@ -91,6 +91,25 @@ class _RegistrationMismatchLoop(FiniteAutonomyLoop):
         return replace(state, registrations=matches)
 
 
+class _RaceLoop(FiniteAutonomyLoop):
+    def __init__(
+        self,
+        *args: Any,
+        checkpoint: str,
+        writer: Callable[[], None],
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.target_checkpoint = checkpoint
+        self.writer = writer
+        self.injected = False
+
+    def _checkpoint(self, name: str) -> None:
+        if name == self.target_checkpoint and not self.injected:
+            self.injected = True
+            self.writer()
+
+
 class _ChangingProvider(_EpisodeProvider):
     def __init__(self, *args: Any, sequence: Counter[str], **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -284,6 +303,43 @@ def _truth_type_counts(harness: Harness) -> dict[str, int]:
             == state.claim_history[0]["claim_id"]
             for event in program
         ),
+    }
+
+
+def _pending_truth_counts(harness: Harness) -> dict[str, int]:
+    state = harness.state()
+    assert state.packet is not None
+    science = reduce_scientific_state(
+        harness.service.event_log.read(), project_id=harness.service.config.project_id
+    )
+    registrations = tuple(
+        item
+        for item in science.registrations
+        if item.proposal_digest == state.packet.proposal.digest
+    )
+    experiment_ids = {item.experiment_id for item in registrations}
+    diagnoses = tuple(
+        item for item in science.diagnoses if item.diagnosis.experiment_id in experiment_ids
+    )
+    diagnosis_ids = {item.diagnosis_id for item in diagnoses}
+    snapshot, _ = harness.store.snapshot()
+    origins = tuple(item for item in snapshot.origins if item.diagnosis_id in diagnosis_ids)
+    origin_ids = {item.origin_id for item in origins}
+    claims = tuple(
+        item.claim
+        for item in harness.store.claim_snapshot().claims
+        if item.claim.evidence.origin_id in origin_ids
+    )
+    return {
+        "terminal": sum(item.is_terminal for item in registrations),
+        "disposition": sum(
+            event.event_type == PROGRAM_KNOWLEDGE_DISPOSITION_RECORDED_EVENT
+            and event.payload.get("proposal_digest") == state.packet.proposal.digest
+            for event in harness.store.log.read()
+        ),
+        "diagnosis": len(diagnoses),
+        "origin": len(origins),
+        "claim": len(claims),
     }
 
 
@@ -570,6 +626,71 @@ def test_m3c_nondeterministic_provider_capture_boundary(
     }
     assert reopened.provider.calls.count(kind) == int(not captured)
     assert sequence[kind] == (1 if captured else 2)
+
+
+@pytest.mark.parametrize(
+    ("boundary", "crash_checkpoint", "race_checkpoint", "writer_kind"),
+    [
+        (
+            "started-experiment",
+            "experiment_started_before_service",
+            "experiment_lookup_before_service",
+            "project",
+        ),
+        (
+            "terminal-disposition",
+            "project_terminal_before_disposition",
+            "disposition_lookup_before_append",
+            "program",
+        ),
+        (
+            "captured-synthesis",
+            "synthesis_output_captured",
+            "claim_lookup_before_append",
+            "program",
+        ),
+    ],
+)
+def test_m3c_lookup_to_append_race_fails_closed_without_controller_write(
+    boundary: str,
+    crash_checkpoint: str,
+    race_checkpoint: str,
+    writer_kind: str,
+    tmp_path: Path,
+) -> None:
+    del boundary
+    harness = _harness(tmp_path, decision="stop", policy=_policy(max_experiments=1))
+    _crash(harness, crash_checkpoint)
+    reopened = _reopen(harness)
+    truth_before = _pending_truth_counts(reopened)
+    after_writer: dict[str, int] = {}
+
+    def competing_writer() -> None:
+        if writer_kind == "project":
+            _advance_generation(reopened)
+        else:
+            _advance_program_head(reopened)
+        after_writer.update(
+            project=len(reopened.service.event_log.read()),
+            program=len(reopened.store.log.read()),
+        )
+
+    reopened.loop = _RaceLoop(
+        reopened.service,
+        reopened.store,
+        reopened.provider,
+        autonomy_root=reopened.loop.root,
+        checkpoint=race_checkpoint,
+        writer=competing_writer,
+    )
+    with pytest.raises(AutonomyLoopError) as caught:
+        reopened.loop.advance(reopened.episode_id, expected_phase=reopened.state().phase)
+    assert caught.value.code == "AUTONOMY_RECOVERY_STALE"
+    assert reopened.loop.injected is True
+    assert reopened.provider.calls == [] and reopened.service.run_once_calls == 0
+    assert len(reopened.service.event_log.read()) == after_writer["project"]
+    assert len(reopened.store.log.read()) == after_writer["program"]
+    assert _pending_truth_counts(reopened) == truth_before
 
 
 def test_m3c_service_registration_without_terminal_recovers_publicly(tmp_path: Path) -> None:
