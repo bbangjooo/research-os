@@ -1,10 +1,10 @@
 # §08 — M2-B Conditional Claim·evidence relations (2026-08-11)
 
-> Status: **CORRECTION — candidate 5/5; critic PASS; audit Attempt 1 FAIL, re-audit pending**
+> Status: **COMPLETE — 5/5; critic Attempt 3 + corrected independent audit PASS**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§07](07-2026-08-11-m2-a-program-manifest-log.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §4, §8~§10
-> Active milestone: `M2-B` at candidate `5/5`; CLOSE requires critic and independent audit
+> Closed milestone: `M2-B`; next active `M2-C`
 
 ## 08.0 TL;DR
 
@@ -89,7 +89,7 @@ Replication positive control은 frozen M1 contract에 canonical replication Diag
 
 ## 08.6 Milestone and claim discipline
 
-영향은 `M2-B`; 현재 `ADVANCE — candidate 5/5, critic PASS, re-audit pending`이다. Initial target은
+영향은 `M2-B`; 최종 `CLOSE — 5/5, critic + independent audit PASS`다. Initial target은
 CONFIRMATORY였으나 result-triggered witness/cap correction 뒤 allowed intent-execution label은 `PIVOT`,
 claim mode는 original frozen 25 CONFIRMATORY + critic/audit extras EXPLORATORY의 `MIXED`다.
 
@@ -170,6 +170,6 @@ status/pipeline은 Attempt 3 PASS·candidate/audit pending·`PIVOT/MIXED`·final
 adjacent command를 기록한다. Audit ledger를 포함해 docs/total cap `500/3,100`을 유지하도록 중복
 phase prose를 압축한다. Focused/adjacent/hash/static을 재현하고 independent re-audit 전 CLOSE하지 않는다.
 
-Correction `1b1e22f`는 five frozen operations 모두 shared helper로 exact log bytes/relation count를
-측정한다. Focused `37`, M2-A+B `59`, exact adjacent `96`, ruff/ty/diff가 PASS했고 frozen expected와
-product diff는 0이다. Paired cores는 critic PASS·audit correction·`PIVOT/MIXED` candidate로 동기화했다.
+Correction `1b1e22f`는 five frozen operations 모두 exact log bytes/relation count를 측정한다.
+Focused `37`, M2-A+B `59`, exact adjacent `96`, ruff/ty/diff가 PASS했고 frozen/product diff는 0이다.
+Re-audit `57b8ef3`이 seven passes와 post-append `3,078/3,100`을 PASS해 M2-B를 CLOSE했다.
