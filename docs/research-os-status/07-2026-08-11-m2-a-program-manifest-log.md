@@ -1,18 +1,18 @@
 # §07 — M2-A ProgramManifest·ProgramLog (2026-08-11)
 
-> Status: **OPEN — pre-result specification frozen; implementation pending**
+> Status: **ADVANCE — implementation evidence 4/4; critic and progress audit pending**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§06](06-2026-08-11-m1-e-release-close.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §4, §8~§10
-> Active milestone: `M2-A` at `0/4`; target is `CLOSE` only at `4/4`
+> Active milestone: `M2-A` at candidate `4/4`; `CLOSE` requires critic and audit PASS
 
 ## 07.0 TL;DR
 
-M1/v0.3의 stable scientific identities를 소비하는 별도 Program memory truth boundary를
-구현하기 전에 acceptance를 고정한다. ProgramManifest는 StudyContract·generation·evaluation
-scope·evaluation seal을 exact bind하고, ProgramLog는 project EventLog prefix를 replay해
-Diagnosis와 그 시점 ClassState가 일치할 때만 origin link를 append한다. Claim·relation·retrieval은
-M2-B/C에 남으며, 이 문서의 PASS·CLOSE 표는 구현 후 재현 evidence가 생기기 전까지 비어 있다.
+M1/v0.3의 stable scientific identities를 소비하는 별도 Program memory truth boundary를 구현했다.
+ProgramManifest는 StudyContract·generation·evaluation scope·seal을 exact bind하고, ProgramLog는
+잠긴 project prefix replay로 Diagnosis와 ClassState가 일치할 때만 origin을 append한다. Frozen
+`19/19`, focused `22/22`, fresh full `635+115`가 PASS했다. Claim·relation·retrieval은 M2-B/C에
+남으며 critic·audit 전에는 candidate `4/4`만 청구한다.
 
 ## 07.1 Scope, anchors, and authority
 
@@ -146,17 +146,18 @@ Fixture input은 M1-D의 `supported` canonical history이고 raw source digest �
 
 **영향 받은 M_i.j**: `M2-A`
 
-**현재 라벨**: `ADVANCE (pre-spec only; 0/4 measured)`
+**현재 라벨**: `ADVANCE (candidate 4/4; critic/audit pending)`
 
-| Frozen conjunct | Pre-spec 상태 | CLOSE evidence slot |
+| Frozen conjunct | 결과 | Reproducible evidence |
 |---|---|---|
-| Manifest binds stable M1 identities | ⏳ | pending |
-| ProgramLog exact-validates Diagnosis/ClassState origin | ⏳ | pending |
-| append-only hash-chain/head precondition | ⏳ | pending |
-| projection recovery + project/program lock-order concurrency | ⏳ | pending |
+| Manifest binds stable M1 identities | PASS | frozen manifest cases 1~5; invalid field/version/duplicate/authority mutation `0` |
+| Exact Diagnosis/ClassState origin | PASS | cases 6~10; locked prefix replay, forged/scope/stale rejection |
+| hash-chain/head precondition | PASS | cases 11~14; distinct envelope, stale loser delta `0`, corruption fail-closed |
+| projection recovery + lock order | PASS | cases 15~19; missing/corrupt/stale rebuild and two barrier races |
 
-Prerequisite M1-E/M1은 `closed`다. Gate bypass는 없다. 구현 후 네 행 모두에 재현 명령·수치·commit을
-채우지 못하면 `CLOSE`로 바꾸지 않는다.
+공통 재현은 `pytest -q tests/test_m2a_program_memory.py`의 `22 passed`와 literal binding+frozen
+case command의 `20 passed`다. Product checkpoint는 `b10e1b4`와 export fix `5613591`; prerequisite
+M1은 closed이며 gate bypass는 없다.
 
 ### 07.6.5 Expected end-state delta
 
@@ -211,6 +212,12 @@ top-level full suite에서는 두 파일을 그대로 실행한다. 따라서 ch
 environment flag로 결과를 skip하거나 합성 PASS하지 않는다. 이 correction 뒤 네 원 failure node와
 fresh top-level full을 다시 실행한다.
 
+Correction 결과는 historical verifier/harness direct `11 passed`, 원 failure nodes
+`4 passed in 848.50s`다. Final close numerator는 checkpoint `9c76aa3`의 Python 3.12 fresh full
+`635 passed, 115 subtests passed in 1193.85s`; prior invalid/partial 결과는 포함하지 않는다.
+`ruff check src tests scripts`, `ty check src`, `git diff --check`가 PASS했고 manifest·origin·두
+ProgramEvent·ProgramSnapshot recursive scan의 `authorized_action` 12개는 non-null `0`이다.
+
 ## 07.7 Expected north-star movement
 
 - NS1: 새 program surface가 기존 EventLog/M1 compatibility와 authority를 약화하지 않을 때 유지.
@@ -231,5 +238,5 @@ quality나 retrieval relevance는 측정하지 않는다. EventLog와 유사한 
 
 ## 07.10 Next action
 
-Frozen manifest를 literal pytest nodes에 bind하고 ProgramManifest/ProgramEvent/ProgramLog/
-ProgramProjection/ProgramStore를 구현한다. 첫 결과 뒤에는 case/expected를 수정하지 않는다.
+Saved critic Q1~Q8을 independent verify mode로 판정하고, PASS 뒤 status/pipeline 동기화와 seven-pass
+progress audit를 수행한다. 둘 다 PASS할 때만 M2-A를 CLOSE하고 M2-B pre-spec으로 이동한다.

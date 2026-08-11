@@ -8,11 +8,20 @@
 
 **Response:**
 
+DIRECT. Before는 `memory/findings.py`의 project-bound Finding뿐이었다. After는 checkpoint
+`b10e1b4`의 `memory/program.py`와 frozen manifest이며 `22/22`, literal+cases `20/20`, fresh
+full `635+115`가 별도 envelope/log/projection을 재현한다. Claim/retrieval, 외부 live write,
+product multi-agent surface는 없고 recursive authority는 `12/0 non-null`이다.
+
 ## Q2 [milestone-positioning]
 
 M2-A를 CLOSE하려면 네 exit conjunct 각각이 독립된 재현 근거로 PASS해야 하는데, manifest identity binding·exact origin validation·hash-chain/head precondition·projection recovery/lock-order를 §07.6.4에서 빠짐없이 4/4로 증명하고 하나라도 미달이면 ADVANCE로 강등하는가?
 
 **Response:**
+
+DIRECT. Phase §07.6.4가 manifest, origin, log/head, projection/lock-order를 각각 PASS로 묶고
+frozen cases `5+5+4+5=19/19`와 focused `22/22`를 제시한다. 한 행이라도 critic/audit에서
+무효면 현재 candidate를 CLOSE하지 않고 ADVANCE로 되돌린다.
 
 ## Q3 [proxy-vs-real]
 
@@ -20,11 +29,19 @@ M2-A를 CLOSE하려면 네 exit conjunct 각각이 독립된 재현 근거로 PA
 
 **Response:**
 
+DIRECT. `ProgramEvent`는 exact `program_id` envelope와 program-only event types/path를 사용한다.
+`test_program_event_envelope_is_distinct_from_project_event`와 frozen
+`program-project-envelope-mixing`이 project envelope/event 및 mixed stream을 fail-closed한다.
+
 ## Q4 [boundary]
 
 ProgramManifest가 science-state version, StudyContract schema/digest, generation ID, evaluation-scope version/body digest, evaluation seal 및 compatibility를 모두 exact bind하며 각 필드의 누락·변조·중복·unknown version과 non-null authority가 ProgramLog·projection mutation 0으로 거부되는가?
 
 **Response:**
+
+DIRECT. Frozen manifest cases 1~5와 parser/validator가 science/contract/generation/scope/seal/
+compatibility identity를 exact bind한다. Forged digest, duplicate, unknown version, non-null
+authority는 event/projection delta `0`; strict parser가 missing/extra/bool-as-int도 거절한다.
 
 ## Q5 [measurement-gap]
 
@@ -32,11 +49,19 @@ OriginEvidenceRef 검증이 단순 ID 조회가 아니라 잠긴 project EventLo
 
 **Response:**
 
+DIRECT. `ProgramStore.append_origin`은 project shared lock에서 current head를 확인하고 prefix를
+`reduce_scientific_state`로 replay해 Diagnosis event/hash/id/digest와 derived ClassState
+id/digest를 대조한다. Frozen origin cases 6~10이 forged/scope/stale를 no-write로 거절한다.
+
 ## Q6 [counterfactual]
 
 project-log shared → program-log exclusive → projection 순서를 실제 barrier-controlled 경쟁 실행으로 강제했을 때 project append와 program origin append가 deadlock 없이 선형화되고, stale project/program head 경쟁에서는 정확히 한 결과만 commit되며 loser의 log·projection delta가 0인가?
 
 **Response:**
+
+DIRECT. Cases `lock-order-project-vs-origin`과 `lock-order-program-head-race`가 barrier-controlled
+threads를 timeout 없이 종료한다. Project shared→program exclusive→projection 순서를 지키며
+stale 경쟁의 winner는 1, loser log/projection delta는 0이다.
 
 ## Q7 [boundary]
 
@@ -44,8 +69,16 @@ ProgramProjection이 비권위 파생물임을 corrupted·missing·부분 갱신
 
 **Response:**
 
+DIRECT. Cases 15~17이 missing/corrupt/stale projection을 canonical log의 동일 head/origin으로
+재구축한다. `program-committed-hash-corruption`은 projection fallback 없이 IntegrityError다.
+
 ## Q8 [claim-mode-discipline]
 
 새 schema·identity·reject 기준과 각 frozen case의 expected outcome을 첫 구현·테스트 결과 노출 전에 machine-readable manifest와 pre-spec commit으로 고정해 CONFIRMATORY chronology를 증명할 수 있는가, 그렇지 않다면 §07.6.7을 EXPLORATORY로 명시하고 close 언어를 제한하는가?
 
 **Response:**
+
+DIRECT with LIMITATION. Core schema·19 cases·four conjunct는 pre-spec `d635c61`/cap correction
+`eaf1294`가 product `b10e1b4`보다 앞서므로 CONFIRMATORY다. Invalid full 뒤의 historical
+release/recursion harness와 total-cap PIVOT은 소급하지 않고 EXPLORATORY로 표시해 phase 전체를
+MIXED로 분류했다. Fresh full은 최종 PIVOT `9c76aa3` 뒤 실행했다.
