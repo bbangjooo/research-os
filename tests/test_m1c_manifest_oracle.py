@@ -3,7 +3,9 @@ from __future__ import annotations
 import copy
 import io
 import json
+import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -2723,14 +2725,32 @@ def _observe_authority_surfaces(
 _REGRESSION_OBSERVATION: dict[str, object] | None = None
 
 
-def _completed(command: list[str]) -> subprocess.CompletedProcess[str]:
+def _completed(
+    command: list[str], *, environment: Mapping[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command,
         cwd=Path(__file__).resolve().parents[1],
         check=False,
         capture_output=True,
         text=True,
+        env=None if environment is None else dict(environment),
     )
+
+
+_META_ORACLE_IGNORES = (
+    "--ignore=tests/test_m1c_manifest_oracle.py",
+    "--ignore=tests/test_m1d_manifest_oracle.py",
+)
+
+
+def _meta_oracle_child_environment() -> dict[str, str]:
+    environment = dict(os.environ)
+    existing = shlex.split(environment.get("PYTEST_ADDOPTS", ""))
+    options = [option for option in existing if option not in _META_ORACLE_IGNORES]
+    options.extend(_META_ORACLE_IGNORES)
+    environment["PYTEST_ADDOPTS"] = shlex.join(options)
+    return environment
 
 
 def _regression_floor_from_approved_status() -> tuple[int, int]:
@@ -2765,8 +2785,8 @@ def _observe_regression_floor(inputs: Mapping[str, object]) -> dict[str, object]
             "pytest",
             "-q",
             "tests",
-            "--ignore=tests/test_m1c_manifest_oracle.py",
-        ]
+        ],
+        environment=_meta_oracle_child_environment(),
     )
     pytest_output = pytest_run.stdout + pytest_run.stderr
     tests_match = re.search(r"(?:^|\s)(\d+) passed", pytest_output)
@@ -2790,6 +2810,48 @@ def _observe_regression_floor(inputs: Mapping[str, object]) -> dict[str, object]
         "diff_check": "PASS",
     }
     return copy.deepcopy(_REGRESSION_OBSERVATION)
+
+
+def test_m1c_regression_floor_excludes_both_meta_oracles_from_nested_pytest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[list[str], Mapping[str, str] | None]] = []
+
+    def successful_run(
+        command: list[str],
+        *,
+        environment: Mapping[str, str] | None = None,
+    ) -> object:
+        calls.append((command, environment))
+        return type(
+            "Completed",
+            (),
+            {
+                "returncode": 0,
+                "stdout": "9999 passed, 9999 subtests passed\n",
+                "stderr": "",
+            },
+        )()
+
+    monkeypatch.setenv(
+        "PYTEST_ADDOPTS",
+        "-k recursion_guard_probe --ignore=tests/test_m1c_manifest_oracle.py",
+    )
+    monkeypatch.setattr(sys.modules[__name__], "_REGRESSION_OBSERVATION", None)
+    monkeypatch.setattr(sys.modules[__name__], "_completed", successful_run)
+
+    observed = _observe_regression_floor(
+        {"python": f"{sys.version_info.major}.{sys.version_info.minor}"}
+    )
+
+    assert observed["ruff"] == "PASS"
+    pytest_command, pytest_environment = calls[0]
+    assert pytest_command[-1] == "tests"
+    assert pytest_environment is not None
+    nested_options = shlex.split(pytest_environment["PYTEST_ADDOPTS"])
+    assert nested_options[:2] == ["-k", "recursion_guard_probe"]
+    assert all(nested_options.count(option) == 1 for option in _META_ORACLE_IGNORES)
+    assert all(environment is None for _, environment in calls[1:])
 
 
 def _recompute_digest(document: object, _: str) -> object:

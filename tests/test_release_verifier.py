@@ -20,6 +20,7 @@ from scripts.verify_release import (
     _static_gate,
     _strict_json,
     main,
+    verify,
 )
 
 
@@ -66,6 +67,19 @@ def test_v03_static_gate_rejects_a_tampered_historical_receipt(
 
     with pytest.raises(ReleaseGateError, match="receipt and manifest"):
         _static_gate(_strict_json(DEFAULT_MANIFEST))
+
+
+def test_v03_full_verifier_refuses_reissue_from_a_later_commit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sealed_commit = "a" * 40
+    later_commit = "b" * 40
+    monkeypatch.setattr(verifier, "_static_gate", lambda _: {})
+    monkeypatch.setattr(verifier, "_sealed_release_tree", lambda _: (sealed_commit, {}))
+    monkeypatch.setattr(verifier, "_run", lambda _: later_commit)
+
+    with pytest.raises(ReleaseGateError, match="cannot be reissued"):
+        verify(DEFAULT_MANIFEST)
 
 
 def test_release_verifier_snapshots_all_external_research_os_state_read_only() -> None:

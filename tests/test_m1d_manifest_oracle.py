@@ -800,7 +800,7 @@ def test_regression_floor_does_not_fail_open_in_regression_child_environment(
         )
 
 
-def test_regression_floor_propagates_m1d_ignore_to_nested_pytest(
+def test_regression_floor_excludes_both_meta_oracles_from_nested_pytest(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -822,7 +822,10 @@ def test_regression_floor_propagates_m1d_ignore_to_nested_pytest(
             },
         )()
 
-    monkeypatch.setenv("PYTEST_ADDOPTS", "-k recursion_guard_probe")
+    monkeypatch.setenv(
+        "PYTEST_ADDOPTS",
+        "-k recursion_guard_probe --ignore=tests/test_m1d_manifest_oracle.py",
+    )
     monkeypatch.setattr(oracle_module, "_REGRESSION_OBSERVATION", None)
     monkeypatch.setattr(oracle_module, "_completed", successful_run)
     oracle = M1DOracle(FIXTURE_ROOT, project_root=ROOT, work_root=tmp_path)
@@ -832,11 +835,13 @@ def test_regression_floor_propagates_m1d_ignore_to_nested_pytest(
 
     assert observed["ruff"] == "PASS"
     pytest_command, pytest_environment = calls[0]
-    assert pytest_command[-1] == "--ignore=tests/test_m1d_manifest_oracle.py"
+    assert pytest_command[-1] == "tests"
     assert pytest_environment is not None
-    nested_options = pytest_environment["PYTEST_ADDOPTS"].split()
+    nested_options = oracle_module.shlex.split(pytest_environment["PYTEST_ADDOPTS"])
     assert nested_options[:2] == ["-k", "recursion_guard_probe"]
-    assert nested_options.count("--ignore=tests/test_m1d_manifest_oracle.py") == 1
+    assert all(
+        nested_options.count(option) == 1 for option in oracle_module._META_ORACLE_IGNORES
+    )
     assert all(environment is None for _, environment in calls[1:])
 
 

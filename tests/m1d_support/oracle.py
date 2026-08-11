@@ -14,6 +14,7 @@ import io
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -608,6 +609,21 @@ def _completed(
         text=True,
         env=None if environment is None else dict(environment),
     )
+
+
+_META_ORACLE_IGNORES = (
+    "--ignore=tests/test_m1c_manifest_oracle.py",
+    "--ignore=tests/test_m1d_manifest_oracle.py",
+)
+
+
+def _meta_oracle_child_environment() -> dict[str, str]:
+    environment = dict(os.environ)
+    existing = shlex.split(environment.get("PYTEST_ADDOPTS", ""))
+    options = [option for option in existing if option not in _META_ORACLE_IGNORES]
+    options.extend(_META_ORACLE_IGNORES)
+    environment["PYTEST_ADDOPTS"] = shlex.join(options)
+    return environment
 
 
 def _approved_floor(path: Path, pattern: str) -> tuple[int, int]:
@@ -2680,16 +2696,6 @@ class M1DOracle:
             "ty_src": "PASS",
             "diff_check": "PASS",
         }
-        environment = dict(os.environ)
-        existing_options = environment.get("PYTEST_ADDOPTS", "").strip()
-        environment["PYTEST_ADDOPTS"] = " ".join(
-            option
-            for option in (
-                existing_options,
-                "--ignore=tests/test_m1d_manifest_oracle.py",
-            )
-            if option
-        )
         pytest_run = _completed(
             [
                 sys.executable,
@@ -2697,9 +2703,8 @@ class M1DOracle:
                 "pytest",
                 "-q",
                 "tests",
-                "--ignore=tests/test_m1d_manifest_oracle.py",
             ],
-            environment=environment,
+            environment=_meta_oracle_child_environment(),
         )
         pytest_output = pytest_run.stdout + pytest_run.stderr
         tests_match = re.search(r"(?:^|\s)(\d+) passed", pytest_output)
