@@ -1,0 +1,51 @@
+{
+  "manifest_schema_version": 1,
+  "milestone": "M3-C",
+  "description": "Crash-resume, duplicate suppression, stale-head, null-authority, and forbidden-operation acceptance contract. M3-D unseen learning quality is excluded.",
+  "groups": {
+    "crash_resume": 13,
+    "duplicate_suppression": 5,
+    "stale_head": 4,
+    "null_authority": 6,
+    "forbidden_operation": 3
+  },
+  "expected_total": 31,
+  "cases": [
+    {"case_id":"resume-proposal-call-started","group":"crash_resume","checkpoint":"proposal_call_started","expected":{"provider_reinvoke":1,"budget_recharge":0,"terminal":"complete"}},
+    {"case_id":"resume-experiment-started","group":"crash_resume","checkpoint":"experiment_started_before_service","expected":{"service_calls_after_restart":1,"experiment_reregistration":0,"terminal":"complete"}},
+    {"case_id":"resume-project-terminal","group":"crash_resume","checkpoint":"project_terminal_before_disposition","expected":{"service_calls_after_restart":0,"terminal":"complete"}},
+    {"case_id":"resume-program-disposition","group":"crash_resume","checkpoint":"disposition_before_experiment_link","expected":{"program_reappend":0,"terminal":"complete"}},
+    {"case_id":"resume-diagnosis-call-started","group":"crash_resume","checkpoint":"diagnosis_call_started","expected":{"provider_reinvoke":1,"budget_recharge":0,"terminal":"complete"}},
+    {"case_id":"resume-diagnosis-output-captured","group":"crash_resume","checkpoint":"diagnosis_output_captured","expected":{"provider_reinvoke":0,"diagnosis_append":1,"terminal":"complete"}},
+    {"case_id":"resume-project-diagnosis","group":"crash_resume","checkpoint":"project_diagnosis_before_origin","expected":{"provider_reinvoke":0,"diagnosis_reappend":0,"terminal":"complete"}},
+    {"case_id":"resume-program-origin","group":"crash_resume","checkpoint":"origin_before_diagnosis_link","expected":{"provider_reinvoke":0,"origin_reappend":0,"terminal":"complete"}},
+    {"case_id":"resume-synthesis-call-started","group":"crash_resume","checkpoint":"synthesis_call_started","expected":{"provider_reinvoke":1,"budget_recharge":0,"terminal":"complete"}},
+    {"case_id":"resume-synthesis-output-captured","group":"crash_resume","checkpoint":"synthesis_output_captured","expected":{"provider_reinvoke":0,"claim_append":1,"terminal":"complete"}},
+    {"case_id":"resume-program-claim","group":"crash_resume","checkpoint":"claim_before_synthesis_link","expected":{"provider_reinvoke":0,"claim_reappend":0,"terminal":"complete"}},
+    {"case_id":"resume-next-derived","group":"crash_resume","checkpoint":"next_context_before_append","expected":{"rederive_exact":true,"terminal":"complete"}},
+    {"case_id":"resume-stop-derived","group":"crash_resume","checkpoint":"stop_summary_before_append","expected":{"rederive_exact":true,"terminal":"complete"}},
+
+    {"case_id":"duplicate-terminal-zero","group":"duplicate_suppression","checkpoint":"terminal","expected":{"canonical_count":1,"duplicate_delta":0}},
+    {"case_id":"duplicate-disposition-zero","group":"duplicate_suppression","checkpoint":"disposition","expected":{"canonical_count":1,"duplicate_delta":0}},
+    {"case_id":"duplicate-diagnosis-zero","group":"duplicate_suppression","checkpoint":"diagnosis","expected":{"canonical_count":1,"duplicate_delta":0}},
+    {"case_id":"duplicate-origin-zero","group":"duplicate_suppression","checkpoint":"origin","expected":{"canonical_count":1,"duplicate_delta":0}},
+    {"case_id":"duplicate-claim-zero","group":"duplicate_suppression","checkpoint":"claim","expected":{"canonical_count":1,"duplicate_delta":0}},
+
+    {"case_id":"stale-proposal-program-head","group":"stale_head","checkpoint":"proposal_call_started","mutation":"program_head","expected":{"code":"AUTONOMY_RECOVERY_STALE","provider_calls_after_restart":0,"project_program_delta":"0/0"}},
+    {"case_id":"stale-experiment-generation","group":"stale_head","checkpoint":"experiment_started_before_service","mutation":"generation_head","expected":{"code":"AUTONOMY_RECOVERY_STALE","service_calls_after_restart":0,"project_program_delta":"0/0"}},
+    {"case_id":"stale-recovered-registration","group":"stale_head","checkpoint":"project_terminal_before_disposition","mutation":"registration_binding","expected":{"code":"AUTONOMY_RECOVERY_EVIDENCE_INVALID","program_delta":0}},
+    {"case_id":"stale-synthesis-program-head","group":"stale_head","checkpoint":"synthesis_output_captured","mutation":"program_head","expected":{"code":"AUTONOMY_RECOVERY_STALE","claim_delta":0}},
+
+    {"case_id":"authority-context-null","group":"null_authority","surface":"context","expected":{"recursive_non_null":0}},
+    {"case_id":"authority-packet-null","group":"null_authority","surface":"decision_packet","expected":{"recursive_non_null":0}},
+    {"case_id":"authority-autonomy-events-null","group":"null_authority","surface":"autonomy_events","expected":{"recursive_non_null":0}},
+    {"case_id":"authority-diagnosis-null","group":"null_authority","surface":"diagnosis_request_packet","expected":{"recursive_non_null":0}},
+    {"case_id":"authority-synthesis-null","group":"null_authority","surface":"synthesis_request_packet","expected":{"recursive_non_null":0}},
+    {"case_id":"authority-claim-null","group":"null_authority","surface":"claim","expected":{"recursive_non_null":0}},
+
+    {"case_id":"forbidden-deploy-surface-zero","group":"forbidden_operation","operation":"deploy","expected":{"callable_surface_count":0}},
+    {"case_id":"forbidden-merge-surface-zero","group":"forbidden_operation","operation":"merge","expected":{"callable_surface_count":0}},
+    {"case_id":"forbidden-trade-surface-zero","group":"forbidden_operation","operation":"trade","expected":{"callable_surface_count":0}}
+  ],
+  "authorized_action": null
+}
