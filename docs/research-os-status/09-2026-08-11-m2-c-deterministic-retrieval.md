@@ -1,6 +1,6 @@
 # §09 — M2-C deterministic retrieval·Context integration (2026-08-11)
 
-> Status: **PRE-SPEC — implementation not started; 0/5**
+> Status: **PRODUCT 5/5 + CRITIC PASS — independent audit pending; ADVANCE**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§08](08-2026-08-11-m2-b-conditional-claims.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §5, §8~§10
@@ -9,10 +9,9 @@
 ## 09.0 TL;DR
 
 M2-C는 audited `ClaimSnapshot`을 변경하지 않는 순수 결정론 query/reducer와 opt-in Context v3
-memory binding만 추가한다. Frozen `retrieval-v1.json`의 exact ordered 결과가 relevant/contradiction
-recall, superseded exclusion, irrelevant contamination을 판정하며, combined context token은 기존 project
-event head token에 exact Program head와 retrieval manifest digest를 결합한다. Disposition, legacy import,
-service auto-discovery, release bump, autonomous loop는 이 phase에 없다.
+memory binding을 구현했다. Frozen oracle은 `100/100/100/0`, real ProgramStore vertical과 stale
+no-write, full `676+115`, critic Q1~Q8이 PASS했다. Disposition, legacy import, release bump,
+autonomous loop는 이 phase에 없고 independent audit 전에는 close하지 않는다.
 
 ## 09.1 End-state delta and authority
 
@@ -139,22 +138,35 @@ Gross additions는 product `684/900`, tests+fixture `921/1,150`, docs pre-verify
 
 ## 09.6.4 Milestone positioning — ADVANCE
 
-| M2-C conjunct | Candidate | Evidence |
-|---|---:|---|
-| relevant recall | 100% | receipt `11/11` |
-| contradiction recall | 100% | receipt `3/3` |
-| superseded exclusion | 100% | leak `0/2` |
-| contamination + order/empty/shuffle | 0% + PASS | FP `0/14`; four exact query rows |
-| Context retrieval/Program-head stale | PASS | real vertical + five stale/no-write paths |
+Prerequisite gate: `M2-B closed` (status §2.3.3, phase §08 audit PASS).
+
+| M2-C conjunct | 이전 | 이번 phase 후 | 근거 |
+|---|---:|---:|---|
+| relevant recall | 0% | 100% candidate | receipt `11/11` |
+| contradiction recall | 0% | 100% candidate | receipt `3/3` |
+| superseded exclusion | 미구현 | 100% candidate | leak `0/2` |
+| contamination + order/empty/shuffle | 미구현 | 0% + PASS candidate | FP `0/14`; four exact query rows |
+| Context retrieval/Program-head stale | 미구현 | PASS candidate | real vertical + five stale/no-write paths |
 
 Product evidence는 5/5 candidate이고 critic Q1~Q8 verify는 PASS했다. Independent audit 전이므로
 `ADVANCE`; M2-D는 blocked다. Audit PASS 뒤에만 이 절을 `CLOSE`로 바꾼다.
 
 ## 09.6.5 End-state delta
 
-Pipeline §8.4의 Program memory는 “audited Claim graph, retrieval 없음”에서 canonical
-ProgramLog→ClaimSnapshot→relevance/contradiction reducer로, Context는 “Claim/reason 없음”에서 opt-in
-exact Claim/limitation/reason/manifest + Program-head-bound read packet으로 구체화·검증됐다. 삭제/완화는 없다.
+Delta classification: **구체화·검증**.
+
+- Before: Program memory는 audited Claim graph까지였지만 retrieval이 없었고 Context v3에는
+  relevant Claim/reason/Program head가 없었다.
+- After: canonical ProgramLog→ClaimSnapshot→relevance/contradiction reducer와 opt-in exact
+  Claim/limitation/reason/manifest + Program-head-bound Context read packet이 있다.
+- 삭제/완화된 종착지 항목은 없다.
+
+## 09.6.6 Intent-execution reconciliation — MATCH
+
+- 의도: frozen exact oracle의 네 NS4 수치와 Program-head-bound Context stale-check만 구현·측정한다.
+- 실행: public reducer, real ProgramStore vertical, opt-in Context binding, oracle/stale/full evidence만
+  추가했고 disposition/release/loop는 추가하지 않았다.
+- 근거: pre-spec 범위와 `bc0b79a` product diff가 일치하며 criteria/result-triggered 변경은 0이다.
 
 ## 09.6.7 Claim mode — CONFIRMATORY
 
@@ -164,7 +176,8 @@ exact Claim/limitation/reason/manifest + Program-head-bound read packet으로 �
 
 ## 09.6.8 Divergence diagnosis — 해당 없음
 
-예상 exact four-query `100/100/100/0`, stale matrix, legacy no-memory equality, null authority/no-write가
+해당 없음 — 사유: 예상 exact four-query `100/100/100/0`, stale matrix, legacy no-memory equality,
+null authority/no-write가
 모두 일치했다. 불일치 시 contract/분모 오류는 `REQUIREMENT-WRONG`, 재현·측정 오염은
 `RESULT-INVALID`, 예상 밖 실제 동작은 `GENUINE-FINDING`+EXPLORATORY holdout을 발동한다.
 

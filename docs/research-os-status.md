@@ -125,16 +125,14 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 1.1 현재 운용 상태
 
-- 저장소: `/Users/bbangjo/research-os`, 제품 버전 `0.3.0`, product checkpoint `d1499b3`,
-  explicit-v2 test correction checkpoint `888cd96`.
-- 구현 크기: `src/research_os`와 `tests` Python 합계 54,054 LOC (Cycle 06 close candidate).
+- 저장소: `/Users/bbangjo/research-os`, 제품 버전 `0.3.0`, M2-C product checkpoint `bc0b79a`.
+- 구현 크기: `src/research_os`와 `tests` Python 합계 60,545 LOC (Cycle 09 candidate).
 - 검증 기준선: 보존 tag `research-os-m1a-working-tree-baseline`에서 Python 3.12 `262 tests + 57 subtests` PASS.
 - 강점: append-only hash-chained event log, disposable projection, artifact CAS, evaluator
   certification, stale-context와 compatibility gate, fail-closed recovery, `authorized_action=null`,
-  canonical StudyContract/generation/budget, typed Proposal/Diagnosis/ClassState/frontier와 default
-  Context v3/legacy isolation.
-- 핵심 갭: conditional Claim/relation은 audited canonical state다. Deterministic retrieval/knowledge
-  disposition과 그 memory를 소비하는 finite autonomous loop는 아직 없다.
+  canonical StudyContract/generation/budget, typed Proposal/Diagnosis/ClassState/frontier, audited Claim
+  graph와 deterministic retrieval candidate, default Context v3/legacy isolation.
+- 핵심 갭: M2-C audit, knowledge disposition/v0.4와 그 memory를 소비하는 finite autonomous loop다.
 - `crypto-new`, `manager`, `BinancePredictionStrategy`가 Research OS를 사용하지만 v0.5까지는 해당 프로젝트를 live migration하지 않고 read-only 호환성만 점검한다. 실제 live pilot·migration은 v0.5 이후다.
 
 ### 1.2 사용자 진단
@@ -350,6 +348,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 06 M1-E release close correction | first `3eaba21→1aa9c58`; second `ff608af→58b731e`; third `b70a98f→e120292` | Rule9 second PIVOT cap total 1,600; nested latency | `609+115`; installer `6/6`; critic + auditor PASS; M1 closed |
 | 07 M2-A close | `61adebc..9840208`: product+release `1,635`, tests+fixture `980`, docs `404`, total `3,019` | corrected audit-ledger cutoff; category caps `1,650/1,000/450`, pivoted total cap `3,100` | corrected `22`, race `50/50`, fresh `635+115`; critic + corrected audit PASS |
 | 08 M2-B close | product `1,463`; tests+fixture `1,242`; docs `376`; total `3,081` | caps `1,500/1,250/500`, total `3,100`; PIVOT/MIXED | `25`, focused `37`, adjacent `96`, full `672+115`; critic + corrected audit PASS |
+| 09 M2-C candidate | product `684`; tests+fixture `921`; docs pre-audit `<=500`; total `<2,550` | caps `900/1,150/500`, total `2,550`; CONFIRMATORY | receipt `100/100/100/0`; focused `4`, adjacent `87+3`, full `676+115`; critic PASS, audit pending |
 
 ---
 
@@ -396,3 +395,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - [x] Cycle 08 critic Attempts 1/2 FAIL과 Attempt 3 PASS chronology 보존
 - [x] Cycle 08 `PIVOT/MIXED`, `5/5`, `37/672+115`, paired-core gap 동기화
 - [x] Cycle 08 audit Attempt 1 corrections independent re-audit PASS; M2-B closed, M2-C active
+- [x] Cycle 09 status §12와 pipeline §8.4·§8.5·§10을 M2-C candidate로 동기화
+- [x] Cycle 09 M chain 정의 변경 없음; M2-C progress만 5/5 candidate로 갱신
+- [x] Cycle 09 progress critic Q1~Q8 + independent full re-run — **PASS**
+- [ ] Cycle 09 independent progress audit pending

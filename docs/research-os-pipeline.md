@@ -439,8 +439,8 @@ managed upgrade와 structured six-case release evidence가 `5/5`로 독립 감�
 | 1. Evidence semantics | ○ | `results.py`, `config.py`, `policy.py`, `service.py`; typed gates·delta/margin·VERIFY 대칭 구현, metric 의미 타당성은 adapter/diagnosis 후속 대상 | M1-A E1~E9; M1-C 포함 full `442 tests + 111 subtests` PASS |
 | 2. Study generation | ○ | `science/{contracts,state}.py`, `service.py`, `kernel/{ids,projection}.py`; canonical contract/generation/replay와 locked cumulative reservation 구현. generation별 non-refundable reservation이며 actual telemetry·study lifetime cap·successor 반복 증액 방지는 없음 | M1-B executable manifest `29/29`, focused `81+37`, checkpoint `df2c900` |
 | 3. Study inference | ○ | `science/{proposals,diagnoses,state}.py`, `service.py`; Proposal/Diagnosis/ClassState/frontier/Claim replay는 동작하나 interpretation quality·learned ranking은 없음 | NS3 audited `4/4`; M2-B closed |
-| 4. Program memory | △ | `memory/{program,claims}.py`; exact origin/hash-chain/recovery와 immutable Claim/relation closed, retrieval 없음 | M2-B `25`, focused `37`, full `672+115`; corrected audit PASS |
-| 5. Relevant context v3 | △ | default v3/explicit v2와 release path/policy/installer binding은 closed; relevant Claim/retrieval reason은 M2에 남음 | phase §06; M1-E `5/5`; auditor PASS |
+| 4. Program memory | △ | `memory/{program,claims,retrieval}.py`; audited Claim graph + deterministic retrieval 4/4 candidate, disposition은 없음 | phase §09 receipt `100/100/100/0`; real vertical; audit pending |
+| 5. Relevant context v3 | △ | default v3/explicit v2 보존 + opt-in exact Claim/reason/manifest/Program-head token candidate; write-path consumption은 M2-D | phase §09 stale/no-write PASS; full `676+115`; audit pending |
 | 6. Autonomous single-agent | ✗ | provider-neutral CLI는 있으나 canonical loop state 없음 | `docs/architecture.md` |
 | 7. Meta-evaluation/release | ✗ | v0.3 corrected release는 PASS했지만 learning comparator/generator/unseen benchmark는 없음 | current full `672+115`; v0.3 installer `6/6`; NS6 측정 전 |
 
@@ -456,7 +456,7 @@ managed upgrade와 structured six-case release evidence가 `5/5`로 독립 감�
 
 1. Study control은 canonical generation별 reservation까지 왔지만 actual usage settlement·study-lifetime ceiling·successor 반복 증액 방지가 없다.
 2. Historical floor 상호 재귀는 차단했지만 세 self-oracle child 때문에 full suite가 약 20분이다.
-3. Conditional Claim/relation은 audited지만 relevant retrieval과 knowledge disposition이 없다.
+3. Deterministic retrieval은 candidate PASS지만 knowledge disposition과 v0.4 release가 없다.
 4. autonomous loop와 fixed-budget unseen learning benchmark가 없다. 제품 multi-agent는 이 NS6 gate 통과 이후까지 명시적으로 유예한다.
 
 ### 10.4 한 문장 요약
