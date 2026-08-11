@@ -1,0 +1,67 @@
+{
+  "manifest_schema_version": 1,
+  "milestone": "M3-B",
+  "description": "Finite single-provider autonomy FSM acceptance contract; M3-C crash injection and M3-D unseen learning quality are excluded.",
+  "event_schema_version": 1,
+  "groups": {
+    "transitions": 7,
+    "memory_writeback": 6,
+    "idempotency": 7,
+    "closed_class": 4,
+    "budget_stop": 5,
+    "sealed_evidence": 6,
+    "rejection": 8
+  },
+  "expected_total": 43,
+  "cases": [
+    {"case_id":"transition-context-to-proposal","group":"transitions","driver":"nominal_transition","checkpoint":"context_to_proposal","expected":{"from":"context","to":"proposal","event_type":"research_os.autonomy.proposal_returned.v1","authorized_action":null}},
+    {"case_id":"transition-proposal-to-preflight","group":"transitions","driver":"nominal_transition","checkpoint":"proposal_to_preflight","expected":{"from":"proposal","to":"preflight","event_type":"research_os.autonomy.preflight_accepted.v1","authorized_action":null}},
+    {"case_id":"transition-preflight-to-run","group":"transitions","driver":"nominal_transition","checkpoint":"preflight_to_run","expected":{"from":"preflight","to":"run","event_type":"research_os.autonomy.experiment_linked.v1","authorized_action":null}},
+    {"case_id":"transition-run-to-diagnosis","group":"transitions","driver":"nominal_transition","checkpoint":"run_to_diagnosis","expected":{"from":"run","to":"diagnosis","event_type":"research_os.autonomy.diagnosis_linked.v1","authorized_action":null}},
+    {"case_id":"transition-diagnosis-to-synthesis","group":"transitions","driver":"nominal_transition","checkpoint":"diagnosis_to_synthesis","expected":{"from":"diagnosis","to":"synthesis","event_type":"research_os.autonomy.synthesis_linked.v1","authorized_action":null}},
+    {"case_id":"transition-synthesis-to-next","group":"transitions","driver":"nominal_transition","checkpoint":"synthesis_to_next","expected":{"from":"synthesis","to":"next","event_type":"research_os.autonomy.next_planned.v1","authorized_action":null}},
+    {"case_id":"transition-synthesis-to-stop","group":"transitions","driver":"stop_transition","checkpoint":"synthesis_to_stop","expected":{"from":"synthesis","to":"stop","event_type":"research_os.autonomy.stopped.v1","authorized_action":null}},
+
+    {"case_id":"memory-next-query-reads-active-claims","group":"memory_writeback","driver":"memory_binding","checkpoint":"next_active","expected":{"binding":"active_claim_ids_and_reasons","exact":true,"authorized_action":null}},
+    {"case_id":"memory-next-query-reads-contradictions","group":"memory_writeback","driver":"memory_binding","checkpoint":"next_contradictions","expected":{"binding":"contradiction_claim_ids_and_reasons","exact":true,"authorized_action":null}},
+    {"case_id":"memory-proposal-disposition-appended","group":"memory_writeback","driver":"memory_binding","checkpoint":"disposition","expected":{"binding":"proposal_retrieval_disposition","program_event_delta":1,"exact":true,"authorized_action":null}},
+    {"case_id":"memory-diagnosis-origin-linked","group":"memory_writeback","driver":"memory_binding","checkpoint":"origin","expected":{"binding":"diagnosis_origin","program_event_delta":1,"exact":true,"authorized_action":null}},
+    {"case_id":"memory-synthesis-claim-evidence-bound","group":"memory_writeback","driver":"memory_binding","checkpoint":"claim","expected":{"binding":"claim_terminal_diagnosis_artifact","program_event_delta":1,"exact":true,"authorized_action":null}},
+    {"case_id":"memory-synthesis-class-state-bound","group":"memory_writeback","driver":"memory_binding","checkpoint":"class_state","expected":{"binding":"derived_class_state_id_digest","exact":true,"authorized_action":null}},
+
+    {"case_id":"idempotent-context-to-proposal","group":"idempotency","driver":"repeat_transition","checkpoint":"context_to_proposal","expected":{"project_event_delta":0,"program_event_delta":0,"autonomy_event_delta":0,"same_state":true}},
+    {"case_id":"idempotent-proposal-to-preflight","group":"idempotency","driver":"repeat_transition","checkpoint":"proposal_to_preflight","expected":{"project_event_delta":0,"program_event_delta":0,"autonomy_event_delta":0,"same_state":true}},
+    {"case_id":"idempotent-preflight-to-run","group":"idempotency","driver":"repeat_transition","checkpoint":"preflight_to_run","expected":{"project_event_delta":0,"program_event_delta":0,"autonomy_event_delta":0,"same_state":true}},
+    {"case_id":"idempotent-run-to-diagnosis","group":"idempotency","driver":"repeat_transition","checkpoint":"run_to_diagnosis","expected":{"project_event_delta":0,"program_event_delta":0,"autonomy_event_delta":0,"same_state":true}},
+    {"case_id":"idempotent-diagnosis-to-synthesis","group":"idempotency","driver":"repeat_transition","checkpoint":"diagnosis_to_synthesis","expected":{"project_event_delta":0,"program_event_delta":0,"autonomy_event_delta":0,"same_state":true}},
+    {"case_id":"idempotent-synthesis-to-next","group":"idempotency","driver":"repeat_transition","checkpoint":"synthesis_to_next","expected":{"project_event_delta":0,"program_event_delta":0,"autonomy_event_delta":0,"same_state":true}},
+    {"case_id":"idempotent-synthesis-to-stop","group":"idempotency","driver":"repeat_transition","checkpoint":"synthesis_to_stop","expected":{"project_event_delta":0,"program_event_delta":0,"autonomy_event_delta":0,"same_state":true}},
+
+    {"case_id":"closed-class-initial-query-stops-before-provider","group":"closed_class","driver":"closed_class_guard","checkpoint":"initial_query","expected":{"provider_calls":0,"experiment_registrations":0,"stop_reason":"closed_class","authorized_action":null}},
+    {"case_id":"closed-class-provider-packet-rejected","group":"closed_class","driver":"closed_class_guard","checkpoint":"provider_packet","expected":{"provider_calls":1,"experiment_registrations":0,"error_code":"DECISION_PACKET_INVALID","authorized_action":null}},
+    {"case_id":"closed-class-parameter-tweak-not-new-class","group":"closed_class","driver":"closed_class_guard","checkpoint":"parameter_tweak","expected":{"experiment_registrations":0,"stop_reason":"closed_class","authorized_action":null}},
+    {"case_id":"closed-class-next-query-stops-after-synthesis","group":"closed_class","driver":"closed_class_guard","checkpoint":"next_query","expected":{"additional_experiment_registrations":0,"stop_reason":"closed_class","authorized_action":null}},
+
+    {"case_id":"budget-experiment-exhausted-before-provider","group":"budget_stop","driver":"budget_stop","checkpoint":"experiment","expected":{"stop_reason":"experiment_budget_exhausted","provider_calls":0,"experiment_registrations":0,"authorized_action":null}},
+    {"case_id":"budget-provider-reserve-insufficient","group":"budget_stop","driver":"budget_stop","checkpoint":"provider","expected":{"stop_reason":"provider_budget_exhausted","provider_calls":0,"experiment_registrations":0,"authorized_action":null}},
+    {"case_id":"budget-invalid-packet-limit","group":"budget_stop","driver":"budget_stop","checkpoint":"invalid","expected":{"stop_reason":"invalid_packet_budget_exhausted","invalid_packets":1,"experiment_registrations":0,"authorized_action":null}},
+    {"case_id":"budget-token-reserve-insufficient","group":"budget_stop","driver":"budget_stop","checkpoint":"token","expected":{"stop_reason":"token_budget_exhausted","provider_calls":0,"experiment_registrations":0,"authorized_action":null}},
+    {"case_id":"budget-time-reserve-insufficient","group":"budget_stop","driver":"budget_stop","checkpoint":"time","expected":{"stop_reason":"time_budget_exhausted","provider_calls":0,"experiment_registrations":0,"authorized_action":null}},
+
+    {"case_id":"sealed-service-is-only-experiment-runner","group":"sealed_evidence","driver":"sealed_evidence","checkpoint":"runner","expected":{"research_service_calls":1,"adapter_direct_calls":0,"workspace_direct_calls":0,"authorized_action":null}},
+    {"case_id":"summary-terminal-event-ref-exact","group":"sealed_evidence","driver":"sealed_evidence","checkpoint":"terminal","expected":{"reference":"terminal_event_id_hash_sequence","exact":true,"authorized_action":null}},
+    {"case_id":"summary-diagnosis-ref-exact","group":"sealed_evidence","driver":"sealed_evidence","checkpoint":"diagnosis","expected":{"reference":"diagnosis_event_id_hash_sequence_and_digest","exact":true,"authorized_action":null}},
+    {"case_id":"summary-claim-ref-exact","group":"sealed_evidence","driver":"sealed_evidence","checkpoint":"claim","expected":{"reference":"program_claim_event_id_hash_sequence_and_digest","exact":true,"authorized_action":null}},
+    {"case_id":"summary-class-state-ref-exact","group":"sealed_evidence","driver":"sealed_evidence","checkpoint":"class_state","expected":{"reference":"class_state_id_and_digest","exact":true,"authorized_action":null}},
+    {"case_id":"summary-recursive-authority-null","group":"sealed_evidence","driver":"sealed_evidence","checkpoint":"authority","expected":{"non_null_authority":0,"deploy_merge_trade_surface":0,"authorized_action":null}},
+
+    {"case_id":"reject-autonomy-event-extra-key","group":"rejection","driver":"reject_event","mutation":"extra_key","expected":{"error_code":"AUTONOMY_EVENT_INVALID","project_write_delta":0,"program_write_delta":0}},
+    {"case_id":"reject-autonomy-event-wrong-version","group":"rejection","driver":"reject_event","mutation":"wrong_version","expected":{"error_code":"AUTONOMY_EVENT_INVALID","project_write_delta":0,"program_write_delta":0}},
+    {"case_id":"reject-budget-bool-number","group":"rejection","driver":"reject_policy","mutation":"bool_number","expected":{"error_code":"AUTONOMY_POLICY_INVALID","project_write_delta":0,"program_write_delta":0}},
+    {"case_id":"reject-recursive-non-null-authority","group":"rejection","driver":"reject_event","mutation":"authorized_action","expected":{"error_code":"AUTONOMY_EVENT_INVALID","project_write_delta":0,"program_write_delta":0}},
+    {"case_id":"reject-cross-episode-event","group":"rejection","driver":"reject_event","mutation":"episode_id","expected":{"error_code":"AUTONOMY_STATE_INVALID","project_write_delta":0,"program_write_delta":0}},
+    {"case_id":"reject-stale-program-before-preflight","group":"rejection","driver":"reject_preflight","mutation":"program_head","expected":{"error_code":"DECISION_PACKET_STALE","experiment_registrations":0,"program_write_delta":0}},
+    {"case_id":"reject-provider-transport-without-registration","group":"rejection","driver":"reject_provider","mutation":"transport","expected":{"error_code":"PROVIDER_PROTOCOL_INVALID","experiment_registrations":0,"invalid_packets":1}},
+    {"case_id":"reject-invalid-synthesis-claim-without-append","group":"rejection","driver":"reject_synthesis","mutation":"claim_evidence","expected":{"error_code":"AUTONOMY_SYNTHESIS_INVALID","claim_write_delta":0,"authorized_action":null}}
+  ]
+}
