@@ -1,0 +1,88 @@
+{
+  "kind": "research_os.m3a_decision_packet_receipt",
+  "schema_version": 1,
+  "measurement_status": "complete",
+  "measured_commit": "42c7557b7fe9c1bb74cf161ca6ee71ff6314adcb",
+  "chronology": {
+    "pre_spec_commit": "50ee73d6af934402de6d713a4e93b565a81ebfdb",
+    "critic_questions_commit": "221c7b76776d8972a6faf5eca08e955ade42d93b",
+    "first_product_commit": "eb289c40fca42868a657f0170815b610f69935c9",
+    "historical_release_gate_correction_commit": "42c7557b7fe9c1bb74cf161ca6ee71ff6314adcb"
+  },
+  "frozen_contract": {
+    "path": "tests/fixtures/autonomy/v1/m3a-manifest.json",
+    "raw_sha256": "a43ba5980c257706fe49f0c5107b520683f85ff46b3d7d9848071a0382d747a2",
+    "diff_from_pre_spec_bytes": 0,
+    "conformance_denominator": 8,
+    "rejection_denominator": 24,
+    "total_denominator": 32
+  },
+  "case_results": [
+    {"id": "python-provider-valid", "status": "PASS"},
+    {"id": "subprocess-provider-valid", "status": "PASS"},
+    {"id": "provider-port-canonical-parity", "status": "PASS"},
+    {"id": "packet-current-context-program-binding", "status": "PASS"},
+    {"id": "packet-retrieved-ids-reasons-binding", "status": "PASS"},
+    {"id": "packet-proposal-disposition-binding", "status": "PASS"},
+    {"id": "packet-validation-no-write", "status": "PASS"},
+    {"id": "provider-no-direct-capability", "status": "PASS"},
+    {"id": "reject-wrong-packet-version", "status": "PASS"},
+    {"id": "reject-bool-packet-version", "status": "PASS"},
+    {"id": "reject-extra-packet-key", "status": "PASS"},
+    {"id": "reject-forged-packet-id", "status": "PASS"},
+    {"id": "reject-request-id-mismatch", "status": "PASS"},
+    {"id": "reject-stale-context-token", "status": "PASS"},
+    {"id": "reject-forged-program-snapshot-digest", "status": "PASS"},
+    {"id": "reject-forged-program-snapshot", "status": "PASS"},
+    {"id": "reject-stale-program-head", "status": "PASS"},
+    {"id": "reject-forged-query-digest", "status": "PASS"},
+    {"id": "reject-forged-result-digest", "status": "PASS"},
+    {"id": "reject-missing-returned-claim", "status": "PASS"},
+    {"id": "reject-duplicate-returned-claim", "status": "PASS"},
+    {"id": "reject-forged-retrieval-reason", "status": "PASS"},
+    {"id": "reject-candidate-digest-mismatch", "status": "PASS"},
+    {"id": "reject-proposal-generation-mismatch", "status": "PASS"},
+    {"id": "reject-proposal-class-mismatch", "status": "PASS"},
+    {"id": "reject-proposal-scope-mismatch", "status": "PASS"},
+    {"id": "reject-disposition-mismatch", "status": "PASS"},
+    {"id": "reject-non-null-authority", "status": "PASS"},
+    {"id": "reject-subprocess-duplicate-key", "status": "PASS"},
+    {"id": "reject-subprocess-extra-stdout", "status": "PASS"},
+    {"id": "reject-subprocess-timeout", "status": "PASS"},
+    {"id": "reject-subprocess-output-limit", "status": "PASS"}
+  ],
+  "aggregate": {
+    "conformance_passed": 8,
+    "rejection_passed": 24,
+    "total_passed": 32,
+    "m3a_exit_conjuncts_passed": 4,
+    "m3a_exit_conjuncts_total": 4,
+    "provider_forbidden_capabilities": 0,
+    "authorized_action_non_null": 0,
+    "project_log_write_delta": 0,
+    "program_log_write_delta": 0,
+    "product_multi_agent": false,
+    "ns5_transitions_passed": 0,
+    "ns5_transitions_total": 7
+  },
+  "verification": {
+    "focused": {"command": ".venv/bin/python -m pytest -q tests/test_m3a_decision_packet.py", "passed": 41, "seconds": 4.96},
+    "adjacent": {"command": ".venv/bin/python -m pytest -q tests/test_m1e_usable_context.py tests/test_m2a_program_memory.py tests/test_m2c_deterministic_retrieval.py tests/test_m2d_knowledge_disposition.py tests/test_m2d_release_gate.py tests/test_m3a_decision_packet.py", "passed": 103, "seconds": 7.44},
+    "release_and_m3a": {"command": ".venv/bin/python -m pytest -q tests/test_release_verifier.py tests/test_m3a_decision_packet.py", "passed": 58, "seconds": 7.35},
+    "full": {"command": ".venv/bin/python -m pytest -q", "passed": 757, "subtests_passed": 115, "seconds": 1262.65},
+    "ruff": {"command": ".venv/bin/python -m ruff check src tests scripts", "status": "PASS"},
+    "ty": {"command": "uvx --offline ty check src", "status": "PASS"}
+  },
+  "invalid_attempt": {
+    "classification": "RESULT-INVALID",
+    "observed": "4 failed, 751 passed, 115 subtests passed",
+    "root_cause": "v0.4 historical static gate compared the current M3 HEAD to the sealed v0.4 product tree; three additional failures were nested regression-floor cascades",
+    "claim_use": "WITHDRAWN",
+    "correction": "historical v0.4 evidence is verified at its receipt/product checkpoints and cannot be reissued from a later commit"
+  },
+  "claim_mode": {
+    "frozen_32_cases": "CONFIRMATORY",
+    "result_triggered_historical_gate_correction": "EXPLORATORY",
+    "phase": "MIXED"
+  }
+}
