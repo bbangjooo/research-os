@@ -123,6 +123,14 @@ Fixture input은 M1-D의 `supported` canonical history이고 raw source digest �
   projection을 한 module에 둔 product draft가 1,596 added lines임을 LOC 측정에서 확인했다.
   테스트 결과를 실행하기 전에 product cap만 `1,300→1,650`으로 고쳤다. Frozen 19 cases,
   schema/digest recipe, public error, four conjunct, total cap은 바꾸지 않는다.
+- Post-result execution PIVOT: 첫 invalid full이 드러낸 historical v0.3 verifier와 상호 재귀
+  regression observer를 고치면서 현재 Cycle 07 added LOC가 product+release harness `1,635`,
+  tests+fixture `946`, phase+critic docs `276`, total `2,857`이 됐다. 세 category cap은 각각
+  `1,650/1,000/450` 안이지만 total `2,750`을 107줄 초과했다. 이 사실은 direct harness
+  `11/11`과 corrected original nodes `4/4` 결과 뒤 확인했으므로 사전 고정으로 소급하지 않는다.
+  Historical harness correction과 total-cap 실행 의도는 `EXPLORATORY`로 분리하고 total cap만
+  `<=3,100`으로 PIVOT한다. M2-A의 frozen schema·19 cases·4 conjunct·error/digest/race 기준과 각
+  category cap은 변경하지 않으며, 이 checkpoint 뒤 fresh full만 close 분자로 사용한다.
 
 ## 07.5 Verification plan
 
@@ -162,17 +170,19 @@ Prerequisite M1-E/M1은 `closed`다. Gate bypass는 없다. 구현 후 네 행 �
 
 ### 07.6.6 Intent-execution target
 
-Target label은 `PIVOT`: §07.4의 product LOC cap만 첫 test 결과 전에 `1,300→1,650`으로
-확대했다. Schema, frozen 19 cases, four conjunct, total cap과 실제 implementation/measurement는
-동일하게 유지해야 한다. 이 pre-result cap correction은 core §2 Decision chain에 동기화한다.
-Sample, threshold, data source, semantic scope가 바뀌면 별도 PIVOT entry를 추가한다.
+Target label은 `PIVOT`: §07.4의 product LOC cap은 첫 test 결과 전에 `1,300→1,650`으로
+확대했고, 결과 뒤 발견한 historical harness correction을 포함하기 위해 total cap은
+`2,750→3,100`으로 별도 PIVOT했다. Frozen schema, 19 cases, four conjunct와 category cap은
+동일하다. 두 correction은 core §2 Decision chain에 동기화한다. Sample, threshold, data source,
+semantic scope가 바뀌면 별도 PIVOT entry를 추가한다.
 
 ### 07.6.7 Claim mode target
 
-Target은 `CONFIRMATORY`. 이 문서, critic 질문, machine-readable manifest의 local checkpoint가
-첫 product/test result-bearing commit보다 먼저여야 한다. 결과 뒤 expected, denominator, error code,
-digest recipe, race winner rule을 바꾸면 이전 결과는 `RESULT-INVALID`; 새 결과는 새 pre-spec 없이는
-EXPLORATORY다.
+Target은 `MIXED`다. M2-A schema·identity·19-case 기능 분모는 이 문서, critic 질문,
+machine-readable manifest의 local checkpoint가 첫 product/test result-bearing commit보다 앞서므로
+`CONFIRMATORY`다. 첫 invalid full 뒤 추가한 historical release/recursion harness correction과
+post-result total-cap PIVOT은 `EXPLORATORY`다. Expected, denominator, error code, digest recipe,
+race winner rule을 결과 뒤 바꾸면 해당 기능 결과는 `RESULT-INVALID`다.
 
 ### 07.6.8 Requirement-result divergence
 
