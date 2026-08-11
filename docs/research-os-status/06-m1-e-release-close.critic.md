@@ -49,11 +49,12 @@ Compatibility/authority 영역의 upgrade manifest는 byte-exact managed 0.2.0 t
 
 **Response:**
 
-FAIL on progress audit; executable correction pre-specified. Source commit `6f36a1b`의
-five-file/two-directory signature는 product classifier에 bind됐지만 기존 manifest `case_ids`
-여섯 개는 test dispatcher/verifier가 소비하지 않아 aggregate `6/6`을 대리 청구했다. New
-structured `id/operation/expected` six-case denominator를 literal pytest nodes로 각각 실행하고
-canonical exact outcome을 비교하며, single receipt에 exact IDs와 `passed=6`을 기록해야 DIRECT다.
+DIRECT after third correction, pending independent re-audit. Source commit `6f36a1b`의
+five-file/two-directory signature는 product classifier에 bind되고, structured
+`id/operation/expected` six-case denominator는 literal pytest node마다 actual outcome을 canonical
+exact 비교한다. Verifier가 exact six node를 별도로 실행해 receipt `e120292`에 IDs와 `passed=6`을
+기록했다. Drift/unknown은 no-write, two-target failure는 both exact restore, publish-then-fail은
+prior restore + current-tree recovery retain을 직접 관찰한다.
 
 ## Q5 [external-validation]
 
@@ -68,8 +69,9 @@ DIRECT after second correction, pending independent re-audit. Single verifier는
 `0.3.0`, three version surfaces, full/authority/static/wheel을 한 경로에서 실행한다. Manifest에
 고정한 세 sibling project의 실제 `.research-os` tree를 pre/post exact byte snapshot해 변경을
 fail-closed로 거절하고, reviewed product Python tree `37` files / `52cbf8…277d`를 exact 비교해
-keyword 우회와 equivalent orchestration drift를 함께 차단한다. Receipt `58b731e`는 `602+115`,
-external snapshots 3/3 unchanged, authority non-null 0, wheel/install 0.3.0을 기록한다.
+keyword 우회와 equivalent orchestration drift를 함께 차단한다. Current receipt `e120292`는
+`609+115`, installer `6/6`, external snapshots 3/3 unchanged, authority non-null 0,
+wheel/install 0.3.0을 기록한다.
 
 ## Q6 [end-state-positioning]
 
@@ -105,6 +107,6 @@ Acceptance, fixture denominator, upgrade failure matrix, release-manifest 판정
 
 **Response:**
 
-DIRECT after second correction. §06.6.7은 explicit `CONFIRMATORY`이고 second-correction pre-spec
-`ff608af`가 implementation `58b731e`의 direct parent다. First correction receipt는 history로
-남기고 clean `58b731e`에서 처음 얻은 `602+115` receipt만 현재 Q2/Q5 분자로 사용한다.
+DIRECT after third correction. §06.6.7은 explicit `CONFIRMATORY`이고 third-correction pre-spec
+`b70a98f`가 implementation `e120292`의 direct parent다. Earlier receipts는 history로 남기고
+clean `e120292`에서 처음 얻은 `609+115`/installer `6/6` receipt만 current close 분자로 사용한다.

@@ -48,7 +48,7 @@
 6. **유한 자율 루프** (§6): provider의 출력은 비신뢰 packet이며 kernel preflight 뒤에만 실행된다.
 7. **비교 가능한 효과 측정** (§7): 동일 후보 언어·실험 budget에서 정확도와 낭비를 비교한다.
 
-현재 상태 (Cycle 06 M1-E `4/5`; installer executable correction active):
+현재 상태 (Cycle 06 M1-E third correction `5/5` verified; independent re-audit pending):
 
 - 1번 ✅/○ — directional delta, constitution-owned typed gate/slack, baseline/candidate verify 대칭과 nested/flat certification lifecycle이 구현·검증됐다.
 - 2번 ○ — checkpoint `df2c900`에서 canonical StudyContract·evaluation-sealed generation·replayable cumulative reservation ledger·locked overrun gate가 구현됐다. executable manifest `29/29`, focused `81+37`; 단, generation별 non-refundable reservation이지 actual usage telemetry나 study lifetime cap은 아니며 successor 반복 증액을 막지 않는다.
@@ -59,7 +59,7 @@
   release receipt가 PASS했다. Installer six-case executable binding과 relevant Claim/retrieval
   reason은 open이라 전체 단계는 △다.
 - 6번 ❌ — 외부 agent가 수동으로 단계를 잇고 canonical loop resume state가 없다.
-- 7번 ❌ — v0.3 release full `602+115`, static/wheel/install은 PASS했지만 v0.2 comparator와
+- 7번 ❌ — v0.3 release full `609+115`, static/wheel/install은 PASS했지만 v0.2 comparator와
   precommitted unseen learning episode suite는 없다.
 
 ---
@@ -322,10 +322,10 @@ Canonical truth boundaries:
 | Study control | StudyContract와 cumulative budget이 atomic registration을 지배 | M1-B 구현: canonical contract/evaluation-sealed generation, replayable ledger, locked registration reservation; `29/29` exact. 단, generation별 non-refundable reservation이며 actual usage telemetry·study-lifetime cap·successor 반복 증액 방지는 없음 | Cycle 02 구체화·검증 |
 | Study inference | typed Proposal·Diagnosis·ClassState와 semantic frontier | M1-D: exact terminal-bound Diagnosis, pending gate, derived ClassState/immutable closure, semantic/retry frontier가 canonical replay. Interpretation 품질·registered-control·learned ranking은 증명하지 않음 | Cycle 04 `△→○`; transition `26/23/54/37/7`, negative `460/460`, five conjunct 5/5 |
 | Program memory | conditional Claim graph가 exact origin evidence를 참조 | project-bound generic Finding | 추가 |
-| Context | v3가 budget/class/pending diagnosis/relevant claim/reason을 제공 | default v3/explicit v2와 path/legacy typed-zero는 verified; installer release evidence correction 중 | Cycle 06 M1-E `4/5`; 전체 단계는 △ 유지 |
+| Context | v3가 budget/class/pending diagnosis/relevant claim/reason을 제공 | default v3/explicit v2, path/legacy typed-zero와 installer six-case release binding verified; Claim/reason은 M2 open | Cycle 06 M1-E `5/5`, re-audit pending; 전체 단계는 △ 유지 |
 | Autonomy | provider-neutral finite state machine이 stop/resume | 외부 대화가 수동으로 단계를 연결 | 추가 |
-| Meta-evaluation | post-freeze unseen 36 episodes와 choice oracle로 v0.2/v0.5 paired comparison | v0.3 corrected full `602+115`와 release build는 PASS; learning benchmark/comparator/oracle/generator는 없음 | Cycle 06 release evidence 보강; learning 효과는 여전히 미측정 |
-| Compatibility/authority | v1 logs 무변환, legacy 격리, authority null 유지 | v1/Context v2/branch conclusion v1, structured tokenless `7/7`, exact upgrade와 single release receipt PASS | Cycle 06 `602+115`, authority 0, external control-tree snapshots 3/3 unchanged; replay/import fixtures는 M2-D |
+| Meta-evaluation | post-freeze unseen 36 episodes와 choice oracle로 v0.2/v0.5 paired comparison | v0.3 corrected full `609+115`와 release build는 PASS; learning benchmark/comparator/oracle/generator는 없음 | Cycle 06 release evidence 보강; learning 효과는 여전히 미측정 |
+| Compatibility/authority | v1 logs 무변환, legacy 격리, authority null 유지 | v1/Context v2/branch conclusion v1, structured tokenless `7/7`, installer `6/6`, exact upgrade와 single release receipt PASS | Cycle 06 `609+115`, authority 0, external control-tree snapshots 3/3 unchanged; replay/import fixtures는 M2-D |
 
 ### 8.5 비전 변경 이력 ★
 
@@ -337,7 +337,7 @@ Canonical truth boundaries:
 | 03 | 2026-08-10 | 구체화·검증 | Study inference에 typed Proposal·scope-bound identity·frozen-candidate replication을 추가하고 v1 service/CLI parity, exact-event ownership과 cold projection race를 보강; Diagnosis/ClassState/frontier와 adapter semantic-consumption limitation은 유지 | M1-C manifest `20/20`, transition/direct `53/72`, full `442+111`, checkpoints `a783a88`~`2e14096`; progress critic + independent auditor PASS |
 | 04 | 2026-08-11 | 구체화·검증 | Study inference를 terminal-bound Diagnosis→derived ClassState→semantic/retry frontier까지 구현했다. 두 oracle `RESULT-INVALID`를 철회하고 canonical equality·anti-vacuity·recursion correction으로 재측정했으며, interpretation 품질·registered control·learned ranking limitation은 유지했다 | final seals `10e037…1718`/`92551a…c54`; transition `26/23/54/37/7`; negative `460/460`; direct `67`; bounded `56`; compatibility `20/20`; single floor PASS; progress critic + independent auditor PASS |
 | 05 | 2026-08-11 | 구체화·검증 | M1-D state를 opt-in Context v3에 직접 노출하고 exact evidence를 채우는 fail-closed Diagnosis template과 disposable temp-project E2E를 추가했다. Context v2/default token은 보존했고 M1-E release는 청구하지 않았다 | pre-spec `38446f1`; product `7fcfd10`; vertical `4`; final compatibility `127+23`; demo/ruff/ty/diff PASS; independent 7-pass audit PASS |
-| 06 | 2026-08-11 | 구체화·검증 | Q2/Q5 correction은 strict critic PASS했지만 progress audit이 installer manifest case-ID 미소비를 FAIL해 structured six-case correction을 pre-spec했다 | `ff608af→58b731e`; `602+115` history; M1-E `4/5` |
+| 06 | 2026-08-11 | 구체화·검증 | Progress audit의 installer case-ID 미소비를 structured six literal nodes와 receipt binding으로 보정했다 | `b70a98f→e120292`; `609+115`; installer `6/6`; M1-E `5/5`, re-audit pending |
 
 ---
 
@@ -424,9 +424,8 @@ Canonical truth boundaries:
 
 총평: v0.3 integrity·audit·replay와 M1-A/B study control, M1-C Proposal identity,
 M1-D Diagnosis/ClassState/frontier 위에 default Context v3, tokenless legacy boundary, exact
-managed upgrade product는 동작하지만 installer six-case release evidence가 manifest IDs와
-미결합이라 M1-E는 `4/5`다. 이를 fresh receipt와 독립 감사로 닫은 뒤 Program Memory·autonomous
-loop·unseen gate를 M2→M3 순서로 진행한다.
+managed upgrade와 structured six-case release evidence가 `5/5` verified 상태다. Independent
+re-audit로 M1을 닫은 뒤 Program Memory·autonomous loop·unseen gate를 M2→M3 순서로 진행한다.
 
 ### 10.1 단계별 평가
 
@@ -436,9 +435,9 @@ loop·unseen gate를 M2→M3 순서로 진행한다.
 | 2. Study generation | ○ | `science/{contracts,state}.py`, `service.py`, `kernel/{ids,projection}.py`; canonical contract/generation/replay와 locked cumulative reservation 구현. generation별 non-refundable reservation이며 actual telemetry·study lifetime cap·successor 반복 증액 방지는 없음 | M1-B executable manifest `29/29`, focused `81+37`, checkpoint `df2c900` |
 | 3. Study inference | ○ | `science/{proposals,diagnoses,state}.py`, `service.py`; Proposal/Diagnosis/ClassState/frontier replay와 pending/closure gate는 동작하나 interpretation quality·Claim·learned ranking은 없음 | M1-D `26/23/54/37/7`, negative `460/460`, five conjunct 5/5; NS3 `3/4` |
 | 4. Program memory | ✗ | project-bound Finding만 존재 | `memory/findings.py` |
-| 5. Relevant context v3 | △ | default v3/explicit v2와 release path/policy binding은 verified; installer evidence correction과 relevant Claim/retrieval reason이 남음 | phase §06; M1-E `4/5` |
+| 5. Relevant context v3 | △ | default v3/explicit v2와 release path/policy/installer binding은 verified; relevant Claim/retrieval reason은 M2에 남음 | phase §06; M1-E `5/5`, re-audit pending |
 | 6. Autonomous single-agent | ✗ | provider-neutral CLI는 있으나 canonical loop state 없음 | `docs/architecture.md` |
-| 7. Meta-evaluation/release | ✗ | v0.3 corrected full/static/wheel release는 PASS했지만 learning comparator/generator/unseen benchmark는 없음 | `602+115`; wheel/install 0.3.0; NS6 측정 전 |
+| 7. Meta-evaluation/release | ✗ | v0.3 corrected full/static/wheel release는 PASS했지만 learning comparator/generator/unseen benchmark는 없음 | `609+115`; installer `6/6`; wheel/install 0.3.0; NS6 측정 전 |
 
 범례: ◎ 우수 / ○ 양호 / △ 부분 / ✗ 미구현
 
@@ -451,8 +450,8 @@ loop·unseen gate를 M2→M3 순서로 진행한다.
 ### 10.3 메꿔야 할 갭 (이 문서 기준)
 
 1. Study control은 canonical generation별 reservation까지 왔지만 actual usage settlement·study-lifetime ceiling·successor 반복 증액 방지가 없다.
-2. Default Context v3와 managed upgrade product는 verified지만 installer six-case manifest를
-   actual outcomes/receipt에 bind해야 하며 historical floor도 suite를 최대 네 겹 중첩한다.
+2. Default Context v3, managed upgrade와 installer six-case receipt는 verified지만 historical
+   floor가 suite를 최대 네 겹 중첩해 release latency debt가 크다.
 3. Claim, relevant memory retrieval과 knowledge disposition이 없다.
 4. autonomous loop와 fixed-budget unseen learning benchmark가 없다. 제품 multi-agent는 이 NS6 gate 통과 이후까지 명시적으로 유예한다.
 

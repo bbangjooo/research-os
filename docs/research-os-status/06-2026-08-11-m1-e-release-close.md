@@ -1,10 +1,10 @@
 # §06 — M1-E v0.3 release close (2026-08-11)
 
-> Status: **PROGRESS AUDIT FAIL — installer executable correction pre-specified**
+> Status: **INSTALLER CORRECTION VERIFIED — independent progress re-audit pending**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§05](05-2026-08-11-m1-e-usable-context.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §5, §7~§10
-> Active milestone: `M1-E` at `4/5`; installer matrix correction active
+> Active milestone: `M1-E` at `5/5`; independent progress re-audit pending
 
 ## 06.0 TL;DR
 
@@ -149,19 +149,22 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 - Exact range `27423b1..58b731e`의 added lines는 product+tests `565`,
   fixture+docs+README `388`, release tooling `304`, metadata `2`, total `1,259`다.
   확인 명령은 `git diff --numstat 27423b1..58b731e`이며 PIVOT total cap `1,350` 이하이다.
+- Third-correction implementation `e120292`까지 original corrected pre-spec `3ca2115` 대비
+  product+tests `733`, fixture+docs+README `477`, release tooling `337`, metadata `2`, total
+  `1,549` added lines로 frozen caps `800/700/350/1,600` 이하다.
 
 ### 06.6.2 Verification evidence
 
 | Evidence | Corrected result | 판정 |
 |---|---:|---|
-| Release/default/v2/tokenless/installer focused bundle | fresh executable binding + authority bundle `7 PASS` | PASS |
+| Release/default/v2/tokenless/installer focused bundle | authority/manifest `13 PASS`; local release+verifier+installer diagnostic `37+12` | PASS |
 | Scientific agent compatibility | `17 passed` | PASS |
 | Frozen tokenless boundary | structured `7/7`; case-level observer/source/path/code/event+budget delta exact | PASS |
-| Frozen installer matrix | 기존 test names는 green이나 manifest case ID가 실행 outcome에 미결합 | **RESULT-INVALID / 0/1** |
+| Frozen installer matrix | structured six IDs→literal pytest nodes→canonical actual outcomes `6/6`; receipt exact IDs | PASS |
 | Base suite without recursive M1-C/M1-D meta-oracles (diagnostic) | `508 passed, 115 subtests passed` | PASS |
-| Corrected full Python 3.12 suite | single verifier `602 passed, 115 subtests passed` | PASS |
+| Corrected full Python 3.12 suite | single verifier `609 passed, 115 subtests passed` | PASS |
 | Static checks | single verifier ruff/ty/diff/clean-tree | PASS |
-| Wheel/install | installed metadata `0.3.0`; packaged skill; wheel SHA-256 `cdc451…2ad1` | PASS |
+| Wheel/install | installed metadata `0.3.0`; packaged skill; wheel SHA-256 `782fd9…8b93` | PASS |
 | Authority/live boundary | recursive non-null `0`; three external `.research-os` byte snapshots pre/post exact; reviewed product Python tree `37` files / `52cbf8…277d`; product multi-agent false | PASS |
 
 ### 06.6.3 Invalid and diagnostic runs
@@ -187,13 +190,13 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 | Context v3 scientific state | default v3 = explicit v3; explicit v2 exact; cold no-write; focused PASS | PASS |
 | v1 event / Context v2 / branch conclusion v1 compatibility | frozen bytes/digest, explicit v2, snapshot v2, full suite PASS | PASS |
 | tokenless v2 legacy boundary | structured `7/7` actual outcomes exact; reject event/budget delta 0 | PASS |
-| managed 0.2→0.3 upgrade/rollback | product tests green; manifest six IDs가 실행 outcome에 미결합 | FAIL |
-| docs/version 0.3.0 + full release | receipt `58b731e`: `602+115`, exact four-doc/version/product-tree/external snapshots, static, clean tree, wheel/temp install | PASS |
+| managed 0.2→0.3 upgrade/rollback | structured ID/operation/expected `6/6`; no skip/fallback; receipt exact | PASS |
+| docs/version 0.3.0 + full release | receipt `e120292`: `609+115`, installer `6/6`, exact four-doc/version/product-tree/external snapshots, static, clean tree, wheel/temp install | PASS |
 
-Progress audit가 installer `case_ids`가 어느 executable dispatcher에서도 소비되지 않음을
-발견했으므로 기존 `6/6` 청구를 **RESULT-INVALID**로 내렸다. 현재 decision은
-**ADVANCE (`4/5`; installer executable correction active)**다. Structured six-case manifest와
-ID별 actual outcome, single-verifier receipt가 fresh PASS하기 전에는 M1-E/M1을 `CLOSE`하지 않는다.
+기존 aggregate installer `6/6`은 계속 **RESULT-INVALID** history다. Third correction의 fresh
+single verifier가 structured six IDs를 별도 node로 실행하고 receipt에 exact IDs/`passed=6`을
+기록했으므로 현재 decision은 **ADVANCE (`5/5` verified; independent progress re-audit pending)**다.
+Re-audit PASS 전에는 M1-E/M1을 `CLOSE`하지 않는다.
 
 ### 06.6.5 End-state positioning
 
@@ -214,11 +217,11 @@ graph reducer, provider SDK, autonomous loop를 추가하지 않았다.
 
 ### 06.6.7 Claim mode and chronology
 
-**Claim mode: CONFIRMATORY.** Second-correction pre-spec `ff608af` (`07:22:40+09:00`)이 direct
-parent인 implementation `58b731e` (`07:26:14+09:00`)보다 먼저다. Case 수·public code·product
-semantics·threshold를 바꾸지 않고, 그 clean implementation commit에서 처음 실행한 single
-verifier receipt만 second-correction confirmatory evidence로 사용한다. First-correction
-`3eaba21→1aa9c58` receipt는 chronology/history이지 현재 Q2/Q5 분자가 아니다.
+**Claim mode: CONFIRMATORY.** Third-correction pre-spec `b70a98f` (`08:38:07+09:00`)이 direct
+parent인 implementation `e120292` (`08:40:09+09:00`)보다 먼저다. Structured six-case
+denominator/operation/expected와 receipt requirement를 결과 전에 고정했고, clean implementation의
+첫 single-verifier receipt만 current confirmatory evidence로 사용한다. Earlier
+`3eaba21→1aa9c58`와 `ff608af→58b731e` receipts는 chronology/history다.
 
 `3ca2115` corrected pre-spec의 parent/tree/timestamp는
 `27423b1` / `3fb3cac…` / `2026-08-11T04:11:43+09:00`이다. First result-bearing
@@ -231,9 +234,10 @@ verifier receipt만 second-correction confirmatory evidence로 사용한다. Fir
 
 Initial full/harness outputs와 critic이 무효화한 A3/A5 aggregate PASS는 close 분자에서 제외한다.
 기존 `597+115`는 regression 실행 사실로만 보존하고 A5 single-gate PASS로 대리하지 않는다.
-Second-correction pre-spec 뒤 fresh receipt `58b731e`, `602+115`, executed path와 legacy typed-zero,
-authority non-null 0, exact product tree, external control-tree no-write, wheel/install 0.3.0만 현재
-A3/A5 close evidence다. First receipt `1aa9c58`은 historical correction evidence로만 보존한다.
+Third-correction pre-spec 뒤 fresh receipt `e120292`, `609+115`, installer structured `6/6`,
+executed path와 legacy typed-zero, authority non-null 0, exact product tree, external control-tree
+no-write, wheel/install 0.3.0만 current close evidence다. Earlier receipts는 historical correction
+evidence로만 보존한다.
 
 ### 06.6.9 Residuals and north-star movement
 
@@ -297,3 +301,8 @@ Second-correction receipt를 durable하게 고정한 뒤 progress critic과 inde
   `id/operation/expected` cases, literal six IDs 각각이 별도 pytest node로 실행되고 actual outcome이
   canonical exact match하며, single verifier가 exact six node를 실행해 `case_ids`와 `passed=6`을
   receipt에 기록한다. 일부 ID skip, unknown/fallback dispatch, aggregate test-name 대리는 FAIL이다.
+- Third-correction pre-spec `b70a98f` (`08:38:07+09:00`)의 direct child implementation
+  `e120292` (`08:40:09+09:00`)에서 six literal nodes와 verifier binding을 구현했다. Clean
+  implementation의 single verifier는 `609+115`, managed upgrade `6/6`, authority 0, external
+  snapshots unchanged, wheel `782fd9…8b93`으로 PASS했다. Durable receipt는 이 결과로 교체했고
+  independent critic/progress re-audit은 pending이다.
