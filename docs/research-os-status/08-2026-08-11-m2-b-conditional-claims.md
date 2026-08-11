@@ -233,3 +233,12 @@ product/test/fixture/frozen 25/acceptance/full evidence를 바꾸지 않고 phas
 압축한다. Q1~Q8, 두 FAIL chronology, MIXED claim mode, cap PIVOT, external/no-authority 경계는 모두
 보존한다. 최종 acceptance는 docs gross `<=396`, total `<=3,100`; focused/hash/diff를 재확인하고
 Attempt 3가 PASS하기 전 audit을 시작하지 않는다. Documentation-only라 full suite는 재실행하지 않는다.
+
+## 08.13 Audit Attempt 1 FAIL and correction pre-spec
+
+Audit `517bbd7`은 paired-core stale state/PIVOT 누락, cases 17/18/20/21/25의 exact log-byte no-write
+미측정, adjacent `96` command 부재로 FAIL했다. Correction은 frozen IDs/expected와 product semantics를
+바꾸지 않는다. Five operations는 pre/post ProgramLog bytes와 relation count를 실제 측정하고, paired
+status/pipeline은 Attempt 3 PASS·candidate/audit pending·`PIVOT/MIXED`·final LOC를 동기화하며 정확한
+adjacent command를 기록한다. Audit ledger를 포함해 docs/total cap `500/3,100`을 유지하도록 중복
+phase prose를 압축한다. Focused/adjacent/hash/static을 재현하고 independent re-audit 전 CLOSE하지 않는다.
