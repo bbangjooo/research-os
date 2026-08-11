@@ -1,5 +1,21 @@
 """Provider-neutral, no-authority inputs for autonomous research."""
 
+from .loop import (
+    AUTONOMY_EVENT_SCHEMA_VERSION,
+    AUTONOMY_POLICY_SCHEMA_VERSION,
+    AutonomyEpisodeLog,
+    AutonomyEpisodeState,
+    AutonomyLoopError,
+    AutonomyPolicy,
+    FiniteAutonomyLoop,
+    NextQueryPlan,
+    ProviderDiagnosisPacket,
+    ProviderDiagnosisRequest,
+    ProviderSynthesisPacket,
+    ProviderSynthesisRequest,
+    canonical_token_units,
+    reduce_autonomy_events,
+)
 from .protocol import (
     DECISION_PACKET_SCHEMA_VERSION,
     MAX_DECISION_PACKET_BYTES,
@@ -22,14 +38,26 @@ from .provider import (
 )
 
 __all__ = [
+    "AUTONOMY_EVENT_SCHEMA_VERSION",
+    "AUTONOMY_POLICY_SCHEMA_VERSION",
+    "AutonomyEpisodeLog",
+    "AutonomyEpisodeState",
+    "AutonomyLoopError",
+    "AutonomyPolicy",
     "DECISION_PACKET_SCHEMA_VERSION",
     "MAX_DECISION_PACKET_BYTES",
     "PROVIDER_DECISION_REQUEST_SCHEMA_VERSION",
     "DecisionPacket",
     "DecisionPacketError",
+    "FiniteAutonomyLoop",
     "JSONSubprocessProvider",
+    "NextQueryPlan",
     "ProviderDecisionRequest",
+    "ProviderDiagnosisPacket",
+    "ProviderDiagnosisRequest",
     "ProviderPortError",
+    "ProviderSynthesisPacket",
+    "ProviderSynthesisRequest",
     "PythonDecisionProvider",
     "PythonProviderPort",
     "RetrievalManifest",
@@ -37,5 +65,7 @@ __all__ = [
     "build_decision_packet",
     "build_provider_decision_request",
     "build_retrieval_manifest",
+    "canonical_token_units",
+    "reduce_autonomy_events",
     "validate_decision_packet",
 ]

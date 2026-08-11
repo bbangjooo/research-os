@@ -229,8 +229,12 @@ def _context_project_id(context: Mapping[str, Any]) -> str:
     return _text(project.get("project_id"), path="$.context.snapshot.project_snapshot.project_id")
 
 
+class ProviderRequest:
+    """Nominal base for exact value-only requests accepted by provider ports."""
+
+
 @dataclass(frozen=True, slots=True)
-class ProviderDecisionRequest:
+class ProviderDecisionRequest(ProviderRequest):
     provider_decision_request_schema_version: int
     provider_request_id: str
     context: FrozenJSONObject

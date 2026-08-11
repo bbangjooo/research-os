@@ -21,7 +21,7 @@ from research_os.contracts.common import (
 )
 from research_os.errors import ConfigurationError
 
-from .protocol import ProviderDecisionRequest
+from .protocol import ProviderRequest
 
 _POLL_SECONDS = 0.005
 _TERM_GRACE_SECONDS = 0.25
@@ -130,9 +130,9 @@ class PythonProviderPort:
             raise ConfigurationError("Python provider must implement decide(request)")
         self.provider = provider
 
-    def invoke(self, request: ProviderDecisionRequest) -> dict[str, Any]:
-        if not isinstance(request, ProviderDecisionRequest):
-            raise TypeError("request must be a ProviderDecisionRequest")
+    def invoke(self, request: ProviderRequest) -> dict[str, Any]:
+        if not isinstance(request, ProviderRequest):
+            raise TypeError("request must be a ProviderRequest")
         try:
             result = self.provider.decide(request.frozen_mapping())
         except ProviderPortError:
@@ -222,9 +222,9 @@ class JSONSubprocessProvider:
         self.timeout_seconds = _positive_float(timeout_seconds, name="timeout_seconds")
         self.max_output_bytes = _positive_int(max_output_bytes, name="max_output_bytes")
 
-    def invoke(self, request: ProviderDecisionRequest) -> dict[str, Any]:
-        if not isinstance(request, ProviderDecisionRequest):
-            raise TypeError("request must be a ProviderDecisionRequest")
+    def invoke(self, request: ProviderRequest) -> dict[str, Any]:
+        if not isinstance(request, ProviderRequest):
+            raise TypeError("request must be a ProviderRequest")
         request_bytes = canonical_json_bytes(request.to_dict()) + b"\n"
         process: subprocess.Popen[bytes] | None = None
         with tempfile.TemporaryDirectory(prefix="research-os-provider-") as directory:
