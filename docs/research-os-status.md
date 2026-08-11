@@ -47,6 +47,9 @@
   - M2-B immutable Claim/relation은 critic Attempts 1/2와 audit Attempt 1 FAIL을 교정해 critic
     Attempt 3와 independent re-audit PASS로 5/5 CLOSE했다. Frozen `25`, focused `37`, adjacent `96`,
     full `672+115`, authority `10/0`; M2-C retrieval이 active다.
+  - M2-C §09 pre-spec과 frozen `retrieval-v1.json`은 product/result 전에 exact four-query oracle,
+    ordering, Context v3 Program-head token stale contract를 고정했다. 현재 0/5이며 critic 질문 생성이
+    다음 gate다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 
@@ -66,7 +69,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** M2-C deterministic retrieval·Context integration pre-spec을 고정한다.
+- [ ] **단일 최우선 행동:** frozen M2-C pre-spec을 독립 critic 질문으로 공격한 뒤 implementation을 시작한다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
@@ -79,6 +82,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | M1-E release close | `docs/research-os-status/06-2026-08-11-m1-e-release-close.md` | complete; independent audit PASS | receipt `e120292`; `609+115`; installer `6/6` |
 | M2-A Program memory boundary | `docs/research-os-status/07-2026-08-11-m2-a-program-manifest-log.md` | complete; critic + audit PASS | corrected `22`, race `50/50`, full `635+115` |
 | M2-B Conditional Claim graph | `docs/research-os-status/08-2026-08-11-m2-b-conditional-claims.md` | complete; critic + corrected audit PASS | frozen `25`, focused `37`, full `672+115` |
+| M2-C deterministic retrieval | `docs/research-os-status/09-2026-08-11-m2-c-deterministic-retrieval.md` | pre-spec; 0/5 | frozen four-query exact oracle; critic pending |
 | 방법론 pipeline core | `docs/research-os-pipeline.md` | active | M1, M2-A/B closed; M2-C active |
 
 ### 0.5 알려진 잔여 이슈
@@ -91,7 +95,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 - M1-B budget은 **generation별 non-refundable reservation**이다. 실제 elapsed/cost 사용량 telemetry나 settlement가 아니며 study lifetime cap도 아니다.
 - 새 evaluation-sealed successor generation이 새 budget을 열 수 있고 반복 증액 자체를 막는 lifetime governance는 아직 없다.
 - Context v3는 M1 scientific state를 default로 노출하지만 relevant Claim과 retrieval reason은
-  M2 전까지 없다. Explicit Context v2는 compatibility surface로 남는다.
+  M2-C implementation 전까지 없다. Explicit Context v2는 compatibility surface로 남는다.
 - M1-C scope binding은 scope identity와 adapter request delivery를 증명하지만 adapter가 manifest를 실제 dataset 선택에 올바르게 소비했는지, dataset 독립성이나 통계적 재현 성공은 증명하지 않는다.
 - M1-C의 exact 21-key registration은 tokenless E7 shape다. Context-token path는 기존 token/snapshot sibling을 추가하면서 typed Proposal four-bundle 완전성을 유지한다.
 
@@ -264,6 +268,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 06 | 2026-08-11 / M1-E release close | [`research-os-status/06-2026-08-11-m1-e-release-close.md`](research-os-status/06-2026-08-11-m1-e-release-close.md) | M1-E 5/5 + parent M1 closed; critic + progress audit PASS |
 | 07 | 2026-08-11 / M2-A | [`research-os-status/07-2026-08-11-m2-a-program-manifest-log.md`](research-os-status/07-2026-08-11-m2-a-program-manifest-log.md) | ProgramManifest/Log 4/4 closed; critic + corrected audit PASS |
 | 08 | 2026-08-11 / M2-B | [`research-os-status/08-2026-08-11-m2-b-conditional-claims.md`](research-os-status/08-2026-08-11-m2-b-conditional-claims.md) | Claim/relation 5/5 closed; critic + corrected audit PASS |
+| 09 | 2026-08-11 / M2-C | [`research-os-status/09-2026-08-11-m2-c-deterministic-retrieval.md`](research-os-status/09-2026-08-11-m2-c-deterministic-retrieval.md) | frozen retrieval/Context stale-check pre-spec; critic pending, 0/5 |
 
 ---
 
@@ -274,7 +279,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - 마지막 유효 engineering 측정: Cycle 08 full `672+115`, focused `37`, adjacent `96`,
   ruff/ty/diff와 Claim authority `10/0 non-null` PASS. Historical v0.3 seal은 `609+115`, installer
   `6/6`, external no-write, exact product tree와 wheel/install이며 invalid runs는 제외한다.
-- 다음 1행동: M2-C pre-spec/frozen retrieval oracle.
+- 다음 1행동: M2-C frozen contract의 독립 critic 질문 생성·고정.
 - 가장 큰 갭: deterministic retrieval/knowledge disposition과 autonomous loop/unseen benchmark가 남아 있다.
 
 ---
