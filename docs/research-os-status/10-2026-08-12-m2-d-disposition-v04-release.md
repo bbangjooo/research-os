@@ -1,16 +1,17 @@
 # §10 — M2-D knowledge disposition·legacy import·v0.4 release (2026-08-12)
 
-> Status: **PRE-SPEC — implementation not started; 0/5**
+> Status: **CORRECTION IN PROGRESS — critic Attempt 1 FAIL; corrected release gate pending**
 > Previous phase: [§09](09-2026-08-11-m2-c-deterministic-retrieval.md)
 > Active milestone: `M2-D`; M3 remains blocked
 
 ## 10.0 TL;DR
 
-M2-D는 M2-C retrieval의 모든 returned Claim을 Proposal-bound
-`used|rejected|not_applicable` companion record로 exact disposition하고, legacy free text는 typed Claim으로
-추론하지 않는 digest-only opaque record로 ProgramLog에 넣는다. 세 외부 프로젝트는 aggregate control-tree
-snapshot만 두 번 읽고 writer delta 0을 확인한다. 마지막으로 0.2/0.3 managed upgrade와 v0.4 release를
-닫는다. 외부 migration, autonomous loop, product multi-agent는 없다.
+M2-D는 M2-C retrieval의 모든 returned Claim을 durable Proposal-bound
+`used|rejected|not_applicable` companion event로 exact disposition하고, legacy free text를 typed Claim으로
+추론하지 않는 digest-only opaque event로 ProgramLog에 넣었다. Attempt 1 gate는 PASS했으나 critic이
+valid three-way의 durable real-path 측정을 FAIL했다. 그 receipt와 청구는 철회했다. 두 actual scope/origin의
+registered Proposal→Context→ProgramLog cold replay three-way test는 corrected PASS했고 single gate
+재실행 전이다. M2-D/M2는 계속 open이고 M3-A는 시작하지 않는다.
 
 ## 10.1 Scope, end-state, and authority
 
@@ -77,9 +78,98 @@ legacy 문장을 몰래 typed Claim으로 승격하고, release verifier가 외�
 설치한다”이다. Exact full-coverage/ref equality, raw-content/typed count 0, actual ProgramLog no-write,
 three-tree before/after equality가 이를 반증해야 한다.
 
-Disposition/legacy/release criteria와 expected outcomes는 product/result 전 commit하므로 initial label은
+Disposition/legacy/release criteria와 expected outcomes는 product/result 전 commit했으므로 label은
 `CONFIRMATORY`다. 현재 external digest는 observed baseline이라 그 절대값 자체는 descriptive이고,
-pre/post writer delta 0이 confirmatory gate다. Result-triggered contract 수정은 `PIVOT/MIXED`로 강등한다.
+pre/post writer delta 0이 confirmatory gate다. Result-triggered contract 수정은 없었다.
+
+### 10.6.1 What was built
+
+- `memory/knowledge.py`에 strict `ProposalKnowledgeDisposition`/entry와
+  `LegacyOpaqueRecord`/snapshot을 추가했다. Disposition은 returned Claim 전체를 exactly once 덮고
+  Claim digest·role·relation·Proposal field ref·reason code·null authority를 canonical equality로 묶는다.
+- `memory/program.py`에 `knowledge_disposition_recorded.v1`과 `legacy_opaque_recorded.v1` event,
+  reducer/replay, duplicate/stale/no-write, `ProgramStore` append vertical을 추가했다. Replay는 event 직전
+  Program prefix에서 retrieval을 다시 계산한다.
+- `agent.py` writer는 current project Context v3 token, current Program head/result와 canonical registered
+  Proposal을 재검증한 뒤에만 disposition을 append한다. Legacy event는 raw bytes가 아니라 digest/size만
+  보존하며 typed Claim/relation을 만들지 않는다.
+- v0.4 installer는 sealed exact 0.2/0.3 managed tree만 explicit upgrade하고 drift/unknown/failure를
+  no-write/restore한다. `scripts/verify_release.py`는 historical v0.3 proof와 current v0.4 gate를 분리한다.
+
+### 10.6.2 Verification evidence
+
+| Gate | 결과 | 재현 근거 |
+|---|---:|---|
+| Frozen contract | `23/23 PASS` | `m2d-manifest.json` SHA-256 `b61da8…b2a7`; corrected receipt pending |
+| Disposition | corrected durable three-way focused PASS | two actual scope/origin Claims + registered Proposal/Context/ProgramStore cold replay; frozen `14/14` 유지 |
+| Legacy opaque | `6/6 PASS` | adversarial free text append/replay; typed Claim/edge delta 0, raw substring 0 |
+| External read-only | `3/3 PASS` | actual sibling paths, frozen bytes/entry baseline independent match, gate 전후 mode/symlink digest exact; Binance surface absent |
+| Managed upgrade | `6/6 PASS` | exact 0.2/0.3, drift/unknown no-write, two-target commit/publish failure recovery |
+| Full release Attempt 1 | **WITHDRAWN** `712+115` | Q2 proxy-vs-real FAIL; final evidence로 사용하지 않음 |
+| Corrected release | pending | durable three-way node를 receipt에 별도 bind한 clean checkpoint 재실행 필요 |
+
+Attempt 1 receipt는 checkpoint `ef2d9a2` history에만 남기고 current tree에서 철회했다. Corrected
+single gate PASS 뒤 같은 path에 final receipt를 새로 기록한다.
+
+### 10.6.3 Bounded scope
+
+Pre-spec `4b0d0a1` 이후 gross additions는 product Python `1,118/1,400`, tests+release fixture
+`947/1,450`이다. Release verifier script `389`와 close 문서/receipt를 포함해도 total `3,200` cap
+이하다. External projects에는 file writer가 없었고 live migration·loop·product multi-agent 코드는 0이다.
+
+## 10.6.4 Milestone positioning — ADVANCE, correction 4/5
+
+Prerequisite gate는 M2-C close와 independent audit PASS다(status §2.3.3, phase §09).
+
+| M2-D conjunct | 이전 | 현재 evidence | 판정 |
+|---|---:|---:|---|
+| three-way Proposal disposition | Attempt 1 proxy measurement | corrected actual two-scope append/cold replay focused PASS | ✅ |
+| used/rejected exact reference audit | 미구현 | digest/role/relation/field one-factor no-write | ✅ |
+| legacy inference 0 + opaque digest import | 미구현 | frozen legacy `6/6`, raw/typed delta 0 | ✅ |
+| external snapshot 3/3 + writer delta 0 | v0.3 byte-only | v0.4 bytes/mode/symlink pre/post exact | ✅ |
+| v0.4 docs/version/upgrade/full gate | Attempt 1 withdrawn | corrected single gate pending | ⏳ |
+
+현재 corrected durable witness는 PASS지만 이 witness를 단일 release receipt에 bind하는 마지막 conjunct가
+남아 4/5 `ADVANCE`다. Corrected gate, critic, audit가 모두 PASS한 뒤에만 M2-D와 parent M2를
+`CLOSE`하고 M3-A를 active로 바꾼다. NS7 actual external
+replay·opaque classification `3/3`은 M3-D exit에 그대로 남으며 synthetic `6/6`으로 대체하지 않는다.
+
+## 10.6.5 End-state delta
+
+Delta classification: **구체화·검증**.
+
+- Before: Program memory는 Claim graph와 deterministic retrieval까지만 있었고 Proposal이 어떤
+  지식을 사용·기각했는지 canonical audit trail이 없었다.
+- After: registered Proposal + exact Context retrieval을 durable disposition event로 저장/replay하고,
+  legacy bytes는 semantic 승격 없이 digest-only opaque event로 격리한다. Context read set이 실제
+  Program write companion으로 이어져 M3 DecisionPacket이 소비할 stable boundary가 생겼다.
+- 완화·삭제된 종착지 항목은 없다. Actual external replay와 autonomous loop/unseen 효과는 여전히 open이다.
+
+## 10.6.6 Intent-execution reconciliation — PIVOT
+
+Frozen 범위는 유지했지만 Attempt 1은 standalone three-way validator와 two-way durable vertical을 합쳐
+durable three-way로 과장했다. Critic FAIL을 trigger로 test-only correction을 추가하고 receipt를 철회했다.
+제품 semantics/manifest/threshold는 바꾸지 않았으며 외부 migration, M3 loop, benchmark, product
+multi-agent는 추가하지 않았다.
+
+## 10.6.7 Claim mode — MIXED
+
+- Pre-spec: `4b0d0a1` (`2026-08-12 00:29:00 +0900`).
+- Critic questions: `7be69d1` (`00:31:56`).
+- First product/result: `f5d55ad` (`00:44:31`); release code `3ea0726`, manifest/gate `2bc6a59` 순이다.
+- Frozen manifest SHA-256은 `b61da8…b2a7`; `git diff 4b0d0a1 -- m2d-manifest.json`은 0 bytes다.
+- Frozen 23 semantics·threshold와 external delta는 **CONFIRMATORY**: manifest 0-byte drift와 chronology가
+  유지된다.
+- Critic이 요구한 combined actual two-scope durable three-way witness는 **EXPLORATORY correction**이다.
+  이 witness는 denominator를 바꾸지 않지만 Attempt 1 측정 결함을 본 뒤 추가됐다.
+
+## 10.6.8 Divergence diagnosis — RESULT-INVALID (Attempt 1)
+
+제품 결과가 예상과 달랐던 것이 아니라 Q2 측정이 standalone three-way와 durable two-way를 합쳐
+durable three-way로 청구한 runner coverage 오류였다. 따라서 Attempt 1 receipt/북극성 반영을 철회하고,
+actual two-scope Claim retrieval→registered Proposal→Context→append→cold replay test를 추가해 재측정한다.
+Contract/분모는 바꾸지 않으므로 REQUIREMENT-WRONG이 아니며, 예상 밖 product 동작도 아니므로
+GENUINE-FINDING이 아니다.
 
 ## 10.7 Residual issues
 
@@ -89,5 +179,5 @@ pre/post writer delta 0이 confirmatory gate다. Result-triggered contract 수�
 
 ## 10.10 Next action
 
-Frozen manifest/pre-spec checkpoint 뒤 independent critic이 최대 8개 closed questions를 생성한다.
-그 질문을 commit하기 전 product/test/release implementation을 시작하지 않는다.
+Critic Q1~Q8 response를 verify하고 independent seven-pass audit을 실행한다. 둘 다 PASS한 뒤에만
+M2-D/parent M2를 close하고 M3-A DecisionPacket pre-spec을 연다.

@@ -15,25 +15,34 @@ from research_os.agent import (
 )
 from research_os.contracts import sha256_json
 from research_os.errors import ProgramMemoryError, StaleAgentContextError
+from research_os.kernel.events import EventLog
 from research_os.kernel.ids import stable_id
 from research_os.memory import (
+    Claim,
+    ClaimRelation,
     KnowledgeDispositionEntry,
     LegacyOpaqueRecord,
+    ProgramManifest,
+    ProgramStore,
     ProposalKnowledgeDisposition,
+    RetrievalQuery,
     create_legacy_opaque_record,
     create_proposal_knowledge_disposition,
     retrieve_claims,
     validate_proposal_knowledge_disposition,
 )
-from research_os.science import Proposal, reduce_scientific_state
+from research_os.science import Diagnosis, DiagnosisEventPayload, Proposal, reduce_scientific_state
 from tests.test_m2c_deterministic_retrieval import (
-    ORACLE as RETRIEVAL_ORACLE,
-)
-from tests.test_m2c_deterministic_retrieval import (
+    M1D_ROOT,
+    M2A,
+    M2B,
     _oracle_snapshot,
     _query,
     _real_program,
     _real_query,
+)
+from tests.test_m2c_deterministic_retrieval import (
+    ORACLE as RETRIEVAL_ORACLE,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -173,6 +182,266 @@ def _real_vertical(root: Path) -> dict[str, Any]:
         "project_token": project_token,
         "context": context,
         "disposition": disposition,
+    }
+
+
+def _combined_diagnosed_project(root: Path) -> tuple[EventLog, Any]:
+    terminal = json.loads((M1D_ROOT / "m1d-terminal-corpus.json").read_text(encoding="utf-8"))
+    valid = json.loads((M1D_ROOT / "m1d-diagnosis-valid.json").read_text(encoding="utf-8"))
+    project_id = "fixture-m1d"
+    log = EventLog(root / "combined-project.jsonl", project_id)
+    by_id = {}
+    for case_index, diagnosis_case_id in enumerate(
+        ("supported", "conclusive-no-meaningful-improvement")
+    ):
+        diagnosis_case = next(
+            item for item in valid["cases"] if item["id"] == diagnosis_case_id
+        )
+        terminal_record = next(
+            item
+            for item in terminal["records"]
+            if item["id"] == diagnosis_case["terminal_record_id"]
+        )
+        history = terminal_record["canonical_history"]
+        if case_index:
+            history = history[2:]
+        for raw_event in history:
+            event = log.append(
+                raw_event["event_type"],
+                copy.deepcopy(raw_event["payload"]),
+                event_id=raw_event["event_id"],
+                occurred_at=raw_event["occurred_at"],
+            )
+            by_id[event.event_id] = event
+
+        wrapper = diagnosis_case["diagnosis_event"]["payload"]
+        diagnosis_raw = copy.deepcopy(wrapper["diagnosis"])
+        terminal_ref = diagnosis_raw["terminal_evidence"]
+        terminal_ref["event_hash"] = by_id[terminal_ref["event_id"]].hash
+        for artifact_ref in diagnosis_raw["artifact_evidence"]:
+            artifact_ref["event_hash"] = by_id[artifact_ref["event_id"]].hash
+        diagnosis = Diagnosis.from_mapping(diagnosis_raw)
+        payload = DiagnosisEventPayload.from_diagnosis(
+            project_id=project_id,
+            generation_id=wrapper["generation_id"],
+            study_contract_digest=wrapper["study_contract_digest"],
+            evaluation_seal_digest=wrapper["evaluation_seal_digest"],
+            compatibility_digest=wrapper["compatibility_digest"],
+            diagnosis=diagnosis,
+        )
+        diagnosis_event = diagnosis_case["diagnosis_event"]
+        event = log.append(
+            diagnosis_event["event_type"],
+            payload.to_dict(),
+            event_id=diagnosis_event["event_id"],
+            occurred_at=diagnosis_event["occurred_at"],
+        )
+        by_id[event.event_id] = event
+    return log, reduce_scientific_state(log.read(), project_id=project_id)
+
+
+def _program_binding(
+    *, project_id: str, scope_id: str, role: str, manifest_digest: str
+) -> dict[str, Any]:
+    raw = copy.deepcopy(M2A["fixtures"]["binding"])
+    scope = {"id": scope_id, "role": role, "manifest_digest": manifest_digest}
+    raw["project_id"] = project_id
+    raw["evaluation_scope"] = scope
+    raw["evaluation_scope_digest"] = sha256_json(
+        {"evaluation_scope_schema_version": 1, "evaluation_scope": scope}
+    )
+    return raw
+
+
+def _claim_for_origin(
+    *,
+    origin: Any,
+    binding: dict[str, Any],
+    diagnosis_record: Any,
+    summary: str,
+) -> Claim:
+    raw = copy.deepcopy(M2B["fixtures"]["valid_claim"])
+    raw["statement"]["summary"] = summary
+    scope = binding["evaluation_scope"]
+    raw["applicability"] = {
+        "claim_applicability_schema_version": 1,
+        "project_id": binding["project_id"],
+        "generation_id": binding["generation_id"],
+        "hypothesis_class_id": diagnosis_record.diagnosis.hypothesis_class_id,
+        "evaluation_scope": copy.deepcopy(scope),
+        "evaluation_scope_digest": binding["evaluation_scope_digest"],
+        "evaluation_seal_digest": binding["evaluation_seal_digest"],
+        "compatibility_digest": binding["compatibility_digest"],
+        "authorized_action": None,
+    }
+    raw["evidence"] = {
+        "claim_evidence_schema_version": 1,
+        "origin_id": origin.origin_id,
+        "origin_digest": origin.digest,
+        "diagnosis_event": {
+            "sequence": origin.diagnosis_event_sequence,
+            "event_id": origin.diagnosis_event_id,
+            "event_hash": origin.diagnosis_event_hash,
+        },
+        "diagnosis_id": origin.diagnosis_id,
+        "diagnosis_digest": origin.diagnosis_digest,
+        "terminal_evidence": diagnosis_record.diagnosis.terminal_evidence.to_dict(),
+        "artifact_evidence": [
+            item.to_dict() for item in diagnosis_record.diagnosis.artifact_evidence
+        ],
+        "evaluation_seal_digest": binding["evaluation_seal_digest"],
+        "compatibility_digest": binding["compatibility_digest"],
+        "authorized_action": None,
+    }
+    raw["claim_id"] = stable_id(
+        "claim",
+        raw["statement"],
+        raw["applicability"],
+        raw["evidence"],
+        raw["claim_status"],
+        raw["claim_maturity"],
+        raw["limitations"],
+    )
+    return Claim.from_mapping(raw)
+
+
+def _durable_three_way_vertical(root: Path) -> dict[str, Any]:
+    project_log, state = _combined_diagnosed_project(root)
+    development_binding = _program_binding(
+        project_id=project_log.project_id,
+        scope_id="development",
+        role="development",
+        manifest_digest="b" * 64,
+    )
+    diagnostic_binding = _program_binding(
+        project_id=project_log.project_id,
+        scope_id="diagnostic-1",
+        role="diagnostic",
+        manifest_digest="c" * 64,
+    )
+    manifest = ProgramManifest.from_mapping(
+        {
+            "program_manifest_schema_version": 1,
+            "program_id": M2A["fixtures"]["program_id"],
+            "bindings": [development_binding, diagnostic_binding],
+            "authorized_action": None,
+        }
+    )
+    store = ProgramStore(root / "program", manifest.program_id)
+    head = store.initialize(
+        manifest,
+        {project_log.project_id: project_log},
+    )
+    development_diagnosis = next(
+        item for item in state.diagnoses if item.diagnosis.evaluation_scope_id == "development"
+    )
+    diagnostic_diagnosis = next(
+        item for item in state.diagnoses if item.diagnosis.evaluation_scope_id == "diagnostic-1"
+    )
+    development_origin, head = store.link_origin(
+        project_log,
+        development_diagnosis.diagnosis_id,
+        expected_program_head=(head.sequence, head.hash),
+    )
+    diagnostic_origin, head = store.link_origin(
+        project_log,
+        diagnostic_diagnosis.diagnosis_id,
+        expected_program_head=(head.sequence, head.hash),
+    )
+    claims = [
+        _claim_for_origin(
+            origin=development_origin,
+            binding=development_binding,
+            diagnosis_record=development_diagnosis,
+            summary=f"Durable development disposition claim {index}.",
+        )
+        for index in range(2)
+    ]
+    cross_scope = _claim_for_origin(
+        origin=diagnostic_origin,
+        binding=diagnostic_binding,
+        diagnosis_record=diagnostic_diagnosis,
+        summary="Durable cross-role disposition claim.",
+    )
+    for claim in claims:
+        head = store.append_claim(
+            claim,
+            project_log,
+            expected_program_head=(head.sequence, head.hash),
+        )
+    head = store.append_claim(
+        cross_scope,
+        project_log,
+        expected_program_head=(head.sequence, head.hash),
+    )
+    relation = ClaimRelation.from_mapping(
+        {
+            "claim_relation_schema_version": 1,
+            "relation_id": stable_id(
+                "relation",
+                "contradicts",
+                claims[1].claim_id,
+                claims[0].claim_id,
+                "Durable three-way contradiction.",
+            ),
+            "relation_type": "contradicts",
+            "source_claim_id": claims[1].claim_id,
+            "target_claim_id": claims[0].claim_id,
+            "rationale": "Durable three-way contradiction.",
+            "authorized_action": None,
+        }
+    )
+    head = store.append_relation(
+        relation,
+        expected_program_head=(head.sequence, head.hash),
+    )
+    snapshot = store.claim_snapshot()
+    query_raw = _real_query(snapshot, claims[0]).to_dict()
+    query_raw["query_id"] = "query_durable-three-way"
+    query_raw["diagnosis_digest"] = None
+    query = RetrievalQuery.from_mapping(query_raw)
+    result = retrieve_claims(snapshot, query)
+    assert {hit.claim_id for hit in result.active} == {
+        claims[0].claim_id,
+        cross_scope.claim_id,
+    }
+    assert [hit.claim_id for hit in result.contradictions] == [claims[1].claim_id]
+    proposal = next(
+        item.proposal for item in state.registrations if item.evaluation_scope_id == "development"
+    )
+    project_token = sha256_json({"project": project_log.project_id, "phase": "m2d-three-way"})
+    context = _context(project_log.project_id, project_token, result)
+    entries = [
+        _entry(
+            hit,
+            "not_applicable" if hit.claim_id == cross_scope.claim_id else "used",
+        )
+        for hit in result.active
+    ] + [_entry(result.contradictions[0], "rejected")]
+    disposition = create_proposal_knowledge_disposition(
+        project_id=project_log.project_id,
+        proposal=proposal,
+        retrieval=result,
+        context_token=context["snapshot"]["context_token"],
+        entries=entries,
+    )
+    record_agent_context_v3_knowledge_disposition(
+        context,
+        current_project_context_token=project_token,
+        current_claim_snapshot=snapshot,
+        proposal=proposal,
+        disposition=disposition,
+        program_store=store,
+        project_log=project_log,
+        expected_program_head=(head.sequence, head.hash),
+    )
+    return {
+        "store": store,
+        "disposition": disposition,
+        "returned_claim_ids": {
+            *(hit.claim_id for hit in result.active),
+            *(hit.claim_id for hit in result.contradictions),
+        },
     }
 
 
@@ -405,6 +674,27 @@ def test_frozen_disposition_case(case: dict[str, Any], tmp_path: Path) -> None:
 @pytest.mark.parametrize("case", LEGACY_CASES, ids=lambda case: case["id"])
 def test_frozen_legacy_case(case: dict[str, Any], tmp_path: Path) -> None:
     assert _observe_legacy(case["id"], tmp_path / case["id"]) == case["expected"]
+
+
+def test_durable_three_way_disposition_replays_from_registered_proposal(
+    tmp_path: Path,
+) -> None:
+    vertical = _durable_three_way_vertical(tmp_path)
+    original = vertical["disposition"]
+    cold_store = ProgramStore(vertical["store"].root, vertical["store"].program_id)
+    replayed = cold_store.knowledge_disposition_snapshot()
+
+    assert replayed.dispositions == (original,)
+    assert {entry.claim_id for entry in replayed.dispositions[0].entries} == vertical[
+        "returned_claim_ids"
+    ]
+    assert {entry.disposition for entry in replayed.dispositions[0].entries} == {
+        "used",
+        "rejected",
+        "not_applicable",
+    }
+    assert len(replayed.dispositions[0].entries) == 3
+    assert replayed.authorized_action is None
 
 
 def test_durable_disposition_replays_and_duplicate_is_no_write(tmp_path: Path) -> None:

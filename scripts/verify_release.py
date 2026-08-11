@@ -148,6 +148,10 @@ M2D_LEGACY_CASE_IDS = (
 M2D_EXTERNAL_CASE_ID = "external-three-project-read-only"
 M2D_UPGRADE_CASE_ID = "upgrade-prior-managed-releases"
 M2D_RELEASE_CASE_ID = "release-v0.4-single-gate"
+DURABLE_THREE_WAY_NODE = (
+    "tests/test_m2d_knowledge_disposition.py::"
+    "test_durable_three_way_disposition_replays_from_registered_proposal"
+)
 M2D_CASE_IDS = (
     *M2D_DISPOSITION_CASE_IDS,
     *M2D_LEGACY_CASE_IDS,
@@ -671,6 +675,10 @@ def _verify_current(manifest: dict[str, Any]) -> dict[str, object]:
     _external_snapshot_matches_contract(contract, external_before)
     try:
         m2d = _m2d_case_gate()
+        durable_output = _run(
+            [sys.executable, "-m", "pytest", "-q", DURABLE_THREE_WAY_NODE]
+        )
+        _require(_passed_count(durable_output) == 1, "durable three-way case did not pass")
         external_output = _run(
             [
                 sys.executable,
@@ -720,6 +728,7 @@ def _verify_current(manifest: dict[str, Any]) -> dict[str, object]:
             "case_ids": list(M2D_CASE_IDS),
             "case_results": case_results,
             "disposition_and_legacy": m2d,
+            "durable_three_way": {"node": DURABLE_THREE_WAY_NODE, "passed": 1},
         },
         "full_suite": {"passed": passed, "subtests_passed": subtests},
         "focused_authority_and_manifest": {
