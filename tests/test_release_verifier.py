@@ -1,17 +1,22 @@
 from __future__ import annotations
 
+import copy
+import json
 import sys
+from pathlib import Path
 
 import pytest
 
 import scripts.verify_release as verifier
 from scripts.verify_release import (
     DEFAULT_MANIFEST,
+    DEFAULT_RECEIPT,
     ReleaseGateError,
     _external_snapshots,
     _installer_gate,
     _pytest_counts,
     _run,
+    _sealed_release_tree,
     _static_gate,
     _strict_json,
     main,
@@ -35,6 +40,32 @@ def test_v03_release_manifest_fields_are_consumed_by_static_gate() -> None:
     }
     assert observed["external_projects_mode"] == "read-only-no-live-migration"
     assert observed["product_multi_agent"] is False
+
+
+def test_v03_static_gate_recomputes_the_historical_receipt_commit_tree() -> None:
+    manifest = _strict_json(DEFAULT_MANIFEST)
+    commit, tree = _sealed_release_tree(manifest)
+
+    assert commit == "e120292620b17179231902deadb34cda9491c786"
+    assert tree == {
+        "file_count": manifest["release_gate"]["product_python_file_count"],
+        "sha256": manifest["release_gate"]["product_python_tree_sha256"],
+    }
+
+
+def test_v03_static_gate_rejects_a_tampered_historical_receipt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    receipt = json.loads(DEFAULT_RECEIPT.read_text(encoding="utf-8"))
+    tampered = copy.deepcopy(receipt)
+    tampered["static"]["product_python_tree"]["sha256"] = "a" * 64
+    path = tmp_path / "receipt.json"
+    path.write_text(json.dumps(tampered), encoding="utf-8")
+    monkeypatch.setattr(verifier, "DEFAULT_RECEIPT", path)
+
+    with pytest.raises(ReleaseGateError, match="receipt and manifest"):
+        _static_gate(_strict_json(DEFAULT_MANIFEST))
 
 
 def test_release_verifier_snapshots_all_external_research_os_state_read_only() -> None:

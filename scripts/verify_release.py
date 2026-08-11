@@ -18,6 +18,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "tests/fixtures/releases/v0.3.0/manifest.json"
+DEFAULT_RECEIPT = ROOT / "docs/research-os-status/v0.3.0-release-receipt.json"
 AUTHORITY_TESTS = (
     "tests/test_m1a_evidence_e2e.py::test_m1a_changed_surfaces_keep_authority_null",
     "tests/test_m1b_manifest_oracle.py::test_every_manifest_case_has_an_executable_expectation_binding[authority-null-changed-surfaces]",
@@ -137,6 +138,64 @@ def _python_tree() -> dict[str, object]:
     return {"file_count": len(files), "sha256": digest.hexdigest()}
 
 
+def _python_tree_at_commit(commit: str) -> dict[str, object]:
+    _require(bool(re.fullmatch(r"[0-9a-f]{40}", commit)), "release commit must be a full SHA")
+    exists = subprocess.run(
+        ["git", "cat-file", "-e", f"{commit}^{{commit}}"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+    )
+    _require(exists.returncode == 0, "release commit is absent from the repository")
+    listed = subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", "-z", commit, "--", "src/research_os"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+    )
+    _require(listed.returncode == 0, "cannot list release product tree")
+    names = sorted(name for name in listed.stdout.split(b"\0") if name.endswith(b".py"))
+    digest = hashlib.sha256()
+    prefix = b"src/research_os/"
+    for name in names:
+        _require(name.startswith(prefix), "release tree contains an unexpected path")
+        shown = subprocess.run(
+            ["git", "show", f"{commit}:{name.decode('utf-8')}"],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+        )
+        _require(shown.returncode == 0, f"cannot read release product path: {name!r}")
+        relative = name[len(prefix) :]
+        digest.update(len(relative).to_bytes(8, "big") + relative)
+        digest.update(len(shown.stdout).to_bytes(8, "big") + shown.stdout)
+    return {"file_count": len(names), "sha256": digest.hexdigest()}
+
+
+def _sealed_release_tree(manifest: dict[str, Any]) -> tuple[str, dict[str, object]]:
+    receipt = _strict_json(DEFAULT_RECEIPT)
+    _require(receipt.get("schema_version") == 1, "release receipt schema drifted")
+    _require(receipt.get("kind") == "research_os.release_gate_receipt", "release receipt kind drifted")
+    _require(receipt.get("release") == manifest.get("release"), "release receipt version drifted")
+    _require(receipt.get("result") == "PASS", "release receipt is not passing")
+    commit = receipt.get("commit")
+    _require(isinstance(commit, str), "release receipt commit is missing")
+    static = receipt.get("static")
+    _require(isinstance(static, dict), "release receipt static result is missing")
+    recorded_tree = static.get("product_python_tree")
+    _require(isinstance(recorded_tree, dict), "release receipt product tree is missing")
+    gate = manifest.get("release_gate")
+    _require(isinstance(gate, dict), "release_gate must be an object")
+    expected_tree = {
+        "file_count": gate.get("product_python_file_count"),
+        "sha256": gate.get("product_python_tree_sha256"),
+    }
+    _require(recorded_tree == expected_tree, "release receipt and manifest tree differ")
+    observed_tree = _python_tree_at_commit(commit)
+    _require(observed_tree == expected_tree, "sealed release commit product tree drifted")
+    return commit, observed_tree
+
+
 def _control_tree(path: Path) -> dict[str, object]:
     if not path.exists():
         return {"exists": False, "entry_count": 0, "sha256": hashlib.sha256(b"absent").hexdigest()}
@@ -224,9 +283,7 @@ def _static_gate(manifest: dict[str, Any]) -> dict[str, object]:
         source = path.read_text(encoding="utf-8").lower()
         found = [marker for marker in PRODUCT_MULTI_AGENT_MARKERS if marker in source]
         _require(not found, f"product multi-agent marker in {path.relative_to(ROOT)}: {found}")
-    product_tree = _python_tree()
-    _require(product_tree["file_count"] == gate.get("product_python_file_count"), "product Python file count drifted")
-    _require(product_tree["sha256"] == gate.get("product_python_tree_sha256"), "product Python tree drifted")
+    _, product_tree = _sealed_release_tree(manifest)
 
     return {
         "python": current_python,
@@ -281,6 +338,12 @@ def verify(manifest_path: Path) -> dict[str, object]:
     _require(manifest_path.resolve() == DEFAULT_MANIFEST.resolve(), "alternate manifest forbidden")
     manifest = _strict_json(manifest_path)
     static = _static_gate(manifest)
+    sealed_commit, _ = _sealed_release_tree(manifest)
+    current_commit = _run(["git", "rev-parse", "HEAD"]).strip()
+    _require(
+        current_commit == sealed_commit,
+        "historical v0.3 release receipt cannot be reissued from a later commit",
+    )
     gate = manifest["release_gate"]
     external_before = _external_snapshots(manifest)
     try:
