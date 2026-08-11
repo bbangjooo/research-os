@@ -20,16 +20,20 @@ only. It intentionally creates no nonce, episode body, result, version change or
 - **Prerequisite:** M3-C critic Attempt 2 and corrected audit Attempt 2 PASS; M1/M2/M3-A/B/C closed.
 - **Out of scope:** external project writes/live migration, multi-agent product behavior, hostile-provider sandbox,
   distributed execution, deploy/merge/trade, real capital or live trading.
-- Selected Binance project boundary is the existing nested
-  `research/research-os/polymarket-late-single-side-g4/.research-os`; no root `.research-os` is invented.
+- Binance has only nested Research OS roots. The pre-result rule selects a non-empty root with maximum complete event
+  count, then lexicographic path on ties; this fixes `research/research-os/polymarket-profit-g2/.research-os`
+  (`32` rows observed versus two `0`-row roots). No root `.research-os` is invented.
 
 ## 14.2 Precommitted generator and arm contract
 
 Frozen spec path: `tests/fixtures/meta_evaluation/v1/generator-manifest.json`; raw SHA-256
-`33ca961e5f8bd905dbc1a596fe09f725ed71cd701336114ff230ebdde02e46f8`. It fixes six families × six episodes,
+`3f7e010a79106140fb311578300af4cda5b43e87fa8a5e813e9bc1c6959ff46c`. It fixes six families × six episodes,
 candidate language, same selector/budget rule, v0.2 commit
 `6f36a1b97cf8bc3c5925a3b35f0b189d82f6bcb6`, v0.5 visible surface, hidden-field prohibitions, transition/oracle
-rules, metric formulas, receipt custody and `race-confirmation-v1` before any acceptance body exists.
+rules, metric formulas, receipt custody and `race-confirmation-v1` before any acceptance body exists. Critic-driven
+pre-implementation corrections remove `oracle_rank_if_visible`, retain the complete historical Context v2 mapping,
+make zero baseline waste an anti-vacuity failure, and select a non-empty Binance boundary; the updated SHA below is
+the operative frozen contract.
 
 The v0.2 and v0.5 arms receive the identical hidden world, candidate list, experiment budget, deterministic selector
 and tie break. Only their documented context surfaces differ. The comparator must prove by trace that no v0.5 typed
@@ -114,8 +118,9 @@ unseen worlds and install 0.5.0 without mutating prior projects. No other stage 
 
 ### 14.6.7 Claim mode
 
-**Planned `CONFIRMATORY`.** Generator/world/oracle/metric precede implementation and nonce; body/results will be
-confirmatory only if all custody steps hold. Critic-driven additions are `EXPLORATORY` and may make the phase `MIXED`.
+**Planned `MIXED`.** Generator/world/oracle/metric precede implementation and nonce, so frozen rows and future body
+results remain CONFIRMATORY if custody holds. The critic-driven no-leak, full-v0.2, anti-vacuity and non-empty external
+selection corrections are EXPLORATORY and cannot be relabeled.
 
 ### 14.6.8 Requirement-result divergence
 

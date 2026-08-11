@@ -28,7 +28,7 @@
       "stop_failure"
     ],
     "canonical_tie_break": [
-      "oracle_rank_if_visible",
+      "typed_rule_score",
       "action_priority",
       "hypothesis_class",
       "candidate_id"
@@ -66,12 +66,21 @@
     "v0.2": {
       "release_commit": "6f36a1b97cf8bc3c5925a3b35f0b189d82f6bcb6",
       "fixture": "byte-fixed Context v2 builder contract and packaged research-os skill from the release commit",
+      "agent_source_sha256": "743fe1b60665d512585f4115f8a6f1f4bfa55bce7fef72c55c9a6098a2cb1278",
+      "packaged_skill_sha256": "0cab9ff5279b7715c02688d4e26c4c745200400fb2ffad657924a6cec1a59a9f",
       "visible_fields": [
-        "phase",
-        "allowed_transitions",
-        "experiment_budget_remaining",
-        "recent_terminal_summary",
-        "candidate_list"
+        "schema_version=2",
+        "snapshot",
+        "project",
+        "agent",
+        "state",
+        "graph.compatibility_digest/recent/frontier/retryable/counts",
+        "proposal_contract",
+        "evidence.recent_findings/recent_artifacts/counts",
+        "allowed_agent_actions",
+        "authority",
+        "packet_size_bytes",
+        "common candidate_list outside the historical packet"
       ],
       "forbidden_fields": [
         "class_state",
@@ -192,6 +201,7 @@
     },
     "next_hypothesis_choice_accuracy": {
       "formula": "correct choices / all non-terminal decision points",
+      "denominator_rule": "the body-fixed required decision points are the common denominator for both arms; an early terminal or omitted response makes every skipped required point incorrect",
       "v0.5_threshold": "at least min(0.90, v0.2 accuracy + 0.20)"
     },
     "correct_terminal_decision_rate": {
@@ -201,7 +211,8 @@
     "positive_waste_aggregate": {
       "formula": "sum v0.5 wasted attempts over episodes where v0.2 waste is positive / corresponding v0.2 sum",
       "v0.5_threshold": "at most 0.70",
-      "baseline_zero_rule": "for every episode where v0.2 waste is zero, v0.5 waste must also be zero"
+      "baseline_zero_rule": "for every episode where v0.2 waste is zero, v0.5 waste must also be zero",
+      "anti_vacuity_rule": "if aggregate v0.2 positive waste is zero the release gate fails and the requirement is reviewed as REQUIREMENT-WRONG; no 0/0 pass"
     }
   },
   "required_companion_gates": {
@@ -210,8 +221,9 @@
     "external_read_only": [
       "/Users/bbangjo/crypto-new/.research-os",
       "/Users/bbangjo/manager/.research-os",
-      "/Users/bbangjo/BinancePredictionStrategy/research/research-os/polymarket-late-single-side-g4/.research-os"
+      "/Users/bbangjo/BinancePredictionStrategy/research/research-os/polymarket-profit-g2/.research-os"
     ],
+    "external_selection_rule": "for each named top-level project use its root .research-os when non-empty; when only nested Research OS roots exist, choose the lexicographically stable path among those with the maximum pre-result complete event count, requiring count > 0",
     "external_requirements": "complete event bytes/hash/derived state replay 3/3, opaque classification 3/3, writer bytes/mode/symlink delta zero",
     "release": "version/docs/skill/lock 0.5.0, exact managed 0.2/0.3/0.4 to 0.5 upgrade and rollback, wheel/install, full suite"
   },
