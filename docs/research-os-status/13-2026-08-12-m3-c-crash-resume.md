@@ -1,6 +1,6 @@
 # §13 — M3-C crash-resume and authority closure (2026-08-12)
 
-> Status: **ADVANCE 5/5 — frozen 31/31; critic Attempt 1 correction active; audit pending**
+> Status: **ADVANCE 5/5 — frozen 31/31; critic Attempt 2 PASS; audit pending**
 > Previous phase: [§12](12-2026-08-12-m3-b-finite-autonomy-loop.md)
 > Active milestone: `M3-C`; M3-D blocked
 
@@ -12,7 +12,7 @@ provider to recreate already-used truth. Thirteen frozen cutpoints must cold-res
 with one terminal/disposition/Diagnosis/origin/Claim each, stale heads fail-closed, recursive authority null, and
 deploy/merge/trade operation surface zero. The frozen result is `31/31`; focused/adjacent evidence passes. Critic
 Attempt 1 exposed a lookup→append race witness gap; three exploratory interleavings now fail closed without controller
-writes. M3-D unseen quality is not claimed and remains blocked by critic re-verification plus audit.
+writes. Critic Attempt 2 passed; M3-D unseen quality is not claimed and remains blocked by the independent audit.
 
 ## 13.1 Scope, anchors, and exclusions
 
@@ -77,7 +77,7 @@ Fixture: `tests/fixtures/autonomy/v1/m3c-manifest.json`; raw SHA-256:
 | total | 31 | every literal ID consumed once; no extras |
 
 Observed M3-C result: `(13/13) ∧ (duplicate five = 0) ∧ (stale 4/4) ∧ (authority 6/6) ∧
-(operation surface 3/3 zero)`. All five conjuncts pass together; independent close gates remain pending.
+(operation surface 3/3 zero)`. All five conjuncts pass together; critic PASS is recorded and audit remains pending.
 
 ## 13.4 Stale-head and stop semantics
 
@@ -175,5 +175,5 @@ guarded append. A real interleaving also exposed a boundary exception that neede
 
 ## 13.10 Next action
 
-Re-run independent critic verification on the Attempt 1 correction. If PASS, run the independent seven-pass audit;
-only both PASS results permit `CLOSE` and M3-D activation.
+Run the independent seven-pass audit. Only its PASS, together with the recorded critic Attempt 2 PASS, permits
+`CLOSE` and M3-D activation.

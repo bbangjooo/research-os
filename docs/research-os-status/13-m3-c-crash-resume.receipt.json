@@ -23,9 +23,9 @@
     }
   },
   "focused_command": ".venv/bin/pytest -q tests/test_m3c_crash_resume.py",
-  "focused_result": "41 passed in 70.70s",
+  "focused_result": "author 41 passed in 70.70s; independent critic 41 passed in 71.61s",
   "combined_command": ".venv/bin/pytest -q tests/test_m3b_finite_autonomy.py tests/test_m3c_crash_resume.py",
-  "combined_result": "101 tests included in the passing adjacent run after correction",
+  "combined_result": "independent critic 101 passed in 158.74s",
   "adjacent_command": ".venv/bin/pytest -q tests/test_m3a_decision_packet.py tests/test_m3b_finite_autonomy.py tests/test_m3c_crash_resume.py",
   "adjacent_result": "142 passed in 165.08s",
   "exact_witnesses": {
@@ -64,13 +64,13 @@
     "product_target": 900,
     "tests_and_fixture": 829,
     "tests_and_fixture_target": 1400,
-    "phase_critic_receipt_and_paired_churn_before_audit": 462,
-    "inclusive_before_audit": 1644,
+    "phase_critic_receipt_and_paired_churn_before_audit": 384,
+    "inclusive_before_audit": 1566,
     "inclusive_target": 2800,
     "all_measured_targets_met_before_independent_gates": true
   },
   "claim_mode": "MIXED (frozen 31 confirmatory; critic-driven witnesses exploratory)",
-  "critic_verdict": "Attempt 1 FAIL (Q1/Q3/Q4/Q5/Q6); correction active",
+  "critic_verdict": "Attempt 1 FAIL preserved; Attempt 2 PASS (Q1-Q8; race 3; focused 41; combined 101)",
   "audit_verdict": "PENDING",
   "authorized_action": null
 }
