@@ -9,11 +9,17 @@ import pytest
 
 import scripts.verify_release as verifier
 from scripts.verify_release import (
+    CURRENT_MANIFEST,
     DEFAULT_MANIFEST,
     DEFAULT_RECEIPT,
+    M2D_CASE_IDS,
+    V04_UPGRADE_CASE_IDS,
     ReleaseGateError,
+    _external_snapshot_matches_contract,
     _external_snapshots,
+    _external_snapshots_strict,
     _installer_gate,
+    _m2d_contract,
     _pytest_counts,
     _run,
     _sealed_release_tree,
@@ -69,6 +75,39 @@ def test_v03_static_gate_rejects_a_tampered_historical_receipt(
         _static_gate(_strict_json(DEFAULT_MANIFEST))
 
 
+def test_v04_static_gate_binds_frozen_m2d_and_product_checkpoint() -> None:
+    manifest = _strict_json(CURRENT_MANIFEST)
+    contract = _m2d_contract(manifest)
+    observed = _static_gate(manifest)
+
+    assert manifest["m2d_contract"]["case_ids"] == list(M2D_CASE_IDS)
+    assert [case["id"] for case in contract["cases"]] == list(M2D_CASE_IDS)
+    assert observed == {
+        "python": "3.12",
+        "versions": {
+            "pyproject.toml": "0.4.0",
+            "src/research_os/__init__.py": "0.4.0",
+            "uv.lock": "0.4.0",
+        },
+        "documentation_surfaces": 6,
+        "product_code_commit": "3ea072675c5f7b0e30aafe1fa11055df2db06c21",
+        "product_python_tree": {
+            "file_count": 41,
+            "sha256": "0c0c088f3a86856cfc08b1a9336edc97daa9b8796f96a7e84fad1d83113fa1bc",
+        },
+        "external_projects_mode": "read-only-no-live-migration",
+        "product_multi_agent": False,
+    }
+
+
+def test_v04_contract_rejects_any_frozen_case_binding_drift() -> None:
+    manifest = copy.deepcopy(_strict_json(CURRENT_MANIFEST))
+    manifest["m2d_contract"]["case_ids"][-1] = "release-constant-pass"
+
+    with pytest.raises(ReleaseGateError, match="case binding drifted"):
+        _m2d_contract(manifest)
+
+
 def test_v03_full_verifier_refuses_reissue_from_a_later_commit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -93,6 +132,22 @@ def test_release_verifier_snapshots_all_external_research_os_state_read_only() -
         set(snapshot) == {"exists", "entry_count", "sha256"}
         for snapshot in before.values()
     )
+
+
+def test_v04_external_snapshots_bind_bytes_modes_and_symlink_count() -> None:
+    manifest = _strict_json(CURRENT_MANIFEST)
+    contract = _m2d_contract(manifest)
+    before = _external_snapshots_strict(manifest)
+    _external_snapshot_matches_contract(contract, before)
+    after = _external_snapshots_strict(manifest)
+
+    assert before == after
+    assert all(
+        set(snapshot)
+        == {"exists", "entry_count", "sha256", "metadata_sha256", "symlink_count"}
+        for snapshot in before.values()
+    )
+    assert before["BinancePredictionStrategy"]["exists"] is False
 
 
 def test_release_verifier_has_no_skip_or_alternate_manifest_mode(
@@ -132,3 +187,31 @@ def test_release_verifier_executes_all_six_installer_manifest_ids(
     assert result == {"case_ids": expected_ids, "passed": 6}
     assert len(observed_commands) == 1
     assert all(case_id in " ".join(observed_commands[0]) for case_id in expected_ids)
+
+
+def test_v04_release_verifier_executes_all_six_upgrade_subcases(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifest = _strict_json(CURRENT_MANIFEST)
+    observed_commands: list[list[str]] = []
+
+    def pass_six(command: list[str]) -> str:
+        observed_commands.append(command)
+        return "6 passed in 0.10s"
+
+    monkeypatch.setattr(verifier, "_run", pass_six)
+    result = _installer_gate(manifest)
+
+    assert result == {"case_ids": list(V04_UPGRADE_CASE_IDS), "passed": 6}
+    assert len(observed_commands) == 1
+    rendered = " ".join(observed_commands[0])
+    assert "test_v04_managed_upgrade_subcase" in rendered
+    assert all(case_id in rendered for case_id in V04_UPGRADE_CASE_IDS)
+
+
+def test_release_verifier_rejects_an_alternate_manifest_path(tmp_path: Path) -> None:
+    alternate = tmp_path / "manifest.json"
+    alternate.write_text(CURRENT_MANIFEST.read_text(encoding="utf-8"), encoding="utf-8")
+
+    with pytest.raises(ReleaseGateError, match="alternate manifest forbidden"):
+        verify(alternate)

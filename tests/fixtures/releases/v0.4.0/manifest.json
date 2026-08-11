@@ -1,0 +1,121 @@
+{
+  "release_manifest_schema_version": 1,
+  "release": "0.4.0",
+  "m2d_contract": {
+    "path": "tests/fixtures/program_memory/v3/m2d-manifest.json",
+    "sha256": "b61da8af3930c25c575b3c8834cd952afdfb3f0e3bf886322baa94fa9bf0b2a7",
+    "case_ids": [
+      "disposition-valid-three-way",
+      "disposition-missing-returned-claim",
+      "disposition-duplicate-claim",
+      "disposition-unknown-claim",
+      "disposition-forged-claim-digest",
+      "disposition-forged-role",
+      "disposition-forged-relation-ref",
+      "disposition-forged-proposal-binding",
+      "disposition-stale-context-token",
+      "disposition-stale-program-head",
+      "disposition-used-without-proposal-ref",
+      "disposition-rejected-without-contradiction-ref",
+      "disposition-not-applicable-without-code",
+      "disposition-non-null-authority",
+      "legacy-valid-opaque-import",
+      "legacy-free-text-never-inferred",
+      "legacy-forged-content-digest",
+      "legacy-duplicate-id",
+      "legacy-extra-key",
+      "legacy-non-null-authority",
+      "external-three-project-read-only",
+      "upgrade-prior-managed-releases",
+      "release-v0.4-single-gate"
+    ]
+  },
+  "managed_skill_upgrade": {
+    "from_releases": ["0.2.0", "0.3.0"],
+    "to_release": "0.4.0",
+    "cases": [
+      {
+        "id": "exact-0.2-to-0.4",
+        "operation": "upgrade-exact-sealed-0.2",
+        "expected": {
+          "from_release": "0.2.0",
+          "to_release": "0.4.0",
+          "status": "upgraded",
+          "destination_current": true,
+          "recovery_is_prior": true
+        }
+      },
+      {
+        "id": "exact-0.3-to-0.4",
+        "operation": "upgrade-exact-sealed-0.3",
+        "expected": {
+          "from_release": "0.3.0",
+          "to_release": "0.4.0",
+          "status": "upgraded",
+          "destination_current": true,
+          "recovery_is_prior": true
+        }
+      },
+      {
+        "id": "drifted-0.3-rejected-no-write",
+        "operation": "reject-drifted-0.3",
+        "expected": {
+          "error_type": "ConfigurationError",
+          "destination_unchanged": true,
+          "transactions_empty": true
+        }
+      },
+      {
+        "id": "unknown-release-rejected-no-write",
+        "operation": "reject-unknown-managed-release",
+        "expected": {
+          "error_type": "ConfigurationError",
+          "destination_unchanged": true,
+          "transactions_empty": true
+        }
+      },
+      {
+        "id": "commit-failure-restores-prior",
+        "operation": "fail-second-target-commit",
+        "expected": {
+          "error_type": "OSError",
+          "codex_unchanged": true,
+          "claude_unchanged": true
+        }
+      },
+      {
+        "id": "publish-failure-retains-recovery",
+        "operation": "fail-after-current-tree-publish",
+        "expected": {
+          "error_type": "OSError",
+          "destination_is_prior": true,
+          "recovery_count": 1,
+          "recovery_is_current": true
+        }
+      }
+    ]
+  },
+  "release_gate": {
+    "version_surfaces": [
+      "pyproject.toml",
+      "src/research_os/__init__.py",
+      "uv.lock"
+    ],
+    "python": "3.12",
+    "minimum_collected_tests": 676,
+    "minimum_subtests": 115,
+    "authorized_action_non_null": 0,
+    "external_projects_mode": "read-only-no-live-migration",
+    "external_projects": [
+      "crypto-new",
+      "manager",
+      "BinancePredictionStrategy"
+    ],
+    "external_snapshot_surface": ".research-os",
+    "product_multi_agent": false,
+    "product_code_commit": "3ea072675c5f7b0e30aafe1fa11055df2db06c21",
+    "product_python_file_count": 41,
+    "product_python_tree_sha256": "0c0c088f3a86856cfc08b1a9336edc97daa9b8796f96a7e84fad1d83113fa1bc",
+    "single_verifier": "scripts/verify_release.py"
+  }
+}
