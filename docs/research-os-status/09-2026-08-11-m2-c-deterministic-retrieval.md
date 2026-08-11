@@ -116,9 +116,70 @@ M2-C가 PASS해도 retrieved Claim을 다음 Proposal이 실제 사용·기각�
 v0.4 release는 M2-D에 남는다. 실패 지식이 다음 가설의 품질을 높인다는 효과 주장은 M3 unseen
 benchmark 전에는 하지 않는다.
 
-## 09.7 Next action
+### 09.6.1 Result chronology and receipt
 
-Frozen fixture/pre-spec checkpoint `e6de927` 뒤 독립 critic이 8개 closed questions를 생성했다.
-질문은 real ProgramStore vertical path, denominator receipt, relation boundary, canonical Program append
-stale, end-state/milestone positioning, chronology, divergence를 고정한다. Critic 질문 checkpoint 뒤
-product/test implementation을 시작한다.
+Pre-spec `e6de927`→critic questions `e002076`→first product/result `bc0b79a` 순서다. Frozen SHA-256
+`dd638d…d81`과 `git diff e6de927 -- retrieval-v1.json`은 0이다. Receipt command는 네 query의
+TP/FN/irrelevant FP/superseded leak를 공개하며 totals `11/11`, `3/3`, leak `0/2`, FP `0/14`와 exact
+order/empty/shuffle를 PASS한다.
+
+### 09.6.2 Verification evidence
+
+- `pytest -q tests/test_m2c_deterministic_retrieval.py` → `4 passed`.
+- M2-C+B+A+M1-E/agent adjacent → `87 passed, 3 subtests`.
+- Python 3.12 fresh full → `676 passed, 115 subtests` in `505.01s`; ruff/ty/diff PASS.
+- Real vertical은 actual `ProgramStore.append_claim/append_relation`→rebuild→retrieval→Context v3를
+  실행한다. Canonical Claim append 뒤 old token과 project/query/result/token one-factor mutations는
+  모두 `StaleAgentContextError`, verifier 전후 ProgramLog bytes delta `0`이다.
+
+### 09.6.3 Bounded scope
+
+Gross additions는 product `684/900`, tests+fixture `921/1,150`, docs pre-verify `183/500`, total
+`1,788/2,550`이다. Product는 retrieval/opt-in Context binding뿐이며 disposition/release/loop는 0이다.
+
+## 09.6.4 Milestone positioning — ADVANCE
+
+| M2-C conjunct | Candidate | Evidence |
+|---|---:|---|
+| relevant recall | 100% | receipt `11/11` |
+| contradiction recall | 100% | receipt `3/3` |
+| superseded exclusion | 100% | leak `0/2` |
+| contamination + order/empty/shuffle | 0% + PASS | FP `0/14`; four exact query rows |
+| Context retrieval/Program-head stale | PASS | real vertical + five stale/no-write paths |
+
+Product evidence는 5/5 candidate지만 critic verify와 independent audit 전이므로 `ADVANCE`; M2-D는
+blocked다. 두 gate PASS 뒤에만 이 절을 `CLOSE`로 바꾼다.
+
+## 09.6.5 End-state delta
+
+Pipeline §8.4의 Program memory는 “audited Claim graph, retrieval 없음”에서 canonical
+ProgramLog→ClaimSnapshot→relevance/contradiction reducer로, Context는 “Claim/reason 없음”에서 opt-in
+exact Claim/limitation/reason/manifest + Program-head-bound read packet으로 구체화·검증됐다. 삭제/완화는 없다.
+
+## 09.6.7 Claim mode — CONFIRMATORY
+
+- Pre-spec commit: `e6de927` (`2026-08-11 23:32:05 +0900`).
+- 첫 data/product commit: `bc0b79a` (`2026-08-11 23:44:00 +0900`).
+- Frozen fixture/filter/order/expected sets diff: 0 bytes. Result-triggered criteria 변경도 0이다.
+
+## 09.6.8 Divergence diagnosis — 해당 없음
+
+예상 exact four-query `100/100/100/0`, stale matrix, legacy no-memory equality, null authority/no-write가
+모두 일치했다. 불일치 시 contract/분모 오류는 `REQUIREMENT-WRONG`, 재현·측정 오염은
+`RESULT-INVALID`, 예상 밖 실제 동작은 `GENUINE-FINDING`+EXPLORATORY holdout을 발동한다.
+
+## 09.7 North-Star update
+
+NS4 product candidate는 `4/4`; NS1 신규 surface full regression도 PASS다. Critic/audit 전에는 status
+표에서 audited close로 승격하지 않는다.
+
+## 09.9 Residual issues
+
+- Retrieved Claim disposition/legacy opaque import/v0.4 release는 M2-D다.
+- Context binding은 opt-in read contract다. Registration 직전 double-head/disposition 소비는 M2-D다.
+- 다음 가설 품질 개선 효과는 unseen NS6 전에는 미측정이다.
+
+## 09.10 Next action
+
+Closed Q1~Q8에 DIRECT evidence를 채워 critic verify를 실행한다. PASS 후에만 independent seven-pass
+audit을 시작하며, audit PASS 전 M2-C/M2-D 상태를 바꾸지 않는다.

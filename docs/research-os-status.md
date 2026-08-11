@@ -49,7 +49,9 @@
     full `672+115`, authority `10/0`; M2-C retrieval이 active다.
   - M2-C §09 pre-spec과 frozen `retrieval-v1.json`은 product/result 전에 exact four-query oracle,
     ordering, Context v3 Program-head token stale contract를 `e6de927`에 고정했다. 독립 critic의 8개
-    closed questions도 저장했고 현재 0/5에서 implementation이 다음 gate다.
+    closed questions도 저장했다. Product `bc0b79a`는 receipt `100/100/100/0`, real ProgramStore
+    vertical/stale no-write, focused `4`, adjacent `87+3`, full `676+115`를 PASS했다. 5/5 candidate지만
+    critic/audit pending이라 M2-C는 active다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 
@@ -69,7 +71,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** M2-C frozen oracle/relation boundary/Context stale contract를 구현하고 evidence receipt를 만든다.
+- [ ] **단일 최우선 행동:** M2-C closed Q1~Q8 critic verify를 통과시킨다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
@@ -82,7 +84,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | M1-E release close | `docs/research-os-status/06-2026-08-11-m1-e-release-close.md` | complete; independent audit PASS | receipt `e120292`; `609+115`; installer `6/6` |
 | M2-A Program memory boundary | `docs/research-os-status/07-2026-08-11-m2-a-program-manifest-log.md` | complete; critic + audit PASS | corrected `22`, race `50/50`, full `635+115` |
 | M2-B Conditional Claim graph | `docs/research-os-status/08-2026-08-11-m2-b-conditional-claims.md` | complete; critic + corrected audit PASS | frozen `25`, focused `37`, full `672+115` |
-| M2-C deterministic retrieval | `docs/research-os-status/09-2026-08-11-m2-c-deterministic-retrieval.md` | pre-spec + critic; 0/5 | `e6de927`; frozen oracle + 8 closed questions |
+| M2-C deterministic retrieval | `docs/research-os-status/09-2026-08-11-m2-c-deterministic-retrieval.md` | product 5/5 candidate; critic/audit pending | `bc0b79a`; full `676+115` |
 | 방법론 pipeline core | `docs/research-os-pipeline.md` | active | M1, M2-A/B closed; M2-C active |
 
 ### 0.5 알려진 잔여 이슈
@@ -222,7 +224,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | M1-E | Context v3·legacy compatibility·v0.3 release | 5/5 ✅ | closed | 06 | `e120292`; `609+115`; installer `6/6`; critic + auditor PASS |
 | M2-A | ProgramManifest·ProgramLog | 4/4 ✅ | closed | 07 | corrected critic + audit PASS |
 | M2-B | Conditional Claim과 evidence 관계 | 5/5 ✅ | closed | 08 | critic Attempt 3 + corrected audit PASS |
-| M2-C | Deterministic retrieval·Context integration | 0/5 ✅ | active | — | pipeline §9.4 |
+| M2-C | Deterministic retrieval·Context integration | 5/5 candidate | active | — | phase §09; critic/audit pending |
 | M2-D | Knowledge disposition·legacy import·v0.4 release | 0/5 ✅ | open | — | pipeline §9.4 |
 | M3-A | Provider-neutral DecisionPacket | 0/4 ✅ | open | — | pipeline §9.4 |
 | M3-B | Finite autonomous state machine | 0/6 ✅ | open | — | pipeline §9.4 |
@@ -242,6 +244,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 06 | 2026-08-11 | M1-E | 5/5 | close | third correction `609+115`; installer `6/6`; critic + auditor PASS; parent M1 closed |
 | 07 | 2026-08-11 | M2-A | 4/4 | close | race `50/50`; fresh `635+115`; critic + corrected audit PASS |
 | 08 | 2026-08-11 | M2-B | 5/5 | close | critic Attempt 3 + corrected audit PASS; M2-C active |
+| 09 | 2026-08-11 | M2-C | 5/5 candidate | advance | receipt/full PASS; critic/audit pending, M2-D blocked |
 
 #### 2.3.5 Gate-bypass 기록
 
@@ -274,12 +277,12 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 
 ## 11. 한 페이지 요약 (TL;DR)
 
-- 현재 상태: 제품 version `0.3.0`; M1과 M2-A/B closed, M2-C active다. Release
+- 현재 상태: 제품 version `0.3.0`; M1과 M2-A/B closed, M2-C 5/5 candidate·critic/audit pending이다. Release
   implementation checkpoint는 `e120292`다.
 - 마지막 유효 engineering 측정: Cycle 08 full `672+115`, focused `37`, adjacent `96`,
   ruff/ty/diff와 Claim authority `10/0 non-null` PASS. Historical v0.3 seal은 `609+115`, installer
   `6/6`, external no-write, exact product tree와 wheel/install이며 invalid runs는 제외한다.
-- 다음 1행동: M2-C product/test implementation과 machine-readable evidence receipt.
+- 다음 1행동: M2-C critic Q1~Q8 verify.
 - 가장 큰 갭: deterministic retrieval/knowledge disposition과 autonomous loop/unseen benchmark가 남아 있다.
 
 ---
@@ -299,10 +302,10 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 
 | 지표 | 북극성 | 현재 (2026-08-11) | 갭 | 근거 | 시스템 영향 |
 |---|---|---|---|---|---|
-| NS1. 무결성·권한 하위호환 | 기존 262 tests와 모든 신규 suite 100% PASS ∧ versioned `tests/fixtures/protocol_attacks/v1/manifest.json`의 전체 위반 행 차단률 100% ∧ `authorized_action` non-null 0건 ∧ v1 event replay 100% | M2-B audited full `672+115`, Claim authority `10/0 non-null`, prior replay PASS | M2-C~M3 신규 surface regression 필요 | phase §08; checkpoint `1b1e22f` | conditional Claim graph가 기존 fail-closed·no-authority 보장을 약화하지 않는다 |
+| NS1. 무결성·권한 하위호환 | 기존 262 tests와 모든 신규 suite 100% PASS ∧ versioned `tests/fixtures/protocol_attacks/v1/manifest.json`의 전체 위반 행 차단률 100% ∧ `authorized_action` non-null 0건 ∧ v1 event replay 100% | M2-C candidate full `676+115`; retrieval/context null-authority validator와 stale no-write PASS | critic/audit + M2-D~M3 신규 surface 회귀 | phase §09; `bc0b79a` | retrieval이 기존 fail-closed·legacy Context를 약화하지 않는다 |
 | NS2. 기계 강제 scientific state | generation/contract·누적 budget·diagnosis gate·class closure·semantic frontier·legacy isolation 6/6 동작 ∧ `tests/fixtures/scientific_state/v1/manifest.json`의 모든 입력 상태/transition/거절 code/closure threshold 판정 일치 | **6/6 (`5→6/6`)**; tokenless frozen `7/7`가 Proposal/Diagnosis/class/budget gate와 pre-generation opaque legacy를 exact 분리 | M1 scope 충족; actual telemetry/lifetime governance는 별도 limitation | phases §02, §04~§06; M1-D `26/23/54/37/7`; M1-E `7/7`, corrected full | kernel state와 legacy boundary가 default agent context/release에서도 기계 강제된다 |
 | NS3. Durable learning 객체 | typed Proposal·Diagnosis·ClassState·Claim 4/4가 exact event/artifact evidence와 digest로 replay | audited **4/4**; immutable Claim/relation `25/25` | 유지 회귀 | phase §08; checkpoint `1b1e22f`; focused `37` | durable object가 대화 요약이 아닌 canonical program memory가 된다 |
-| NS4. Program memory 정확도 | versioned `tests/fixtures/program_memory/retrieval-v1.json`의 exact ordered oracle에서 relevant claim recall 100% ∧ contradiction recall 100% ∧ superseded exclusion 100% ∧ shuffled/irrelevant contamination 0% | 0/4 retrieval; audited Claim/contradiction/supersession substrate, ordered retrieval oracle은 없음 | M2-C four retrieval criteria + oracle manifest | phase §08; pipeline §5.2 | M2-C가 관련 지식만 선택하고 오염·superseded memory를 배제해야 한다 |
+| NS4. Program memory 정확도 | versioned `tests/fixtures/program_memory/retrieval-v1.json`의 exact ordered oracle에서 relevant claim recall 100% ∧ contradiction recall 100% ∧ superseded exclusion 100% ∧ shuffled/irrelevant contamination 0% | product candidate **4/4**; `11/11`, `3/3`, leak `0/2`, FP `0/14`, exact order/empty/shuffle | critic/audit | phase §09; frozen SHA + receipt | deterministic retrieval이 관련 지식/반증만 선택하고 superseded·irrelevant를 배제한다 |
 | NS5. 단일 자율 루프 완결성 | context→proposal→preflight→run→diagnosis→synthesis→next/stop 7 transition 모두 canonical state로 재개 가능 ∧ closed-class registration 0건 | 0/7; context→template→diagnose→refresh 수동 vertical slice는 usable하지만 canonical FSM/resume가 아님 | 7 transitions + resume | phase §05 demo; `docs/agent-usage.md`; vertical `4/4` | agent 수작업은 줄었지만 자율 완결성 분모를 조기 증가시키지 않는다 |
 | NS6. Fixed-budget 학습 효과 | M3 code freeze 뒤 precommitted generator와 새 256-bit nonce로 만든 unseen acceptance 36 episodes에서 protocol block 100% ∧ evidence-bound conclusion 100% ∧ closed-class retry 0 ∧ next-hypothesis choice accuracy ≥ `min(90%, v0.2+20%p)` ∧ correct terminal decision ≥ `min(90%, v0.2+20%p)` ∧ positive-waste aggregate ≤ v0.2의 70% | comparator·generator·unseen suite 미구현; 측정 전 | oracle/generator/one-shot receipt 구축 + sealed v0.2/v0.5 paired 측정 | pipeline §7 choice-oracle·freeze·nonce·receipt 계약 | terminal 정답뿐 아니라 각 비종결 상태에서 더 나은 다음 class/action을 선택해 동일 예산의 판단 정확도·효율을 높였는지 직접 판별한다 |
 | NS7. 기존 프로젝트 read-only 호환성 | `crypto-new`, `manager`, `BinancePredictionStrategy` 각각 (기존 complete event bytes/hash/derived v1 state 무변환 replay 3/3) ∧ (typed schema가 없는 legacy free text 100% `legacy_unstructured`, 자동 typed inference 0건) ∧ (외부 writer/file 변경 0건) | release verifier에서 세 `.research-os` control tree pre/post byte snapshot 무변경; v0.3~v0.5 replay/import 판정 0/3 | replay 3건 + opaque classification 3건; broader writer audit는 M2-D | receipt `e120292` external snapshot digests 3/3 | 기존 증거는 실제로 보존하면서 의미가 불명확한 기록만 명시적으로 격리한다 |
@@ -327,8 +330,8 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | Integrity kernel | audit 중 △ | ○ | manifest field/case ID 실제 소비와 fail-closed boundary를 유지했다; M2-B Claim/relation도 prospective no-write와 null authority를 보강했다 | M2-B frozen `25`, full `672+115`; Claim authority `10/0` |
 | Evidence semantics | arbitrary constraint 중심 | ○ | directional delta·typed slack·verify symmetry 구현; 외부 metric 의미는 아직 contract 밖 | phase §01 E1~E9 |
 | Scientific State | 문서상 일부 존재 | ○ | Proposal/Diagnosis/ClassState/frontier와 Claim/relation이 audited executable. actual telemetry·lifetime cap은 없음 | NS2 = 6/6; NS3 audited 4/4; current full `672+115` |
-| Relevant Context | recent v2 packet | △ | default v3와 release binding은 closed; Claim/retrieval reason은 M2에 남음 | phase §06; M1-E `5/5`; auditor PASS |
-| Program Memory | Finding 존재 | △ | exact Claim/relation은 audited지만 retrieval 정확도 전에는 △다 | M2-B closed 5/5; NS3 4/4, NS4 = 0/4 retrieval |
+| Relevant Context | recent v2 packet | △ | opt-in exact Claim/reason + Program-head token candidate; disposition/write path는 M2-D | phase §09; real vertical/stale PASS; audit pending |
+| Program Memory | Finding 존재 | △ | audited Claim graph + retrieval candidate 4/4; critic/audit 전 △ 유지 | phase §09; receipt `100/100/100/0` |
 | Autonomous Loop | agent workflow 존재 | ✗ | 외부 대화가 수동으로 각 단계를 이어주며 resume 가능한 loop state가 없음 | NS5 = 0/7 |
 | 학습 효과 | 미측정 | ✗ | full `672+115` regression은 PASS했지만 v0.2 comparator와 pre-fixed unseen learning benchmark가 없음 | NS6 측정 전 |
 

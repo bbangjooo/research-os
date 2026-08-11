@@ -322,8 +322,8 @@ Canonical truth boundaries:
 | Evidence semantics | 방향 보정 delta와 typed gate/slack이 veto와 무관하게 남음 | M1-A 구현: directional delta/margin, typed gate/slack, baseline/candidate VERIFY 대칭 | Cycle 01 구체화·검증 |
 | Study control | StudyContract와 cumulative budget이 atomic registration을 지배 | M1-B 구현: canonical contract/evaluation-sealed generation, replayable ledger, locked registration reservation; `29/29` exact. 단, generation별 non-refundable reservation이며 actual usage telemetry·study-lifetime cap·successor 반복 증액 방지는 없음 | Cycle 02 구체화·검증 |
 | Study inference | typed Proposal·Diagnosis·ClassState와 semantic frontier | M1-D: exact terminal-bound Diagnosis, pending gate, derived ClassState/immutable closure, semantic/retry frontier가 canonical replay. Interpretation 품질·registered-control·learned ranking은 증명하지 않음 | Cycle 04 `△→○`; transition `26/23/54/37/7`, negative `460/460`, five conjunct 5/5 |
-| Program memory | conditional Claim graph가 exact origin evidence를 참조 | immutable Claim + six typed edges/four reducers가 exact M1 evidence/scope를 참조; retrieval 없음 | Cycle 08 `PIVOT/MIXED` 5/5 closed; `25`, focused `37`, full `672+115`; corrected audit PASS |
-| Context | v3가 budget/class/pending diagnosis/relevant claim/reason을 제공 | default v3/explicit v2, path/legacy typed-zero와 installer six-case release binding verified; Claim/reason은 M2 open | Cycle 06 M1-E `5/5` closed; 전체 단계는 △ 유지 |
+| Program memory | conditional Claim graph가 exact origin evidence를 참조 | audited Claim graph + deterministic class/compatibility/kind/scope/status/relation retrieval candidate; critic/audit pending | Cycle 09 receipt `100/100/100/0`, real ProgramStore vertical, full `676+115`; M2-C not closed |
+| Context | v3가 budget/class/pending diagnosis/relevant claim/reason을 제공 | default v3는 보존; opt-in packet이 exact Claim/contradiction/limitation/reason과 Program-head-bound manifest를 제공하는 candidate | Cycle 09 real vertical/stale no-write PASS; M2-D write-path consumption은 open |
 | Autonomy | provider-neutral finite state machine이 stop/resume | 외부 대화가 수동으로 단계를 연결 | 추가 |
 | Meta-evaluation | post-freeze unseen 36 episodes와 choice oracle로 v0.2/v0.5 paired comparison | v0.3 corrected full `609+115`와 release build는 PASS; learning benchmark/comparator/oracle/generator는 없음 | Cycle 06 release evidence 보강; learning 효과는 여전히 미측정 |
 | Compatibility/authority | v1 logs 무변환, legacy 격리, authority null 유지 | v1/Context v2/branch conclusion v1, structured tokenless `7/7`, installer `6/6`, exact upgrade와 single release receipt PASS | Cycle 06 `609+115`, authority 0, external control-tree snapshots 3/3 unchanged; replay/import fixtures는 M2-D |
@@ -341,6 +341,7 @@ Canonical truth boundaries:
 | 06 | 2026-08-11 | 구체화·검증 | Progress audit의 installer case-ID 미소비를 structured six literal nodes와 receipt binding으로 보정하고 M1을 닫았다 | `b70a98f→e120292`; `609+115`; installer `6/6`; critic + auditor PASS; M1 close |
 | 07 | 2026-08-11 | 구체화·검증 | ProgramManifest/Log origin boundary와 projection을 구현하고 critic의 race gap을 barrier·loser writes `0/0`으로 보정했다; Claim/retrieval은 유지 | `d635c61→b10e1b4→704fcb8→5d02fd0`; corrected `22`, race `50/50`, fresh `635+115`; critic + corrected audit PASS; M2-A close |
 | 08 | 2026-08-11 | PIVOT·close | Immutable Claim/evidence/relation을 구현하고 critic·audit no-write gaps를 actual writer 측정으로 보강; retrieval은 유지 | `5659c67→529283c→dbd7caa→1b1e22f`; `25`, focused `37`, full `672+115`; critic + corrected audit PASS |
+| 09 | 2026-08-11 | 구체화·검증 | ProgramLog→ClaimSnapshot→deterministic retrieval→opt-in Context v3 read path를 구현; relevance/contradiction과 Program-head stale를 측정, disposition은 유지 | `e6de927→e002076→bc0b79a`; receipt `100/100/100/0`; focused `4`, adjacent `87+3`, full `676+115`; critic/audit pending |
 
 ---
 
