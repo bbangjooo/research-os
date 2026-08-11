@@ -38,6 +38,16 @@ from research_os.memory.claims import (
     relation_event_payload,
     relation_from_event_payload,
 )
+from research_os.memory.knowledge import (
+    KnowledgeDispositionSnapshot,
+    LegacyOpaqueRecord,
+    LegacyOpaqueSnapshot,
+    ProposalKnowledgeDisposition,
+    validate_legacy_content,
+    validate_proposal_knowledge_disposition,
+)
+from research_os.memory.retrieval import RetrievalQuery, RetrievalResult, retrieve_claims
+from research_os.science.proposals import Proposal, proposal_id
 from research_os.science.state import ScientificState, reduce_scientific_state
 
 PROGRAM_EVENT_VERSION = 1
@@ -46,6 +56,8 @@ ORIGIN_EVIDENCE_SCHEMA_VERSION = 1
 PROGRAM_PROJECTION_SCHEMA_VERSION = 1
 PROGRAM_INITIALIZED_EVENT = "research.program.initialized.v1"
 PROGRAM_ORIGIN_LINKED_EVENT = "research.program.origin_linked.v1"
+PROGRAM_KNOWLEDGE_DISPOSITION_RECORDED_EVENT = "research.program.knowledge_disposition_recorded.v1"
+PROGRAM_LEGACY_OPAQUE_RECORDED_EVENT = "research.program.legacy_opaque_recorded.v1"
 
 _HASH_LENGTH = 64
 _SCOPE_ROLES = frozenset({"development", "diagnostic", "replication", "holdout"})
@@ -55,6 +67,8 @@ _PROGRAM_EVENT_TYPES = frozenset(
         PROGRAM_ORIGIN_LINKED_EVENT,
         PROGRAM_CLAIM_RECORDED_EVENT,
         PROGRAM_CLAIM_RELATED_EVENT,
+        PROGRAM_KNOWLEDGE_DISPOSITION_RECORDED_EVENT,
+        PROGRAM_LEGACY_OPAQUE_RECORDED_EVENT,
     }
 )
 _UNSAFE_WRITE_BITS = stat.S_IWGRP | stat.S_IWOTH
@@ -95,9 +109,7 @@ def _object(
 
 
 def _array(value: Any, *, path: str, code: str) -> Sequence[Any]:
-    if not isinstance(value, Sequence) or isinstance(
-        value, (str, bytes, bytearray, memoryview)
-    ):
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes, bytearray, memoryview)):
         raise _error(code, f"{path} must be an array", path=path)
     return value
 
@@ -243,9 +255,7 @@ class ProgramBinding:
             code=code,
         )
         scope_id = _text(scope["id"], path="$.bindings[].evaluation_scope.id", code=code)
-        scope_role = _text(
-            scope["role"], path="$.bindings[].evaluation_scope.role", code=code
-        )
+        scope_role = _text(scope["role"], path="$.bindings[].evaluation_scope.role", code=code)
         if scope_role not in _SCOPE_ROLES:
             raise _error(
                 code,
@@ -364,24 +374,19 @@ class ProgramManifest:
             path="$.program_manifest_schema_version",
             code=code,
         )
-        program_id = _namespaced_id(
-            value["program_id"], "program", path="$.program_id", code=code
-        )
+        program_id = _namespaced_id(value["program_id"], "program", path="$.program_id", code=code)
         binding_items = _array(value["bindings"], path="$.bindings", code=code)
         if not binding_items:
             raise _error(code, "$.bindings must not be empty", path="$.bindings")
         bindings = tuple(
-            ProgramBinding.from_mapping(cast(Mapping[str, Any], item))
-            for item in binding_items
+            ProgramBinding.from_mapping(cast(Mapping[str, Any], item)) for item in binding_items
         )
         keys = tuple(binding.key for binding in bindings)
         if len(set(keys)) != len(keys):
             raise _error(code, "program bindings must be unique", path="$.bindings")
         if keys != tuple(sorted(keys)):
             raise _error(code, "program bindings must be sorted by identity", path="$.bindings")
-        _null_authority(
-            value["authorized_action"], path="$.authorized_action", code=code
-        )
+        _null_authority(value["authorized_action"], path="$.authorized_action", code=code)
         manifest = cls(version, program_id, bindings)
         sha256_json(manifest.to_dict())
         return manifest
@@ -467,9 +472,7 @@ class OriginEvidenceRef:
         generation_id = _namespaced_id(
             value["generation_id"], "generation", path="$.generation_id", code=code
         )
-        scope_id = _text(
-            value["evaluation_scope_id"], path="$.evaluation_scope_id", code=code
-        )
+        scope_id = _text(value["evaluation_scope_id"], path="$.evaluation_scope_id", code=code)
         diagnosis_sequence = _positive_integer(
             diagnosis_event["sequence"], path="$.diagnosis_event.sequence", code=code
         )
@@ -491,18 +494,14 @@ class OriginEvidenceRef:
         diagnosis_id = _namespaced_id(
             value["diagnosis_id"], "diagnosis", path="$.diagnosis_id", code=code
         )
-        diagnosis_digest = _digest(
-            value["diagnosis_digest"], path="$.diagnosis_digest", code=code
-        )
+        diagnosis_digest = _digest(value["diagnosis_digest"], path="$.diagnosis_digest", code=code)
         class_state_id = _namespaced_id(
             value["class_state_id"], "classstate", path="$.class_state_id", code=code
         )
         class_state_digest = _digest(
             value["class_state_digest"], path="$.class_state_digest", code=code
         )
-        _null_authority(
-            value["authorized_action"], path="$.authorized_action", code=code
-        )
+        _null_authority(value["authorized_action"], path="$.authorized_action", code=code)
         components: tuple[object, ...] = (
             project_id,
             {"sequence": head_sequence, "hash": head_hash},
@@ -514,9 +513,7 @@ class OriginEvidenceRef:
             class_state_digest,
         )
         expected_id = stable_id("origin", *components)
-        observed_id = _namespaced_id(
-            value["origin_id"], "origin", path="$.origin_id", code=code
-        )
+        observed_id = _namespaced_id(value["origin_id"], "origin", path="$.origin_id", code=code)
         if observed_id != expected_id:
             raise _error(
                 code,
@@ -646,9 +643,7 @@ class ProgramEvent(Mapping[str, Any]):
             program_id = validate_namespaced_id(
                 require_text(raw["program_id"], "program_id"), "program"
             )
-            event_id = validate_namespaced_id(
-                require_text(raw["event_id"], "event_id"), "event"
-            )
+            event_id = validate_namespaced_id(require_text(raw["event_id"], "event_id"), "event")
             event_type = require_text(raw["event_type"], "event_type")
             occurred_at = validate_timestamp(raw["occurred_at"])
             payload = json_value(raw["payload"], path="$.payload")
@@ -700,9 +695,7 @@ def _program_event_from_line(line: bytes, line_number: int) -> ProgramEvent:
     return event
 
 
-def verify_program_events(
-    events: Sequence[ProgramEvent], *, program_id: str | None = None
-) -> None:
+def verify_program_events(events: Sequence[ProgramEvent], *, program_id: str | None = None) -> None:
     previous: ProgramEvent | None = None
     seen_ids: set[str] = set()
     for supplied in events:
@@ -737,9 +730,7 @@ def _manifest_payload(payload: Mapping[str, Any]) -> ProgramManifest:
     _null_authority(
         value["authorized_action"], path="$.payload.authorized_action", code="PROGRAM_LOG_INVALID"
     )
-    manifest = ProgramManifest.from_mapping(
-        cast(Mapping[str, Any], value["program_manifest"])
-    )
+    manifest = ProgramManifest.from_mapping(cast(Mapping[str, Any], value["program_manifest"]))
     observed = _digest(
         value["program_manifest_digest"],
         path="$.payload.program_manifest_digest",
@@ -764,9 +755,7 @@ def _origin_payload(payload: Mapping[str, Any]) -> OriginEvidenceRef:
     _null_authority(
         value["authorized_action"], path="$.payload.authorized_action", code="PROGRAM_LOG_INVALID"
     )
-    origin = OriginEvidenceRef.from_mapping(
-        cast(Mapping[str, Any], value["origin_evidence"])
-    )
+    origin = OriginEvidenceRef.from_mapping(cast(Mapping[str, Any], value["origin_evidence"]))
     observed = _digest(
         value["origin_evidence_digest"],
         path="$.payload.origin_evidence_digest",
@@ -779,6 +768,87 @@ def _origin_payload(payload: Mapping[str, Any]) -> OriginEvidenceRef:
             path="$.payload.origin_evidence_digest",
         )
     return origin
+
+
+def _knowledge_disposition_payload(
+    payload: Mapping[str, Any],
+    *,
+    manifest: ProgramManifest,
+    claim_records: Sequence[Claim | ClaimRelation],
+    program_id: str,
+    program_head: tuple[int, str],
+) -> tuple[str, ProposalKnowledgeDisposition]:
+    code = "PROGRAM_LOG_INVALID"
+    value = _object(
+        payload,
+        {
+            "project_id",
+            "proposal",
+            "proposal_digest",
+            "retrieval_query",
+            "retrieval_query_digest",
+            "knowledge_disposition",
+            "knowledge_disposition_digest",
+            "authorized_action",
+        },
+        path="$.payload",
+        code=code,
+    )
+    _null_authority(value["authorized_action"], path="$.payload.authorized_action", code=code)
+    project_id = _text(value["project_id"], path="$.payload.project_id", code=code)
+    proposal = Proposal.from_mapping(cast(Mapping[str, Any], value["proposal"]))
+    if value["proposal_digest"] != proposal.digest:
+        raise _error(code, "knowledge disposition Proposal digest mismatch")
+    query = RetrievalQuery.from_mapping(cast(Mapping[str, Any], value["retrieval_query"]))
+    if value["retrieval_query_digest"] != query.digest:
+        raise _error(code, "knowledge disposition retrieval query digest mismatch")
+    if query.program_id != program_id or query.program_head != program_head:
+        raise _error(code, "knowledge disposition retrieval query is not bound to its prefix")
+    binding = manifest.binding(project_id, proposal.generation_id, proposal.evaluation_scope_id)
+    if (
+        binding is None
+        or proposal.hypothesis_class_id != query.hypothesis_class_id
+        or proposal.evaluation_scope_id != query.evaluation_scope.evaluation_scope_id
+        or binding.compatibility_digest != query.compatibility_digest
+        or binding.evaluation_scope_role != query.evaluation_scope.evaluation_scope_role
+        or binding.evaluation_scope_manifest_digest
+        != query.evaluation_scope.evaluation_scope_manifest_digest
+    ):
+        raise _error(code, "knowledge disposition is outside the ProgramManifest binding")
+    claim_snapshot = reduce_claim_records(
+        claim_records,
+        program_id=program_id,
+        program_head=program_head,
+    )
+    retrieval = retrieve_claims(claim_snapshot, query)
+    disposition = ProposalKnowledgeDisposition.from_mapping(
+        cast(Mapping[str, Any], value["knowledge_disposition"])
+    )
+    if value["knowledge_disposition_digest"] != disposition.digest:
+        raise _error(code, "knowledge disposition digest mismatch")
+    disposition = validate_proposal_knowledge_disposition(
+        disposition,
+        project_id=project_id,
+        proposal=proposal,
+        retrieval=retrieval,
+        context_token=disposition.context_token,
+    )
+    return project_id, disposition
+
+
+def _legacy_opaque_payload(payload: Mapping[str, Any], *, program_id: str) -> LegacyOpaqueRecord:
+    code = "PROGRAM_LOG_INVALID"
+    value = _object(
+        payload,
+        {"legacy_opaque", "legacy_opaque_digest", "authorized_action"},
+        path="$.payload",
+        code=code,
+    )
+    _null_authority(value["authorized_action"], path="$.payload.authorized_action", code=code)
+    record = LegacyOpaqueRecord.from_mapping(cast(Mapping[str, Any], value["legacy_opaque"]))
+    if record.program_id != program_id or value["legacy_opaque_digest"] != record.digest:
+        raise _error(code, "legacy opaque record binding or digest mismatch")
+    return record
 
 
 def _validate_claim_program_binding(
@@ -838,9 +908,11 @@ def _validate_claim_program_binding(
             claim_id=claim.claim_id,
         )
     exact_seal = (
-        binding.evaluation_seal_digest == applicability.evaluation_seal_digest
+        binding.evaluation_seal_digest
+        == applicability.evaluation_seal_digest
         == evidence.evaluation_seal_digest
-        and binding.compatibility_digest == applicability.compatibility_digest
+        and binding.compatibility_digest
+        == applicability.compatibility_digest
         == evidence.compatibility_digest
     )
     if not exact_seal:
@@ -861,10 +933,12 @@ def _program_stream_parts(
     ProgramManifest | None,
     tuple[OriginEvidenceRef, ...],
     ClaimSnapshot | None,
+    KnowledgeDispositionSnapshot | None,
+    LegacyOpaqueSnapshot | None,
 ]:
     verify_program_events(events, program_id=program_id)
     if not events:
-        return None, (), None
+        return None, (), None, None, None
     try:
         first = events[0]
         if first.event_type != PROGRAM_INITIALIZED_EVENT:
@@ -881,20 +955,26 @@ def _program_stream_parts(
         origins: list[OriginEvidenceRef] = []
         seen: set[str] = set()
         claim_records: list[Claim | ClaimRelation] = []
+        dispositions: list[ProposalKnowledgeDisposition] = []
+        disposition_ids: set[str] = set()
+        disposition_proposal_ids: set[str] = set()
+        legacy_records: list[LegacyOpaqueRecord] = []
+        legacy_ids: set[str] = set()
         for event in events[1:]:
             if event.event_type == PROGRAM_ORIGIN_LINKED_EVENT:
                 origin = _origin_payload(event.payload)
-                if manifest.binding(
-                    origin.project_id, origin.generation_id, origin.evaluation_scope_id
-                ) is None:
+                if (
+                    manifest.binding(
+                        origin.project_id, origin.generation_id, origin.evaluation_scope_id
+                    )
+                    is None
+                ):
                     raise _error(
                         "PROGRAM_LOG_INVALID",
                         "origin evidence is not admitted by the program manifest",
                     )
                 if origin.origin_id in seen:
-                    raise _error(
-                        "PROGRAM_LOG_INVALID", "duplicate origin evidence in ProgramLog"
-                    )
+                    raise _error("PROGRAM_LOG_INVALID", "duplicate origin evidence in ProgramLog")
                 seen.add(origin.origin_id)
                 origins.append(origin)
                 continue
@@ -905,6 +985,38 @@ def _program_stream_parts(
                 continue
             if event.event_type == PROGRAM_CLAIM_RELATED_EVENT:
                 claim_records.append(relation_from_event_payload(event.payload))
+                continue
+            if event.event_type == PROGRAM_KNOWLEDGE_DISPOSITION_RECORDED_EVENT:
+                if event.prev_hash is None:  # pragma: no cover - initialized stream invariant
+                    raise _error(code="PROGRAM_LOG_INVALID", message="missing disposition prefix")
+                _project_id, disposition = _knowledge_disposition_payload(
+                    event.payload,
+                    manifest=manifest,
+                    claim_records=claim_records,
+                    program_id=program_id,
+                    program_head=(event.sequence - 1, event.prev_hash),
+                )
+                if (
+                    disposition.disposition_id in disposition_ids
+                    or disposition.proposal_id in disposition_proposal_ids
+                ):
+                    raise _error(
+                        "KNOWLEDGE_DISPOSITION_DUPLICATE",
+                        "a Proposal knowledge disposition is already recorded",
+                    )
+                disposition_ids.add(disposition.disposition_id)
+                disposition_proposal_ids.add(disposition.proposal_id)
+                dispositions.append(disposition)
+                continue
+            if event.event_type == PROGRAM_LEGACY_OPAQUE_RECORDED_EVENT:
+                legacy = _legacy_opaque_payload(event.payload, program_id=program_id)
+                if legacy.legacy_opaque_id in legacy_ids:
+                    raise _error(
+                        "LEGACY_OPAQUE_DUPLICATE",
+                        "a legacy opaque record is already recorded",
+                    )
+                legacy_ids.add(legacy.legacy_opaque_id)
+                legacy_records.append(legacy)
                 continue
             else:
                 raise _error(
@@ -917,12 +1029,28 @@ def _program_stream_parts(
             program_id=program_id,
             program_head=(head.sequence, head.hash),
         )
-        return manifest, tuple(origins), claim_snapshot
+        disposition_snapshot = KnowledgeDispositionSnapshot(
+            program_id,
+            head.sequence,
+            head.hash,
+            tuple(dispositions),
+        )
+        legacy_snapshot = LegacyOpaqueSnapshot(
+            program_id,
+            head.sequence,
+            head.hash,
+            tuple(legacy_records),
+        )
+        return (
+            manifest,
+            tuple(origins),
+            claim_snapshot,
+            disposition_snapshot,
+            legacy_snapshot,
+        )
     except ProgramMemoryError as exc:
         if semantic_errors_as_integrity:
-            raise IntegrityError(
-                f"invalid ProgramLog semantics ({exc.code}): {exc}"
-            ) from exc
+            raise IntegrityError(f"invalid ProgramLog semantics ({exc.code}): {exc}") from exc
         raise
 
 
@@ -991,13 +1119,13 @@ class ProgramLog:
     ) -> ProgramEvent:
         event_type = require_text(event_type, "event_type")
         if event_type not in _PROGRAM_EVENT_TYPES:
-            raise _error(
-                "PROGRAM_LOG_INVALID", f"unsupported ProgramLog event type: {event_type}"
-            )
+            raise _error("PROGRAM_LOG_INVALID", f"unsupported ProgramLog event type: {event_type}")
         converted = json_value(payload, path="$.payload")
         if not isinstance(converted, dict):
             raise TypeError("program event payload must be a mapping")
-        event_id = new_id("event") if event_id is None else validate_namespaced_id(event_id, "event")
+        event_id = (
+            new_id("event") if event_id is None else validate_namespaced_id(event_id, "event")
+        )
         occurred_at = utc_now() if occurred_at is None else validate_timestamp(occurred_at)
         expected_head = _validated_head(expected_head)
 
@@ -1010,9 +1138,7 @@ class ProgramLog:
             events = cast(list[ProgramEvent], raw_events)
             _program_stream_parts(events, program_id=self.program_id)
             previous = events[-1] if events else None
-            actual_head: ProgramHead = (
-                (previous.sequence, previous.hash) if previous else (0, None)
-            )
+            actual_head: ProgramHead = (previous.sequence, previous.hash) if previous else (0, None)
             if expected_head != actual_head:
                 raise ProgramHeadMismatchError(expected_head, actual_head)
             if any(existing.event_id == event_id for existing in events):
@@ -1105,12 +1231,8 @@ class ProgramSnapshot:
             path="$.program_projection_schema_version",
             code=code,
         )
-        program_id = _namespaced_id(
-            value["program_id"], "program", path="$.program_id", code=code
-        )
-        manifest = ProgramManifest.from_mapping(
-            cast(Mapping[str, Any], value["program_manifest"])
-        )
+        program_id = _namespaced_id(value["program_id"], "program", path="$.program_id", code=code)
+        manifest = ProgramManifest.from_mapping(cast(Mapping[str, Any], value["program_manifest"]))
         manifest_digest = _digest(
             value["program_manifest_digest"], path="$.program_manifest_digest", code=code
         )
@@ -1130,9 +1252,7 @@ class ProgramSnapshot:
         origin_ids = tuple(item.origin_id for item in origins)
         if len(set(origin_ids)) != len(origin_ids):
             raise _error(code, "projection contains duplicate origin evidence")
-        _null_authority(
-            value["authorized_action"], path="$.authorized_action", code=code
-        )
+        _null_authority(value["authorized_action"], path="$.authorized_action", code=code)
         return cls(
             version,
             program_id,
@@ -1163,7 +1283,7 @@ class ProgramSnapshot:
 
 
 def reduce_program_events(events: Sequence[ProgramEvent], *, program_id: str) -> ProgramSnapshot:
-    manifest, origins, _ = _program_stream_parts(events, program_id=program_id)
+    manifest, origins, _, _, _ = _program_stream_parts(events, program_id=program_id)
     if manifest is None or not events:
         raise _error("PROGRAM_NOT_INITIALIZED", "ProgramLog is not initialized")
     head = events[-1]
@@ -1303,9 +1423,7 @@ def _validate_binding(binding: ProgramBinding, state: ScientificState) -> None:
         "evaluation_scope_digest": (
             None
             if scope_body is None
-            else sha256_json(
-                {"evaluation_scope_schema_version": 1, "evaluation_scope": scope_body}
-            )
+            else sha256_json({"evaluation_scope_schema_version": 1, "evaluation_scope": scope_body})
         ),
         "evaluation_seal_digest": state.evaluation_seal_digest,
         "compatibility_digest": (
@@ -1353,9 +1471,7 @@ def _origin_from_state(
 ) -> OriginEvidenceRef:
     if not events:
         raise _error("PROGRAM_ORIGIN_MISMATCH", "origin project event stream is empty")
-    diagnosis = next(
-        (item for item in state.diagnoses if item.diagnosis_id == diagnosis_id), None
-    )
+    diagnosis = next((item for item in state.diagnoses if item.diagnosis_id == diagnosis_id), None)
     if diagnosis is None:
         raise _error(
             "PROGRAM_ORIGIN_MISMATCH", "diagnosis is absent from the replayed project prefix"
@@ -1417,9 +1533,7 @@ def validate_origin_evidence(
             "PROGRAM_PROJECT_HEAD_MISMATCH",
             "origin references a project head beyond the canonical stream",
         )
-    current_head: ProgramHead = (
-        (events[-1].sequence, events[-1].hash) if events else (0, None)
-    )
+    current_head: ProgramHead = (events[-1].sequence, events[-1].hash) if events else (0, None)
     if require_current_head and current_head != origin.project_head:
         raise _error(
             "PROGRAM_PROJECT_HEAD_MISMATCH",
@@ -1437,13 +1551,9 @@ def validate_origin_evidence(
             "origin project prefix head does not match its exact reference",
         )
     state = reduce_scientific_state(prefix, project_id=origin.project_id)
-    binding = manifest.binding(
-        origin.project_id, origin.generation_id, origin.evaluation_scope_id
-    )
+    binding = manifest.binding(origin.project_id, origin.generation_id, origin.evaluation_scope_id)
     if binding is None:
-        raise _error(
-            "PROGRAM_ORIGIN_MISMATCH", "origin is not admitted by the ProgramManifest"
-        )
+        raise _error("PROGRAM_ORIGIN_MISMATCH", "origin is not admitted by the ProgramManifest")
     _validate_binding(binding, state)
     diagnosis = next(
         (item for item in state.diagnoses if item.diagnosis_id == origin.diagnosis_id), None
@@ -1510,20 +1620,18 @@ def validate_claim_evidence(
         and diagnosis.diagnosis_id == evidence.diagnosis_id
         and diagnosis.diagnosis_digest == evidence.diagnosis_digest
         and diagnosis.diagnosis.generation_id == applicability.generation_id
-        and diagnosis.diagnosis.hypothesis_class_id
-        == applicability.hypothesis_class_id
-        and diagnosis.diagnosis.evaluation_scope_id
-        == applicability.evaluation_scope_id
+        and diagnosis.diagnosis.hypothesis_class_id == applicability.hypothesis_class_id
+        and diagnosis.diagnosis.evaluation_scope_id == applicability.evaluation_scope_id
     )
     exact_terminal = (
-        evidence.terminal_evidence.to_dict()
-        == diagnosis.diagnosis.terminal_evidence.to_dict()
+        evidence.terminal_evidence.to_dict() == diagnosis.diagnosis.terminal_evidence.to_dict()
     )
     exact_artifacts = [item.to_dict() for item in evidence.artifact_evidence] == [
         item.to_dict() for item in diagnosis.diagnosis.artifact_evidence
     ]
     exact_seal = (
-        state.evaluation_seal_digest == evidence.evaluation_seal_digest
+        state.evaluation_seal_digest
+        == evidence.evaluation_seal_digest
         == applicability.evaluation_seal_digest
         and state.evaluation_seal is not None
         and state.evaluation_seal.compatibility_digest
@@ -1606,7 +1714,7 @@ class ProgramStore:
 
     def _manifest(self) -> ProgramManifest:
         events = self.log.read()
-        manifest, _, _ = _program_stream_parts(events, program_id=self.program_id)
+        manifest, _, _, _, _ = _program_stream_parts(events, program_id=self.program_id)
         if manifest is None:
             raise _error("PROGRAM_NOT_INITIALIZED", "ProgramStore is not initialized")
         return manifest
@@ -1623,14 +1731,10 @@ class ProgramStore:
         if not isinstance(origin, OriginEvidenceRef):
             origin = OriginEvidenceRef.from_mapping(origin)
         if project_log.project_id != origin.project_id:
-            raise _error(
-                "PROGRAM_ORIGIN_MISMATCH", "origin project ID does not match project log"
-            )
+            raise _error("PROGRAM_ORIGIN_MISMATCH", "origin project ID does not match project log")
         manifest = self._manifest()
         with project_log.locked_read() as events:
-            validate_origin_evidence(
-                origin, events, manifest, require_current_head=True
-            )
+            validate_origin_evidence(origin, events, manifest, require_current_head=True)
             event = self.log.append(
                 PROGRAM_ORIGIN_LINKED_EVENT,
                 {
@@ -1658,9 +1762,7 @@ class ProgramStore:
         with project_log.locked_read() as events:
             state = reduce_scientific_state(events, project_id=project_log.project_id)
             origin = _origin_from_state(events=events, state=state, diagnosis_id=diagnosis_id)
-            validate_origin_evidence(
-                origin, events, manifest, require_current_head=True
-            )
+            validate_origin_evidence(origin, events, manifest, require_current_head=True)
             event = self.log.append(
                 PROGRAM_ORIGIN_LINKED_EVENT,
                 {
@@ -1696,9 +1798,7 @@ class ProgramStore:
             )
         manifest = self._manifest()
         with project_log.locked_read() as project_events:
-            _, origins, _ = _program_stream_parts(
-                self.log.read(), program_id=self.program_id
-            )
+            _, origins, _, _, _ = _program_stream_parts(self.log.read(), program_id=self.program_id)
             validate_claim_evidence(claim, project_events, manifest, origins)
             event = self.log.append(
                 PROGRAM_CLAIM_RECORDED_EVENT,
@@ -1730,10 +1830,131 @@ class ProgramStore:
         self.projection.load_or_rebuild(self.log)
         return event
 
-    def claim_snapshot(self) -> ClaimSnapshot:
-        _, _, snapshot = _program_stream_parts(
-            self.log.read(), program_id=self.program_id
+    def append_knowledge_disposition(
+        self,
+        disposition: ProposalKnowledgeDisposition | Mapping[str, Any],
+        proposal: Proposal | Mapping[str, Any],
+        retrieval: RetrievalResult,
+        project_log: EventLog,
+        *,
+        context_token: str,
+        expected_program_head: ProgramHead,
+        event_id: str | None = None,
+        occurred_at: str | None = None,
+    ) -> ProgramEvent:
+        """Append an exact Proposal/retrieval companion after project registration."""
+
+        if not isinstance(proposal, Proposal):
+            proposal = Proposal.from_mapping(proposal)
+        if not isinstance(retrieval, RetrievalResult):
+            raise TypeError("retrieval must be a RetrievalResult")
+        parsed = validate_proposal_knowledge_disposition(
+            disposition,
+            project_id=project_log.project_id,
+            proposal=proposal,
+            retrieval=retrieval,
+            context_token=context_token,
         )
+        expected_retrieval = retrieve_claims(self.claim_snapshot(), retrieval.query)
+        if expected_retrieval.to_dict() != retrieval.to_dict():
+            raise _error(
+                "KNOWLEDGE_DISPOSITION_INVALID",
+                "retrieval does not match the current canonical Claim snapshot",
+            )
+        manifest = self._manifest()
+        binding = manifest.binding(
+            project_log.project_id,
+            proposal.generation_id,
+            proposal.evaluation_scope_id,
+        )
+        if binding is None:
+            raise _error(
+                "KNOWLEDGE_DISPOSITION_INVALID",
+                "Proposal is not admitted by the ProgramManifest",
+            )
+        with project_log.locked_read() as project_events:
+            state = reduce_scientific_state(project_events, project_id=project_log.project_id)
+            expected_proposal_id = proposal_id(project_log.project_id, proposal.digest)
+            registration = next(
+                (
+                    item
+                    for item in state.registrations
+                    if item.proposal_id == expected_proposal_id
+                    and item.proposal_digest == proposal.digest
+                    and item.proposal.to_dict() == proposal.to_dict()
+                ),
+                None,
+            )
+            if registration is None:
+                raise _error(
+                    "KNOWLEDGE_DISPOSITION_INVALID",
+                    "Proposal is absent from canonical project registration replay",
+                )
+            event = self.log.append(
+                PROGRAM_KNOWLEDGE_DISPOSITION_RECORDED_EVENT,
+                {
+                    "project_id": project_log.project_id,
+                    "proposal": proposal.to_dict(),
+                    "proposal_digest": proposal.digest,
+                    "retrieval_query": retrieval.query.to_dict(),
+                    "retrieval_query_digest": retrieval.query.digest,
+                    "knowledge_disposition": parsed.to_dict(),
+                    "knowledge_disposition_digest": parsed.digest,
+                    "authorized_action": None,
+                },
+                expected_head=expected_program_head,
+                event_id=event_id,
+                occurred_at=occurred_at,
+            )
+        self.projection.load_or_rebuild(self.log)
+        return event
+
+    def append_legacy_opaque(
+        self,
+        record: LegacyOpaqueRecord | Mapping[str, Any],
+        content: bytes,
+        *,
+        expected_program_head: ProgramHead,
+        event_id: str | None = None,
+        occurred_at: str | None = None,
+    ) -> ProgramEvent:
+        """Append digest-only legacy metadata; raw bytes never enter ProgramLog."""
+
+        if not isinstance(record, LegacyOpaqueRecord):
+            record = LegacyOpaqueRecord.from_mapping(record)
+        if record.program_id != self.program_id:
+            raise _error(
+                "LEGACY_OPAQUE_INVALID", "legacy record program ID does not match ProgramStore"
+            )
+        validate_legacy_content(record, content)
+        event = self.log.append(
+            PROGRAM_LEGACY_OPAQUE_RECORDED_EVENT,
+            {
+                "legacy_opaque": record.to_dict(),
+                "legacy_opaque_digest": record.digest,
+                "authorized_action": None,
+            },
+            expected_head=expected_program_head,
+            event_id=event_id,
+            occurred_at=occurred_at,
+        )
+        self.projection.load_or_rebuild(self.log)
+        return event
+
+    def claim_snapshot(self) -> ClaimSnapshot:
+        _, _, snapshot, _, _ = _program_stream_parts(self.log.read(), program_id=self.program_id)
+        if snapshot is None:
+            raise _error("PROGRAM_NOT_INITIALIZED", "ProgramStore is not initialized")
+        return snapshot
+
+    def knowledge_disposition_snapshot(self) -> KnowledgeDispositionSnapshot:
+        _, _, _, snapshot, _ = _program_stream_parts(self.log.read(), program_id=self.program_id)
+        if snapshot is None:
+            raise _error("PROGRAM_NOT_INITIALIZED", "ProgramStore is not initialized")
+        return snapshot
+
+    def legacy_opaque_snapshot(self) -> LegacyOpaqueSnapshot:
+        _, _, _, _, snapshot = _program_stream_parts(self.log.read(), program_id=self.program_id)
         if snapshot is None:
             raise _error("PROGRAM_NOT_INITIALIZED", "ProgramStore is not initialized")
         return snapshot
@@ -1765,9 +1986,7 @@ class ProgramStore:
     def audit_claims(self, project_logs: Mapping[str, EventLog]) -> int:
         snapshot = self.claim_snapshot()
         program_snapshot, _ = self.snapshot()
-        expected_projects = {
-            view.claim.applicability.project_id for view in snapshot.claims
-        }
+        expected_projects = {view.claim.applicability.project_id for view in snapshot.claims}
         if set(project_logs) != expected_projects:
             raise _error(
                 "CLAIM_EVIDENCE_MISMATCH",

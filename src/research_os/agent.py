@@ -14,8 +14,15 @@ from research_os.errors import (
     ProgramMemoryError,
     StaleAgentContextError,
 )
+from research_os.kernel.events import EventLog
 from research_os.memory.claims import ClaimSnapshot
+from research_os.memory.knowledge import (
+    ProposalKnowledgeDisposition,
+    validate_proposal_knowledge_disposition,
+)
+from research_os.memory.program import ProgramEvent, ProgramHead, ProgramStore
 from research_os.memory.retrieval import RetrievalQuery, RetrievalResult, retrieve_claims
+from research_os.science.proposals import Proposal
 
 AGENT_BRIEF_RELATIVE: Final = Path(".research-os/research-brief.md")
 CANDIDATE_SCHEMA_RELATIVE: Final = Path(".research-os/candidate.schema.json")
@@ -84,12 +91,8 @@ def _read_optional_control_file(root: Path, name: str) -> str | None:
         ):
             raise IntegrityError("agent project root changed while opening")
 
-        control_before = os.stat(
-            _CONTROL_DIR, dir_fd=root_fd, follow_symlinks=False
-        )
-        if stat.S_ISLNK(control_before.st_mode) or not stat.S_ISDIR(
-            control_before.st_mode
-        ):
+        control_before = os.stat(_CONTROL_DIR, dir_fd=root_fd, follow_symlinks=False)
+        if stat.S_ISLNK(control_before.st_mode) or not stat.S_ISDIR(control_before.st_mode):
             raise IntegrityError("agent control path must be a non-symlink directory")
         control_fd = os.open(_CONTROL_DIR, _directory_flags(), dir_fd=root_fd)
         control_opened = os.fstat(control_fd)
@@ -126,15 +129,12 @@ def _read_optional_control_file(root: Path, name: str) -> str | None:
                 )
         after_descriptor = os.fstat(file_fd)
         after_path = os.stat(name, dir_fd=control_fd, follow_symlinks=False)
-        if (
-            _stable_stat(after_descriptor) != _stable_stat(opened)
-            or _stable_stat(after_path) != _stable_stat(opened)
-        ):
+        if _stable_stat(after_descriptor) != _stable_stat(opened) or _stable_stat(
+            after_path
+        ) != _stable_stat(opened):
             raise IntegrityError(f"agent control file changed while reading: {name}")
 
-        control_after = os.stat(
-            _CONTROL_DIR, dir_fd=root_fd, follow_symlinks=False
-        )
+        control_after = os.stat(_CONTROL_DIR, dir_fd=root_fd, follow_symlinks=False)
         root_after = root.lstat()
         if (control_after.st_dev, control_after.st_ino) != (
             control_opened.st_dev,
@@ -149,9 +149,7 @@ def _read_optional_control_file(root: Path, name: str) -> str | None:
         try:
             return bytes(data).decode("utf-8")
         except UnicodeDecodeError as exc:
-            raise ConfigurationError(
-                f"agent control file must be UTF-8 text: {name}"
-            ) from exc
+            raise ConfigurationError(f"agent control file must be UTF-8 text: {name}") from exc
     finally:
         if file_fd >= 0:
             os.close(file_fd)
@@ -164,11 +162,7 @@ def _read_optional_control_file(root: Path, name: str) -> str | None:
 def _brief_is_configured(brief: str | None) -> bool:
     if brief is None or not brief.strip() or "REPLACE_ME" in brief:
         return False
-    headings = {
-        line.strip()
-        for line in brief.splitlines()
-        if line.startswith("#")
-    }
+    headings = {line.strip() for line in brief.splitlines() if line.startswith("#")}
     return _REQUIRED_BRIEF_HEADINGS.issubset(headings)
 
 
@@ -224,8 +218,7 @@ def load_agent_spec(
         }
     )
     evaluator_certified = bool(
-        certification.get("certified") is True
-        and certification.get("current") is True
+        certification.get("certified") is True and certification.get("current") is True
     )
     blockers: list[str] = []
     if not setup_configured:
@@ -235,10 +228,7 @@ def load_agent_spec(
         if not isinstance(reason, str) or not reason:
             status = certification.get("status")
             reason = status.lower() if isinstance(status, str) else "required"
-        blockers.append(
-            "evaluator_certification_"
-            + reason
-        )
+        blockers.append("evaluator_certification_" + reason)
     return {
         "configured": setup_configured and evaluator_certified,
         "setup_configured": setup_configured,
@@ -287,9 +277,7 @@ def _finalize_context_size(context: dict[str, Any]) -> dict[str, Any]:
     return context
 
 
-def _attach_retrieval(
-    context: Mapping[str, Any], retrieval: RetrievalResult
-) -> dict[str, Any]:
+def _attach_retrieval(context: Mapping[str, Any], retrieval: RetrievalResult) -> dict[str, Any]:
     if context.get("schema_version") != 3:
         raise ValueError("retrieval can only bind to agent context schema version 3")
     raw_snapshot = context.get("snapshot")
@@ -340,12 +328,10 @@ def bind_agent_context_v3_retrieval(
 
 def _non_null_authority(value: object) -> int:
     if isinstance(value, Mapping):
-        return int(
-            "authorized_action" in value and value["authorized_action"] is not None
-        ) + sum(_non_null_authority(item) for item in value.values())
-    if isinstance(value, Sequence) and not isinstance(
-        value, (str, bytes, bytearray, memoryview)
-    ):
+        return int("authorized_action" in value and value["authorized_action"] is not None) + sum(
+            _non_null_authority(item) for item in value.values()
+        )
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray, memoryview)):
         return sum(_non_null_authority(item) for item in value)
     return 0
 
@@ -440,6 +426,56 @@ def validate_agent_context_v3_retrieval(
         raise StaleAgentContextError(
             "agent retrieval context is stale; refresh Context v3 from canonical memory"
         ) from exc
+
+
+def record_agent_context_v3_knowledge_disposition(
+    context: Mapping[str, Any],
+    *,
+    current_project_context_token: str,
+    current_claim_snapshot: ClaimSnapshot,
+    proposal: Proposal,
+    disposition: ProposalKnowledgeDisposition | Mapping[str, Any],
+    program_store: ProgramStore,
+    project_log: EventLog,
+    expected_program_head: ProgramHead,
+    event_id: str | None = None,
+    occurred_at: str | None = None,
+) -> ProgramEvent:
+    """Validate one complete Context read set and durably record its disposition."""
+
+    retrieval = validate_agent_context_v3_retrieval(
+        context,
+        current_project_context_token=current_project_context_token,
+        current_claim_snapshot=current_claim_snapshot,
+    )
+    snapshot = context.get("snapshot")
+    if not isinstance(snapshot, Mapping):  # pragma: no cover - validator authority
+        raise StaleAgentContextError("agent retrieval context is stale")
+    project_snapshot = snapshot.get("project_snapshot")
+    combined_token = snapshot.get("context_token")
+    if (
+        not isinstance(project_snapshot, Mapping)
+        or project_snapshot.get("project_id") != project_log.project_id
+        or not isinstance(combined_token, str)
+    ):
+        raise StaleAgentContextError("agent retrieval context project identity is stale")
+    parsed = validate_proposal_knowledge_disposition(
+        disposition,
+        project_id=project_log.project_id,
+        proposal=proposal,
+        retrieval=retrieval,
+        context_token=combined_token,
+    )
+    return program_store.append_knowledge_disposition(
+        parsed,
+        proposal,
+        retrieval,
+        project_log,
+        context_token=combined_token,
+        expected_program_head=expected_program_head,
+        event_id=event_id,
+        occurred_at=occurred_at,
+    )
 
 
 def _compact_experiment(row: Mapping[str, Any]) -> dict[str, Any]:
@@ -551,25 +587,16 @@ def build_agent_context(
     else:
         raise TypeError("compatible_baseline_ready must be a boolean")
 
-    parent_ids = {
-        row.get("parent_id")
-        for row in lineage
-        if isinstance(row.get("parent_id"), str)
-    }
+    parent_ids = {row.get("parent_id") for row in lineage if isinstance(row.get("parent_id"), str)}
     superseded_attempt_ids = {
-        row.get("retry_of")
-        for row in lineage
-        if isinstance(row.get("retry_of"), str)
+        row.get("retry_of") for row in lineage if isinstance(row.get("retry_of"), str)
     }
     referenced_ids = parent_ids | superseded_attempt_ids
-    frontier = [
-        row for row in lineage if row.get("experiment_id") not in referenced_ids
-    ]
+    frontier = [row for row in lineage if row.get("experiment_id") not in referenced_ids]
     retryable = [
         row
         for row in lineage
-        if row.get("retryable") is True
-        and row.get("experiment_id") not in superseded_attempt_ids
+        if row.get("retryable") is True and row.get("experiment_id") not in superseded_attempt_ids
     ]
     context = {
         "schema_version": 2,
@@ -603,17 +630,11 @@ def build_agent_context(
                 "ablate": "a compatible terminal parent is required",
                 "replicate": "a compatible terminal parent is required",
             },
-            "retry_rule": (
-                "omit graph metadata; the prior attempt metadata is inherited"
-            ),
+            "retry_rule": ("omit graph metadata; the prior attempt metadata is inherited"),
         },
         "evidence": {
-            "recent_findings": [
-                _compact_finding(row) for row in findings[-limit:]
-            ],
-            "recent_artifacts": [
-                _compact_artifact(row) for row in artifacts[-limit:]
-            ],
+            "recent_findings": [_compact_finding(row) for row in findings[-limit:]],
+            "recent_artifacts": [_compact_artifact(row) for row in artifacts[-limit:]],
             "findings_total": len(findings),
             "findings_returned": min(limit, len(findings)),
             "findings_truncated": len(findings) > limit,
@@ -738,10 +759,7 @@ def build_agent_context_v3(
         "authorized_action": None,
     }
     study_stop = science.get("study_stop")
-    stopped = (
-        isinstance(study_stop, Mapping)
-        and study_stop.get("stopped") is True
-    )
+    stopped = isinstance(study_stop, Mapping) and study_stop.get("stopped") is True
     if pending:
         context["allowed_agent_actions"] = [
             "RUN_DOCTOR",
