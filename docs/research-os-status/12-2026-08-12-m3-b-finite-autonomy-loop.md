@@ -106,8 +106,8 @@ Fixture: `tests/fixtures/autonomy/v1/m3b-manifest.json`; raw SHA-256:
 | Strict rejection/no-write | 8 | `8/8` exact code and scoped no-write |
 | Total frozen cases | 43 | `43/43 PASS`; every ID consumed once, no extras |
 
-Actual outcome: all 43 literal cases PASS, corrected focused `60 passed in 80.92s`, adjacent M2-D/M3-A/M3-B
-`125 passed in 87.12s`, M3-B six conjuncts `6/6`, and M3-A manifest SHA remained
+Actual outcome: all 43 literal cases PASS, corrected focused `60 passed in 83.08s`, adjacent M2-D/M3-A/M3-B
+`125 passed in 87.82s`, M3-B six conjuncts `6/6`, and M3-A manifest SHA remained
 `a43ba5980c257706fe49f0c5107b520683f85ff46b3d7d9848071a0382d747a2`. The exact receipt is
 `12-m3-b-finite-autonomy-loop.receipt.json`. IDs, denominators, precedence, thresholds, event schemas, and expected
 codes were not changed after result exposure. Critic Attempt 1 exposed copied-ref-only replay and a replay service
@@ -132,7 +132,7 @@ reservation, actual M2/M3-A vertical, and exact three-log refs must refute it.
 
 ### 12.6.4 Milestone progress claim
 
-**Candidate label: `CLOSE`; engineering `6/6`; blocked on independent critic and audit.**
+**Candidate label: `CLOSE`; engineering `6/6`; critic Attempt 2 PASS; audit correction/re-audit pending.**
 
 | M3-B exit conjunct | 이전 | actual | receipt/test evidence |
 |---|---:|---:|---|
@@ -144,7 +144,7 @@ reservation, actual M2/M3-A vertical, and exact three-log refs must refute it.
 | sealed service + exact evidence summary | 0 | PASS | actual `ResearchService` `1`, controller adapter/workspace `0/0`, exact source refs |
 
 - **Prerequisite gate:** M3-A is closed at `effaabd`; parent M2 is closed. No bypass.
-- M3-C remains blocked until independent critic and seven-pass progress audit both PASS.
+- M3-C remains blocked until the independent seven-pass re-audit passes.
 
 ### 12.6.5 End-state delta
 
@@ -167,15 +167,15 @@ three-log refs and sealed-service requirements; they do not change the frozen 43
 `2026-08-12T04:51:09+09:00`, and the manifest SHA is unchanged. The critic's explicit next-packet witness was
 added after first data in `64d7249`, so that additional witness is `EXPLORATORY`. Attempt 1 corrections at
 `f53e37c`—source reconciliation, actual-service vertical, repeated post-terminal bounds, and the terminal artifact
-capture binding—are also `EXPLORATORY`. The product footprint miss (`2,021 additions + 8 deletions = 2,029 churn`
+capture binding and audit type-contract correction—are also `EXPLORATORY`. Product footprint (`2,035 + 8 = 2,043 churn`
 versus target `1,600`) is a separate `GENUINE-FINDING`/EXPLORATORY row. None reinterprets literal `43/43`.
 
 ### 12.6.8 Requirement-result divergence
 
 Functional expected and actual results match exactly: `43/43`, six conjuncts `6/6`, forbidden direct calls `0`,
-closed-class registrations `0`, and M3-A SHA unchanged. The product subtarget missed: `2,021 additions + 8
-deletions = 2,029 churn > 1,600`; the former `1,861` was pre-correction churn, not “gross added.” Tests+fixture
-(`1,384 <= 1,700`) and inclusive estimate (`3,729 <= 3,900`) remain bounded. This engineering-footprint
+closed-class registrations `0`, and M3-A SHA unchanged. The product subtarget missed: `2,035 additions + 8
+deletions = 2,043 churn > 1,600`; the former `1,861` was pre-correction churn, not “gross added.” Tests+fixture
+(`1,384 <= 1,700`) and corrected inclusive cycle (`3,890 <= 3,900`) remain bounded. This engineering-footprint
 surprise is `GENUINE-FINDING`/EXPLORATORY, not functional release evidence; M3-C pre-spec must explicitly retain,
 trim, or rebaseline it without weakening behavior. No `RESULT-INVALID` or `REQUIREMENT-WRONG` condition occurred.
 
@@ -188,11 +188,11 @@ trim, or rebaseline it without weakening behavior. No `RESULT-INVALID` or `REQUI
   sealed unseen 36-episode comparison.
 - Python same-process provider remains cooperative code, not a hostile-code sandbox; JSON subprocess retains the
   M3-A timeout/output/process-group boundary.
-- Product churn exceeded the pre-score subtarget by 429 lines. M3-C must precommit whether recovery
+- Product churn exceeded the pre-score subtarget by 443 lines. M3-C must precommit whether recovery
   durability can share/refactor this reducer without behavior loss; the miss cannot silently disappear.
 
 ## 12.10 Next action
 
-Run independent critic reverify against correction `f53e37c`, the receipt, responses, and pipeline Cycle 12 row.
-Only after PASS, synchronize dynamic status and run the independent seven-pass audit; M3-C remains blocked until
-both gates pass.
+Critic Attempt 2 is PASS; correct audit Attempt 1 and run the independent re-audit before M3-C. M3-C pre-spec
+must freeze a retain/trim/rebaseline decision for `2,043 > 1,600`, without behavior weakening, and carry its
+measured outcome into the next claim-mode/divergence review.

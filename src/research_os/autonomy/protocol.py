@@ -232,6 +232,12 @@ def _context_project_id(context: Mapping[str, Any]) -> str:
 class ProviderRequest:
     """Nominal base for exact value-only requests accepted by provider ports."""
 
+    def to_dict(self) -> dict[str, Any]:
+        raise NotImplementedError
+
+    def frozen_mapping(self) -> FrozenJSONObject:
+        return freeze_json_object(self.to_dict(), field_name="provider_request")
+
 
 @dataclass(frozen=True, slots=True)
 class ProviderDecisionRequest(ProviderRequest):

@@ -239,7 +239,9 @@ class AutonomyPolicy:
             ]
             if reservations[2] > 100:
                 raise _fail("AUTONOMY_POLICY_INVALID", "context_limit must not exceed 100")
-            return cls(version, *maxima, *reservations)
+            maxima_values = cast(tuple[int, int, int, int, int], tuple(maxima))
+            reservation_values = cast(tuple[int, int, int], tuple(reservations))
+            return cls(version, *maxima_values, *reservation_values)
         except AutonomyLoopError as exc:
             if exc.code == "AUTONOMY_POLICY_INVALID":
                 raise
@@ -381,7 +383,9 @@ class ProviderDiagnosisRequest(ProviderRequest):
             _identifier(value["episode_id"], "episode", path="$.provider_diagnosis_request.episode_id"),
             _identifier(value["experiment_id"], "experiment", path="$.provider_diagnosis_request.experiment_id"),
             _identifier(value["decision_packet_id"], "decisionpacket", path="$.provider_diagnosis_request.decision_packet_id"),
-            *objects,
+            objects[0],
+            objects[1],
+            objects[2],
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -472,7 +476,11 @@ class ProviderSynthesisRequest(ProviderRequest):
             _identifier(value["provider_request_id"], "providerrequest", path="$.provider_synthesis_request.provider_request_id"),
             _identifier(value["episode_id"], "episode", path="$.provider_synthesis_request.episode_id"),
             _identifier(value["experiment_id"], "experiment", path="$.provider_synthesis_request.experiment_id"),
-            *objects,
+            objects[0],
+            objects[1],
+            objects[2],
+            objects[3],
+            objects[4],
         )
 
     def to_dict(self) -> dict[str, Any]:
