@@ -1,6 +1,6 @@
 # §12 — M3-B finite autonomous state machine (2026-08-12)
 
-> Status: **IMPLEMENTED — critic Attempt 1 FAIL corrected; reverify pending**
+> Status: **CLOSE CANDIDATE 6/6 — critic Attempt 2 PASS; independent audit pending**
 > Previous phase: [§11](11-2026-08-12-m3-a-decision-packet.md)
 > Active milestone: `M3-B`; M3-C/D blocked
 

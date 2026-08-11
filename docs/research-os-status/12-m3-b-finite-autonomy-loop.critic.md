@@ -72,3 +72,11 @@ retain/trim/rebaseline action. Fixture contamination still forces `RESULT-INVALI
   replay-service proxy/constant summary observations, and incomplete LOC claim-mode/formula.
 - Correction: product/test commit `f53e37c`; pipeline/phase/critic/receipt correction follows. Attempt 2 must be
   independently rerun; this record is not overwritten by a later PASS.
+
+## Verify Attempt 2 — PASS
+
+- Verdict: **PASS**; Q1–Q8 DIRECT verified `8/8`, failed `0`.
+- Independent replay: focused `60 passed in 80.88s`; adjacent `125 passed in 89.12s`; correction-specific
+  `9 passed`; actual ResearchService slice `12 passed, 45 deselected`.
+- Frozen M3-B/M3-A SHA unchanged; chronology and `MIXED` rows valid; LOC formula `2,021+8=2,029` verified.
+- M3-B is `CLOSE` eligible only after the remaining independent seven-pass audit; M3-C remains blocked meanwhile.

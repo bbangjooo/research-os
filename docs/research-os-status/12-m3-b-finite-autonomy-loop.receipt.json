@@ -6,6 +6,7 @@
   "first_product_and_data_commit": "ede020caa57cc87edc5579f87c3c82bc96f35b79",
   "critic_attempt_1": "FAIL (Q3/Q4/Q5/Q6/Q8)",
   "critic_correction_commit": "f53e37c468d1ba45b2156d02b0605486593f5035",
+  "critic_attempt_2": "PASS (Q1-Q8 8/8; focused 60; adjacent 125)",
   "frozen_manifest": {
     "path": "tests/fixtures/autonomy/v1/m3b-manifest.json",
     "sha256": "29684ed79c0dcf224a3959753f324f6f55f261e696b5c366218b48ef2dc99bc1",
