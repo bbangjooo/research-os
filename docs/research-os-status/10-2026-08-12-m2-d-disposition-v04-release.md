@@ -1,6 +1,6 @@
 # §10 — M2-D knowledge disposition·legacy import·v0.4 release (2026-08-12)
 
-> Status: **VERIFY PENDING — corrected release gate PASS; critic reverify + audit pending**
+> Status: **CORRECTION IN PROGRESS — critic PASS; audit Attempt 1 docs-only FAIL**
 > Previous phase: [§09](09-2026-08-11-m2-c-deterministic-retrieval.md)
 > Active milestone: `M2-D`; M3 remains blocked
 
@@ -11,7 +11,8 @@ M2-D는 M2-C retrieval의 모든 returned Claim을 durable Proposal-bound
 추론하지 않는 digest-only opaque event로 ProgramLog에 넣었다. Attempt 1 gate는 PASS했으나 critic이
 valid three-way의 durable real-path 측정을 FAIL했다. 그 receipt와 청구는 철회했다. 두 actual scope/origin의
 registered Proposal→Context→ProgramLog cold replay three-way test와 corrected single gate가 PASS했다.
-M2-D/M2는 critic reverify와 audit 전까지 open이고 M3-A는 시작하지 않는다.
+Critic reverify는 PASS했지만 audit Attempt 1이 stale state/LOC cutoff 문서 불일치로 FAIL했다.
+M2-D/M2는 corrected re-audit 전까지 open이고 M3-A는 시작하지 않는다.
 
 ## 10.1 Scope, end-state, and authority
 
@@ -115,10 +116,10 @@ binding을 재검증한다.
 
 ### 10.6.3 Bounded scope
 
-Pre-spec `4b0d0a1` 이후 `git diff --numstat 4b0d0a1..f1ab646`의 gross additions은 product
-`1,150/1,400`, tests+fixture `1,242/1,450`, release verifier `398`, docs/receipt `331`;
-total `3,121/3,200`이다. External projects에는 file writer가 없었고 live migration·loop·product
-multi-agent 코드는 0이다.
+Pre-spec `4b0d0a1` 이후 receipt `f1ab646`까지 `git diff --numstat 4b0d0a1..f1ab646`의
+gross additions은 product `1,150/1,400`, tests+fixture `1,242/1,450`, release verifier `398`,
+other release/docs surfaces `237`; total `3,027/3,200`이다. External projects에는 file writer가
+없었고 live migration·loop·product multi-agent 코드는 0이다.
 
 ## 10.6.4 Milestone positioning — ADVANCE, corrected evidence 5/5
 
@@ -132,8 +133,8 @@ Prerequisite gate는 M2-C close와 independent audit PASS다(status §2.3.3, pha
 | external snapshot 3/3 + writer delta 0 | v0.3 byte-only | v0.4 bytes/mode/symlink pre/post exact | ✅ |
 | v0.4 docs/version/upgrade/full gate | Attempt 1 withdrawn | corrected `713+115`, upgrades `6/6`, wheel/version PASS | ✅ |
 
-다섯 product/release conjunct는 corrected evidence 5/5지만 independent critic reverify와 audit이 남아
-`ADVANCE`다. Critic과 audit가 모두 PASS한 뒤에만 M2-D와 parent M2를
+다섯 product/release conjunct와 independent critic reverify는 PASS지만 audit Attempt 1의 docs-only
+교정/re-audit이 남아 `ADVANCE`다. Corrected audit가 PASS한 뒤에만 M2-D와 parent M2를
 `CLOSE`하고 M3-A를 active로 바꾼다. NS7 actual external
 replay·opaque classification `3/3`은 M3-D exit에 그대로 남으며 synthetic `6/6`으로 대체하지 않는다.
 

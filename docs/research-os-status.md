@@ -77,13 +77,14 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** M2-D candidate 5/5를 independent seven-pass audit한다.
+- [ ] **단일 최우선 행동:** M2-D audit Attempt 1의 stale-state/LOC 증거 불일치를
+  교정하고 independent re-audit한다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
 | 항목 | 위치 | 상태 | 근거 |
 |---|---|---|---|
-| v0.4 제품 + M1~M2 implementation | `src/research_os/` | release candidate; M2-D audit pending | Context v3, Program memory, exact 0.2/0.3 upgrade |
+| v0.4 제품 + M1~M2 implementation | `src/research_os/` | release candidate; M2-D audit correction pending | Context v3, Program memory, exact 0.2/0.3 upgrade |
 | 전체 테스트 | `tests/` | corrected green | `713+115`; M2-D `23/23`; durable `1/1`; upgrade `6/6` |
 | 진행 상태 core | `docs/research-os-status.md` | active | M1, M2-A/B/C closed; M2-D candidate 5/5 active |
 | M1-E vertical slice | `docs/research-os-status/05-2026-08-11-m1-e-usable-context.md` | complete; independent audit PASS | opt-in Context v3 + Diagnosis template + disposable example PASS |
@@ -91,7 +92,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | M2-A Program memory boundary | `docs/research-os-status/07-2026-08-11-m2-a-program-manifest-log.md` | complete; critic + audit PASS | corrected `22`, race `50/50`, full `635+115` |
 | M2-B Conditional Claim graph | `docs/research-os-status/08-2026-08-11-m2-b-conditional-claims.md` | complete; critic + corrected audit PASS | frozen `25`, focused `37`, full `672+115` |
 | M2-C deterministic retrieval | `docs/research-os-status/09-2026-08-11-m2-c-deterministic-retrieval.md` | complete; critic + audit PASS | `bc0b79a`; full `676+115` |
-| M2-D disposition/v0.4 | `docs/research-os-status/10-2026-08-12-m2-d-disposition-v04-release.md` | candidate 5/5; audit pending | corrected receipt `f1ab646`; critic PASS |
+| M2-D disposition/v0.4 | `docs/research-os-status/10-2026-08-12-m2-d-disposition-v04-release.md` | candidate 5/5; re-audit pending | corrected receipt `f1ab646`; critic PASS; audit Attempt 1 docs-only FAIL |
 | 방법론 pipeline core | `docs/research-os-pipeline.md` | active | M2-D corrected evidence 5/5; M3-A blocked until audit |
 
 ### 0.5 알려진 잔여 이슈
@@ -133,15 +134,18 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 1.1 현재 운용 상태
 
-- 저장소: `/Users/bbangjo/research-os`, 제품 버전 `0.3.0`, M2-C product checkpoint `bc0b79a`.
+- 저장소: `/Users/bbangjo/research-os`, 제품 버전 `0.4.0`, M2-D corrected product/release
+  checkpoint `9dbb413`, receipt checkpoint `f1ab646`.
 - 구현 크기: `rg --files src tests -g '*.py' | sort | xargs wc -l`의 Python 합계
   62,606 LOC (Cycle 10 candidate).
 - 검증 기준선: 보존 tag `research-os-m1a-working-tree-baseline`에서 Python 3.12 `262 tests + 57 subtests` PASS.
 - 강점: append-only hash-chained event log, disposable projection, artifact CAS, evaluator
   certification, stale-context와 compatibility gate, fail-closed recovery, `authorized_action=null`,
   canonical StudyContract/generation/budget, typed Proposal/Diagnosis/ClassState/frontier, audited Claim
-  graph와 audited deterministic retrieval, default Context v3/legacy isolation.
-- 핵심 갭: knowledge disposition/v0.4와 그 memory를 소비하는 finite autonomous loop다.
+  graph/deterministic retrieval, Proposal-bound knowledge disposition, digest-only legacy isolation,
+  default Context v3, exact managed 0.2/0.3 upgrade.
+- 핵심 갭: M2-D independent audit correction과 그 memory를 소비하는 M3 DecisionPacket/FSM,
+  crash-resume/budget stop, sealed unseen 36-episode learning gate다.
 - `crypto-new`, `manager`, `BinancePredictionStrategy`가 Research OS를 사용하지만 v0.5까지는 해당 프로젝트를 live migration하지 않고 read-only 호환성만 점검한다. 실제 live pilot·migration은 v0.5 이후다.
 
 ### 1.2 사용자 진단
@@ -245,7 +249,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | M2-A | ProgramManifest·ProgramLog | 4/4 ✅ | closed | 07 | corrected critic + audit PASS |
 | M2-B | Conditional Claim과 evidence 관계 | 5/5 ✅ | closed | 08 | critic Attempt 3 + corrected audit PASS |
 | M2-C | Deterministic retrieval·Context integration | 5/5 ✅ | closed | 09 | critic + independent audit PASS |
-| M2-D | Knowledge disposition·legacy import·v0.4 release | 5/5 ✅ | active (audit pending) | — | phase §10.6.4; corrected `713+115`; critic PASS |
+| M2-D | Knowledge disposition·legacy import·v0.4 release | 5/5 ✅ | active (audit correction) | — | phase §10.6.4; corrected `713+115`; critic PASS; audit Attempt 1 docs-only FAIL |
 | M3-A | Provider-neutral DecisionPacket | 0/4 ✅ | open | — | pipeline §9.4 |
 | M3-B | Finite autonomous state machine | 0/6 ✅ | open | — | pipeline §9.4 |
 | M3-C | Crash-resume·authority·budget stop | 0/5 ✅ | open | — | pipeline §9.4 |
@@ -265,7 +269,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 07 | 2026-08-11 | M2-A | 4/4 | close | race `50/50`; fresh `635+115`; critic + corrected audit PASS |
 | 08 | 2026-08-11 | M2-B | 5/5 | close | critic Attempt 3 + corrected audit PASS; M2-C active |
 | 09 | 2026-08-11 | M2-C | 5/5 | close | receipt/full + critic + independent audit PASS; M2-D active |
-| 10 | 2026-08-12 | M2-D | 5/5 | advance | Attempt 1 withdrawn; corrected `713+115`, durable `1/1`, critic PASS; audit pending |
+| 10 | 2026-08-12 | M2-D | 5/5 | advance | Attempt 1 withdrawn; corrected `713+115`, durable `1/1`, critic PASS; re-audit pending |
 
 #### 2.3.5 Gate-bypass 기록
 
@@ -293,7 +297,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 07 | 2026-08-11 / M2-A | [`research-os-status/07-2026-08-11-m2-a-program-manifest-log.md`](research-os-status/07-2026-08-11-m2-a-program-manifest-log.md) | ProgramManifest/Log 4/4 closed; critic + corrected audit PASS |
 | 08 | 2026-08-11 / M2-B | [`research-os-status/08-2026-08-11-m2-b-conditional-claims.md`](research-os-status/08-2026-08-11-m2-b-conditional-claims.md) | Claim/relation 5/5 closed; critic + corrected audit PASS |
 | 09 | 2026-08-11 / M2-C | [`research-os-status/09-2026-08-11-m2-c-deterministic-retrieval.md`](research-os-status/09-2026-08-11-m2-c-deterministic-retrieval.md) | deterministic retrieval/Context 5/5 closed; critic + audit PASS |
-| 10 | 2026-08-12 / M2-D | [`research-os-status/10-2026-08-12-m2-d-disposition-v04-release.md`](research-os-status/10-2026-08-12-m2-d-disposition-v04-release.md) | corrected disposition/legacy/read-only v0.4 candidate 5/5; critic PASS, audit pending |
+| 10 | 2026-08-12 / M2-D | [`research-os-status/10-2026-08-12-m2-d-disposition-v04-release.md`](research-os-status/10-2026-08-12-m2-d-disposition-v04-release.md) | corrected disposition/legacy/read-only v0.4 candidate 5/5; critic PASS, re-audit pending |
 
 ---
 
@@ -325,7 +329,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 
 | 지표 | 북극성 | 현재 (2026-08-12) | 갭 | 근거 | 시스템 영향 |
 |---|---|---|---|---|---|
-| NS1. 무결성·권한 하위호환 | 기존 262 tests와 모든 신규 suite 100% PASS ∧ versioned `tests/fixtures/protocol_attacks/v1/manifest.json`의 전체 위반 행 차단률 100% ∧ `authorized_action` non-null 0건 ∧ v1 event replay 100% | M2-D corrected full `713+115`; frozen `23/23`; disposition/legacy `20/20`; authority 0 | M3 신규 surface 회귀 | phase §10; receipt `f1ab646`; critic PASS; audit pending | disposition/legacy/release가 기존 fail-closed·v1/Context 경계를 약화하지 않는다 |
+| NS1. 무결성·권한 하위호환 | 기존 262 tests와 모든 신규 suite 100% PASS ∧ versioned `tests/fixtures/protocol_attacks/v1/manifest.json`의 전체 위반 행 차단률 100% ∧ `authorized_action` non-null 0건 ∧ v1 event replay 100% | M2-D corrected full `713+115`; frozen `23/23`; disposition/legacy `20/20`; authority 0 | M3 신규 surface 회귀 | phase §10; receipt `f1ab646`; critic PASS; audit correction pending | disposition/legacy/release가 기존 fail-closed·v1/Context 경계를 약화하지 않는다 |
 | NS2. 기계 강제 scientific state | generation/contract·누적 budget·diagnosis gate·class closure·semantic frontier·legacy isolation 6/6 동작 ∧ `tests/fixtures/scientific_state/v1/manifest.json`의 모든 입력 상태/transition/거절 code/closure threshold 판정 일치 | **6/6 (`5→6/6`)**; tokenless frozen `7/7`가 Proposal/Diagnosis/class/budget gate와 pre-generation opaque legacy를 exact 분리 | M1 scope 충족; actual telemetry/lifetime governance는 별도 limitation | phases §02, §04~§06; M1-D `26/23/54/37/7`; M1-E `7/7`, corrected full | kernel state와 legacy boundary가 default agent context/release에서도 기계 강제된다 |
 | NS3. Durable learning 객체 | typed Proposal·Diagnosis·ClassState·Claim 4/4가 exact event/artifact evidence와 digest로 replay | audited **4/4** 유지; Proposal-bound disposition과 opaque legacy projection도 cold replay | M3 packet/loop 소비 | phases §08,§10; durable three-way `1/1`; critic PASS | durable object와 사용/기각 결과가 대화 요약이 아닌 canonical program memory로 남는다 |
 | NS4. Program memory 정확도 | versioned `tests/fixtures/program_memory/retrieval-v1.json`의 exact ordered oracle에서 relevant claim recall 100% ∧ contradiction recall 100% ∧ superseded exclusion 100% ∧ shuffled/irrelevant contamination 0% | audited **4/4** 유지; exact retrieval→three-way disposition append/cold replay `3/3` | M3 next-hypothesis 선택에 실제 소비 | phases §09~§10; corrected receipt + critic PASS | deterministic retrieval이 관련 지식/반증만 선택하고 그 사용 결과를 감사 가능하게 남긴다 |
@@ -354,7 +358,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | Evidence semantics | arbitrary constraint 중심 | ○ | directional delta·typed slack·verify symmetry 구현; 외부 metric 의미는 아직 contract 밖 | phase §01 E1~E9 |
 | Scientific State | 문서상 일부 존재 | ○ | Proposal/Diagnosis/ClassState/frontier와 Claim/relation/disposition이 executable. actual telemetry·lifetime cap은 없음 | NS2 = 6/6; NS3 4/4; current full `713+115` |
 | Relevant Context | recent v2 packet | ○ | exact Claim/reason/contradiction + Program head + registered Proposal disposition write companion이 cold replay된다; M3 DecisionPacket은 없음 | phases §09~§10; durable `3/3`; critic PASS |
-| Program Memory | Finding 존재 | ○ | audited Claim graph/retrieval 4/4와 legacy opaque/disposition replay. 단, Attempt 1 critic의 stricter assumption인 **actual durable three-way**를 corrected witness 전에는 만족하지 못했다 | Attempt 1 withdrawn; corrected durable `1/1`, frozen `23/23`; audit pending |
+| Program Memory | Finding 존재 | ○ | audited Claim graph/retrieval 4/4와 legacy opaque/disposition replay. 단, Attempt 1 critic의 stricter assumption인 **actual durable three-way**를 corrected witness 전에는 만족하지 못했다 | Attempt 1 withdrawn; corrected durable `1/1`, frozen `23/23`; audit correction pending |
 | Autonomous Loop | agent workflow 존재 | ✗ | 외부 대화가 수동으로 각 단계를 이어주며 resume 가능한 loop state가 없음 | NS5 = 0/7 |
 | 학습 효과 | 미측정 | ✗ | full `713+115` regression은 PASS했지만 v0.2 comparator와 pre-fixed unseen learning benchmark가 없음 | NS6 측정 전 |
 
@@ -374,7 +378,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 07 M2-A close | `61adebc..9840208`: product+release `1,635`, tests+fixture `980`, docs `404`, total `3,019` | corrected audit-ledger cutoff; category caps `1,650/1,000/450`, pivoted total cap `3,100` | corrected `22`, race `50/50`, fresh `635+115`; critic + corrected audit PASS |
 | 08 M2-B close | product `1,463`; tests+fixture `1,242`; docs `376`; total `3,081` | caps `1,500/1,250/500`, total `3,100`; PIVOT/MIXED | `25`, focused `37`, adjacent `96`, full `672+115`; critic + corrected audit PASS |
 | 09 M2-C close | product `684`; tests+fixture `921`; docs `<=500`; total `<2,550` | caps `900/1,150/500`, total `2,550`; CONFIRMATORY | receipt `100/100/100/0`; full `676+115`; critic + audit PASS |
-| 10 M2-D v0.4 candidate | pre-spec `4b0d0a1` 대비 gross additions: product `1,150`, tests+fixture `1,242`, verifier `398`, docs `331`; total `3,121/3,200` | frozen rows CONFIRMATORY + critic correction EXPLORATORY = MIXED; external writer/live migration 0 | frozen `23/23`; durable `1/1`; full `713+115`; upgrades `6/6`; critic PASS; audit pending |
+| 10 M2-D v0.4 candidate | `git diff --numstat 4b0d0a1..f1ab646`: product `1,150`, tests+fixture `1,242`, verifier `398`, other release/docs surfaces `237`; total `3,027/3,200` | frozen rows CONFIRMATORY + critic correction EXPLORATORY = MIXED; external writer/live migration 0 | frozen `23/23`; durable `1/1`; full `713+115`; upgrades `6/6`; critic PASS; audit correction pending |
 
 ---
 
@@ -428,4 +432,5 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - [x] Cycle 10 Attempt 1 receipt/claim 철회 — critic Q2 proxy-vs-real **FAIL**
 - [x] Cycle 10 corrected actual durable three-way + single release `713+115` — critic reverify **PASS**
 - [x] Cycle 10 M chain 정의 변경 없음; M2-D candidate 5/5 동적 진척만 반영
-- [ ] Cycle 10 independent seven-pass audit pending
+- [x] Cycle 10 independent seven-pass audit Attempt 1 — **FAIL** (stale §1.1/critic state, LOC cutoff mismatch; product evidence reproduced)
+- [ ] Cycle 10 corrected independent re-audit pending
