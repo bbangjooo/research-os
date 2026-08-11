@@ -50,7 +50,7 @@ from research_os.science import (
     registration_payload_fields,
 )
 from research_os.service import ResearchService
-from tests.test_m2d_knowledge_disposition import _real_vertical
+from tests.test_m2d_knowledge_disposition import _entry, _real_vertical
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "tests/fixtures/autonomy/v1/m3b-manifest.json"
@@ -280,6 +280,7 @@ class _EpisodeProvider:
         self.decision = decision
         self.failure = failure
         self.calls: list[str] = []
+        self.proposal_requests: list[ProviderDecisionRequest] = []
 
     def _claim(self, request: ProviderSynthesisRequest) -> Claim:
         diagnosis = Diagnosis.from_mapping(cast(Mapping[str, Any], request.diagnosis))
@@ -365,8 +366,23 @@ class _EpisodeProvider:
             raise ProviderPortError("PROVIDER_PROTOCOL_INVALID", "fixture transport failure")
         if isinstance(request, ProviderDecisionRequest):
             self.calls.append("proposal")
+            self.proposal_requests.append(request)
             if self.failure == "proposal":
                 return {"invalid": True}
+            proposal = self.proposal
+            candidate = self.candidate
+            if len(self.proposal_requests) > 1:
+                candidate = {"x": len(self.proposal_requests) + 1}
+                proposal_raw = self.proposal.to_dict()
+                proposal_raw.update(
+                    {
+                        "candidate_digest": sha256_json(candidate),
+                        "mechanism": "A subsequent finite-loop mechanism consumes the updated Program head.",
+                        "predicted_effect": "The updated memory context yields a fresh sealed candidate.",
+                        "falsifier": "The next packet cannot bind the updated Program head.",
+                    }
+                )
+                proposal = Proposal.from_mapping(proposal_raw)
             retrieval = validate_agent_context_v3_retrieval(
                 request.context,
                 current_project_context_token=self.service.project_token(),
@@ -374,16 +390,19 @@ class _EpisodeProvider:
             )
             disposition = create_proposal_knowledge_disposition(
                 project_id=self.service.config.project_id,
-                proposal=self.proposal,
+                proposal=proposal,
                 retrieval=retrieval,
                 context_token=cast(str, request.context["snapshot"]["context_token"]),
-                entries=self.entries,
+                entries=[
+                    *(_entry(hit, "used") for hit in retrieval.active),
+                    *(_entry(hit, "rejected") for hit in retrieval.contradictions),
+                ],
             )
             return build_decision_packet(
                 request=request,
                 project_id=self.service.config.project_id,
-                candidate=self.candidate,
-                proposal=self.proposal,
+                candidate=candidate,
+                proposal=proposal,
                 knowledge_disposition=disposition,
                 retrieval=retrieval,
             ).to_dict()
@@ -925,6 +944,33 @@ def test_m3b_provider_reservations_cover_every_value_request(tmp_path: Path) -> 
     assert all(
         canonical_token_units(event.payload["request"]) <= event.payload["token_reservation"]
         for event in started
+    )
+
+
+def test_m3b_next_context_revalidates_a_fresh_packet_on_current_program_head(
+    tmp_path: Path,
+) -> None:
+    harness = _harness(
+        tmp_path,
+        decision="next",
+        policy=_policy(max_token_units=1_200_000),
+    )
+    _reach(harness, "next")
+    prior_head = harness.store.snapshot()[0].program_head
+
+    harness.loop.advance(harness.episode_id, expected_phase="next")
+    harness.loop.advance(harness.episode_id, expected_phase="proposal")
+
+    assert harness.state().phase == "preflight"
+    assert harness.service.run_once_calls == 1
+    assert harness.provider.calls.count("proposal") == 2
+    next_request = harness.provider.proposal_requests[-1]
+    assert ProgramSnapshot.from_mapping(next_request.program_snapshot).program_head == prior_head
+    retrieval = next_request.context["memory"]["retrieval_result"]
+    assert retrieval["program_head"] == {"sequence": prior_head[0], "hash": prior_head[1]}
+    assert retrieval["active"] and all(hit["reasons"] for hit in retrieval["active"])
+    assert retrieval["contradictions"] and all(
+        hit["reasons"] for hit in retrieval["contradictions"]
     )
 
 
