@@ -1,0 +1,158 @@
+{
+  "m2d_manifest_schema_version": 1,
+  "knowledge_disposition": {
+    "schema_version": 1,
+    "dispositions": ["not_applicable", "rejected", "used"],
+    "not_applicable_reason_codes": [
+      "evidence_not_applicable",
+      "mechanism_not_applicable",
+      "scope_not_applicable"
+    ],
+    "proposal_field_refs": [
+      "action",
+      "evaluation_scope_id",
+      "falsifier",
+      "hypothesis_class_id",
+      "intervention_json_pointers",
+      "mechanism",
+      "predicted_effect"
+    ],
+    "required_bindings": [
+      "proposal_id",
+      "proposal_digest",
+      "generation_id",
+      "hypothesis_class_id",
+      "evaluation_scope_id",
+      "context_token",
+      "program_id",
+      "program_head",
+      "query_digest",
+      "retrieval_result_digest"
+    ],
+    "entry_order": ["claim_id"],
+    "returned_claim_ids": [
+      "claim_disposition_active",
+      "claim_disposition_contradiction",
+      "claim_disposition_cross_scope"
+    ],
+    "expected_dispositions": {
+      "claim_disposition_active": "used",
+      "claim_disposition_contradiction": "rejected",
+      "claim_disposition_cross_scope": "not_applicable"
+    }
+  },
+  "legacy_opaque": {
+    "schema_version": 1,
+    "classification": "legacy_unstructured",
+    "typed_claim_ids": [],
+    "source_kinds": ["branch_conclusion", "event", "file", "finding", "note"],
+    "max_source_locator_utf8_bytes": 4096,
+    "max_content_bytes": 1048576,
+    "stores_raw_content": false
+  },
+  "external_read_only": {
+    "surface": ".research-os",
+    "projects": {
+      "BinancePredictionStrategy": {
+        "exists": false,
+        "entry_count": 0,
+        "sha256": "5ad38304b535c2987dbd24657c1a11b884984ff600d9f389deb0d4e634fee792"
+      },
+      "crypto-new": {
+        "exists": true,
+        "entry_count": 16,
+        "sha256": "956a2642511675be4c9e3e00433a25d7da8dc2eba24e0d334687a119096fc95d"
+      },
+      "manager": {
+        "exists": true,
+        "entry_count": 28,
+        "sha256": "d689288795593432d4129196e2dfe22ee9390b118e2390ce158d782d2cd50cba"
+      }
+    },
+    "writer_delta": 0,
+    "live_migration": false
+  },
+  "managed_upgrade": {
+    "recognized_prior_releases": ["0.2.0", "0.3.0"],
+    "to_release": "0.4.0",
+    "sealed_0_3_commit": "e120292620b17179231902deadb34cda9491c786",
+    "sealed_0_3_files": {
+      ".research-os-managed.json": {
+        "size_bytes": 595,
+        "sha256": "c912a0fc91e87ada01a32b0c3e205b78ee309bfa438683c36f0de256814e77c4"
+      },
+      "SKILL.md": {
+        "size_bytes": 15506,
+        "sha256": "0f46444cf08637ebd7c98451b6e84a34aa3e39c8859e0b257e91b0a985111278"
+      },
+      "agents/openai.yaml": {
+        "size_bytes": 218,
+        "sha256": "a4e0ea2cb6b7ee315c578092a09c09e961e86cb729b457fe276b056c903b359b"
+      },
+      "references/scientific-protocol.md": {
+        "size_bytes": 13411,
+        "sha256": "b05812c5bc7bf10f55c216f36a15693dcb30f89601564abf8ab93bb0850354d8"
+      },
+      "references/status-actions.md": {
+        "size_bytes": 2686,
+        "sha256": "5e7654d2913dc7bde67eff937126cf25808b92b4cf87625aa6f354a7f4da429e"
+      }
+    },
+    "upgrade_cases": [
+      "exact-0.2-to-0.4",
+      "exact-0.3-to-0.4",
+      "drifted-0.3-rejected-no-write",
+      "unknown-release-rejected-no-write",
+      "commit-failure-restores-prior",
+      "publish-failure-retains-recovery"
+    ]
+  },
+  "release": {
+    "version": "0.4.0",
+    "python": "3.12",
+    "minimum_collected_tests": 676,
+    "minimum_subtests": 115,
+    "version_surfaces": [
+      "pyproject.toml",
+      "src/research_os/__init__.py",
+      "uv.lock"
+    ],
+    "documentation_surfaces": [
+      "README.md",
+      "docs/agent-usage.md",
+      "docs/architecture.md",
+      "docs/new-project.md",
+      "src/research_os/resources/research-os/SKILL.md",
+      "src/research_os/resources/research-os/references/scientific-protocol.md"
+    ],
+    "authorized_action_non_null": 0,
+    "product_multi_agent": false,
+    "single_verifier": "scripts/verify_release.py"
+  },
+  "cases": [
+    {"id":"disposition-valid-three-way","operation":"validate_three_way_disposition","expected":{"entry_count":3,"used":1,"rejected":1,"not_applicable":1,"authorized_action":null}},
+    {"id":"disposition-missing-returned-claim","operation":"reject_missing_claim","expected":{"error_code":"KNOWLEDGE_DISPOSITION_INVALID","write_delta":0}},
+    {"id":"disposition-duplicate-claim","operation":"reject_duplicate_claim","expected":{"error_code":"KNOWLEDGE_DISPOSITION_INVALID","write_delta":0}},
+    {"id":"disposition-unknown-claim","operation":"reject_unknown_claim","expected":{"error_code":"KNOWLEDGE_DISPOSITION_INVALID","write_delta":0}},
+    {"id":"disposition-forged-claim-digest","operation":"reject_claim_digest","expected":{"error_code":"KNOWLEDGE_DISPOSITION_INVALID","write_delta":0}},
+    {"id":"disposition-forged-role","operation":"reject_retrieval_role","expected":{"error_code":"KNOWLEDGE_DISPOSITION_INVALID","write_delta":0}},
+    {"id":"disposition-forged-relation-ref","operation":"reject_relation_ref","expected":{"error_code":"KNOWLEDGE_DISPOSITION_INVALID","write_delta":0}},
+    {"id":"disposition-forged-proposal-binding","operation":"reject_proposal_binding","expected":{"error_code":"KNOWLEDGE_DISPOSITION_INVALID","write_delta":0}},
+    {"id":"disposition-stale-context-token","operation":"reject_context_token","expected":{"error_code":"STALE_AGENT_CONTEXT","write_delta":0}},
+    {"id":"disposition-stale-program-head","operation":"reject_program_head","expected":{"error_code":"STALE_AGENT_CONTEXT","write_delta":0}},
+    {"id":"disposition-used-without-proposal-ref","operation":"reject_used_refs","expected":{"error_code":"KNOWLEDGE_DISPOSITION_INVALID","write_delta":0}},
+    {"id":"disposition-rejected-without-contradiction-ref","operation":"reject_rejected_refs","expected":{"error_code":"KNOWLEDGE_DISPOSITION_INVALID","write_delta":0}},
+    {"id":"disposition-not-applicable-without-code","operation":"reject_not_applicable_code","expected":{"error_code":"KNOWLEDGE_DISPOSITION_INVALID","write_delta":0}},
+    {"id":"disposition-non-null-authority","operation":"reject_disposition_authority","expected":{"error_code":"KNOWLEDGE_DISPOSITION_INVALID","write_delta":0}},
+    {"id":"legacy-valid-opaque-import","operation":"append_opaque_legacy","expected":{"legacy_count":1,"typed_claim_count":0,"raw_content_stored":false,"authorized_action":null}},
+    {"id":"legacy-free-text-never-inferred","operation":"append_free_text_opaque","expected":{"classification":"legacy_unstructured","typed_claim_count":0}},
+    {"id":"legacy-forged-content-digest","operation":"reject_legacy_digest","expected":{"error_code":"LEGACY_OPAQUE_INVALID","write_delta":0}},
+    {"id":"legacy-duplicate-id","operation":"reject_duplicate_legacy","expected":{"error_code":"LEGACY_OPAQUE_DUPLICATE","write_delta":0}},
+    {"id":"legacy-extra-key","operation":"reject_legacy_extra_key","expected":{"error_code":"LEGACY_OPAQUE_INVALID","write_delta":0}},
+    {"id":"legacy-non-null-authority","operation":"reject_legacy_authority","expected":{"error_code":"LEGACY_OPAQUE_INVALID","write_delta":0}},
+    {"id":"external-three-project-read-only","operation":"snapshot_external_projects","expected":{"matched":3,"writer_delta":0,"live_migration":false}},
+    {"id":"upgrade-prior-managed-releases","operation":"upgrade_0_2_and_0_3","expected":{"matched":2,"to_release":"0.4.0"}},
+    {"id":"release-v0.4-single-gate","operation":"verify_v0_4_release","expected":{"version":"0.4.0","full_suite":true,"authorized_action_non_null":0,"product_multi_agent":false}}
+  ],
+  "authority": {"authorized_action": null}
+}

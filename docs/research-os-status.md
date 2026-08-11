@@ -10,7 +10,7 @@
 
 ### 0.1 마지막 갱신
 
-- 날짜: 2026-08-11
+- 날짜: 2026-08-12
 - 요약:
   - 사용자가 v0.3 Scientific State → v0.4 Program Memory → v0.5 Autonomous Single-Agent Loop 순서를 승인했다.
   - 구현 전 기준선은 제품 v0.2.0, Python 3.12에서 262 tests + 57 subtests PASS다.
@@ -71,7 +71,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** M2-D knowledge disposition·legacy import·v0.4 release pre-spec을 고정한다.
+- [ ] **단일 최우선 행동:** frozen M2-D contract를 independent critic 질문으로 공격한다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
@@ -85,6 +85,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | M2-A Program memory boundary | `docs/research-os-status/07-2026-08-11-m2-a-program-manifest-log.md` | complete; critic + audit PASS | corrected `22`, race `50/50`, full `635+115` |
 | M2-B Conditional Claim graph | `docs/research-os-status/08-2026-08-11-m2-b-conditional-claims.md` | complete; critic + corrected audit PASS | frozen `25`, focused `37`, full `672+115` |
 | M2-C deterministic retrieval | `docs/research-os-status/09-2026-08-11-m2-c-deterministic-retrieval.md` | complete; critic + audit PASS | `bc0b79a`; full `676+115` |
+| M2-D disposition/v0.4 | `docs/research-os-status/10-2026-08-12-m2-d-disposition-v04-release.md` | pre-spec; 0/5 | frozen 23 cases; critic pending |
 | 방법론 pipeline core | `docs/research-os-pipeline.md` | active | M1, M2-A/B/C closed; M2-D active |
 
 ### 0.5 알려진 잔여 이슈
@@ -270,6 +271,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 07 | 2026-08-11 / M2-A | [`research-os-status/07-2026-08-11-m2-a-program-manifest-log.md`](research-os-status/07-2026-08-11-m2-a-program-manifest-log.md) | ProgramManifest/Log 4/4 closed; critic + corrected audit PASS |
 | 08 | 2026-08-11 / M2-B | [`research-os-status/08-2026-08-11-m2-b-conditional-claims.md`](research-os-status/08-2026-08-11-m2-b-conditional-claims.md) | Claim/relation 5/5 closed; critic + corrected audit PASS |
 | 09 | 2026-08-11 / M2-C | [`research-os-status/09-2026-08-11-m2-c-deterministic-retrieval.md`](research-os-status/09-2026-08-11-m2-c-deterministic-retrieval.md) | deterministic retrieval/Context 5/5 closed; critic + audit PASS |
+| 10 | 2026-08-12 / M2-D | [`research-os-status/10-2026-08-12-m2-d-disposition-v04-release.md`](research-os-status/10-2026-08-12-m2-d-disposition-v04-release.md) | frozen disposition/legacy/read-only/v0.4 pre-spec; critic pending |
 
 ---
 
@@ -280,7 +282,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - 마지막 유효 engineering 측정: Cycle 08 full `672+115`, focused `37`, adjacent `96`,
   ruff/ty/diff와 Claim authority `10/0 non-null` PASS. Historical v0.3 seal은 `609+115`, installer
   `6/6`, external no-write, exact product tree와 wheel/install이며 invalid runs는 제외한다.
-- 다음 1행동: M2-D pre-spec/frozen disposition·legacy/release contract.
+- 다음 1행동: M2-D independent critic question generation.
 - 가장 큰 갭: deterministic retrieval/knowledge disposition과 autonomous loop/unseen benchmark가 남아 있다.
 
 ---
