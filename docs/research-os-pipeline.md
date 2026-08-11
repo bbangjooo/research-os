@@ -48,7 +48,7 @@
 6. **유한 자율 루프** (§6): provider의 출력은 비신뢰 packet이며 kernel preflight 뒤에만 실행된다.
 7. **비교 가능한 효과 측정** (§7): 동일 후보 언어·실험 budget에서 정확도와 낭비를 비교한다.
 
-현재 상태 (Cycle 11 M3-A engineering `4/4` **ADVANCE**; critic/audit pending):
+현재 상태 (Cycle 11 M3-A engineering `4/4` **ADVANCE**; critic PASS, audit pending):
 
 - 1번 ✅/○ — directional delta, constitution-owned typed gate/slack, baseline/candidate verify 대칭과 nested/flat certification lifecycle이 구현·검증됐다.
 - 2번 ○ — checkpoint `df2c900`에서 canonical StudyContract·evaluation-sealed generation·replayable cumulative reservation ledger·locked overrun gate가 구현됐다. executable manifest `29/29`, focused `81+37`; 단, generation별 non-refundable reservation이지 actual usage telemetry나 study lifetime cap은 아니며 successor 반복 증액을 막지 않는다.
@@ -324,10 +324,10 @@ Canonical truth boundaries:
 | Study control | StudyContract와 cumulative budget이 atomic registration을 지배 | M1-B 구현: canonical contract/evaluation-sealed generation, replayable ledger, locked registration reservation; `29/29` exact. 단, generation별 non-refundable reservation이며 actual usage telemetry·study-lifetime cap·successor 반복 증액 방지는 없음 | Cycle 02 구체화·검증 |
 | Study inference | typed Proposal·Diagnosis·ClassState와 semantic frontier | M1-D: exact terminal-bound Diagnosis, pending gate, derived ClassState/immutable closure, semantic/retry frontier가 canonical replay. Interpretation 품질·registered-control·learned ranking은 증명하지 않음 | Cycle 04 `△→○`; transition `26/23/54/37/7`, negative `460/460`, five conjunct 5/5 |
 | Program memory | conditional Claim graph가 exact origin evidence를 참조 | Claim graph/retrieval 위에 registered Proposal-bound disposition과 digest-only legacy opaque event가 canonical ProgramLog에 저장·replay됨; M2 closed | Cycle 10 frozen `23/23`; corrected actual three-way `1/1`; full `713+115`; critic + audit PASS |
-| Context | v3가 budget/class/pending diagnosis/relevant claim/reason을 제공 | exact retrieval/disposition read set을 DecisionPacket이 current Program/Context에 재결합; FSM 소비는 open | Cycle 11 actual M2 vertical + frozen binding rows PASS; critic/audit pending |
+| Context | v3가 budget/class/pending diagnosis/relevant claim/reason을 제공 | exact retrieval/disposition read set을 DecisionPacket이 current Program/Context에 재결합; FSM 소비는 open | Cycle 11 actual M2 vertical + frozen binding rows PASS; critic PASS, audit pending |
 | Autonomy | provider-neutral finite state machine이 stop/resume | value-only Python/subprocess ports와 current-state validator는 구현; event/FSM/run/resume 없음, NS5 `0/7` | Cycle 11 M3-A `32/32`, authority/write 0; engineering 4/4 ADVANCE |
 | Meta-evaluation | post-freeze unseen 36 episodes와 choice oracle로 v0.2/v0.5 paired comparison | corrected full `757+115`는 PASS; learning benchmark/comparator/oracle/generator는 없음 | Cycle 11 regression only; 학습 효과는 여전히 미측정 |
-| Compatibility/authority | v1 logs 무변환, legacy 격리, authority null 유지 | version 0.4.0, sealed prior upgrade `6/6`, M3-A authority/write 0, product multi-agent false; actual replay/opaque 3/3은 M3-D | Cycle 11 receipt `32/32`, full `757+115`; critic/audit pending |
+| Compatibility/authority | v1 logs 무변환, legacy 격리, authority null 유지 | version 0.4.0, sealed prior upgrade `6/6`, M3-A authority/write 0, product multi-agent false; actual replay/opaque 3/3은 M3-D | Cycle 11 receipt `32/32`, full `757+115`; critic PASS, audit pending |
 
 ### 8.5 비전 변경 이력 ★
 
@@ -344,7 +344,7 @@ Canonical truth boundaries:
 | 08 | 2026-08-11 | PIVOT·close | Immutable Claim/evidence/relation을 구현하고 critic·audit no-write gaps를 actual writer 측정으로 보강; retrieval은 유지 | `5659c67→529283c→dbd7caa→1b1e22f`; `25`, focused `37`, full `672+115`; critic + corrected audit PASS |
 | 09 | 2026-08-11 | 구체화·검증 | ProgramLog→ClaimSnapshot→deterministic retrieval→opt-in Context v3 read path를 구현; disposition은 유지 | `e6de927→e002076→bc0b79a`; receipt `100/100/100/0`; full `676+115`; critic + independent audit PASS; M2-C close |
 | 10 | 2026-08-12 | 구체화·검증 (PIVOT correction) | Proposal-bound disposition과 legacy opaque event를 구체화; Attempt 1이 durable three-way를 proxy로 과장해 receipt를 철회하고 actual two-scope append/cold-replay witness로 보정; actual external replay와 M3 loop는 유지 | `4b0d0a1→f5d55ad→9dbb413→f1ab646`; corrected `713+115`, durable `1/1`; critic + corrected audit PASS; M2 close |
-| 11 | 2026-08-12 | 구체화·검증 (PIVOT correction) | 비신뢰 provider output을 current Program/Context/retrieval/Proposal에 검증하는 DecisionPacket seam을 추가; historical v0.4 HEAD-bound verifier Attempt 1은 철회·checkpoint-bound correction; FSM/NS5는 유지 | `50ee73d→eb289c4→42c7557`; frozen `32/32`, full `757+115`; M3-A engineering 4/4 ADVANCE, critic/audit pending |
+| 11 | 2026-08-12 | 구체화·검증 (PIVOT correction) | 비신뢰 provider output을 current Program/Context/retrieval/Proposal에 검증하는 DecisionPacket seam을 추가; historical v0.4 HEAD-bound verifier Attempt 1은 철회·checkpoint-bound correction; FSM/NS5는 유지 | `50ee73d→eb289c4→42c7557`; frozen `32/32`, full `757+115`; M3-A engineering 4/4 ADVANCE, critic PASS, audit pending |
 
 ---
 
@@ -445,7 +445,7 @@ loop·unseen gate를 M3-A→D 순서로 진행한다.
 | 2. Study generation | ○ | `science/{contracts,state}.py`, `service.py`, `kernel/{ids,projection}.py`; canonical contract/generation/replay와 locked cumulative reservation 구현. generation별 non-refundable reservation이며 actual telemetry·study lifetime cap·successor 반복 증액 방지는 없음 | M1-B executable manifest `29/29`, focused `81+37`, checkpoint `df2c900` |
 | 3. Study inference | ○ | `science/{proposals,diagnoses,state}.py`, `service.py`; Proposal/Diagnosis/ClassState/frontier/Claim replay는 동작하나 interpretation quality·learned ranking은 없음 | NS3 audited `4/4`; M2-B closed |
 | 4. Program memory | ○ | `memory/{program,claims,retrieval,knowledge}.py`; Claim graph/retrieval 4/4 + registered Proposal disposition + legacy opaque cold replay; M3 consumer는 open | phases §09~§10; corrected `713+115`, durable `1/1`, critic PASS |
-| 5. Relevant context v3 | ○ | exact Claim/reason/manifest/Program-head/disposition을 DecisionPacket이 current state에 bind; FSM 소비는 open | phase §11 actual M2 vertical; frozen `32/32`; critic/audit pending |
+| 5. Relevant context v3 | ○ | exact Claim/reason/manifest/Program-head/disposition을 DecisionPacket이 current state에 bind; FSM 소비는 open | phase §11 actual M2 vertical; frozen `32/32`; critic PASS, audit pending |
 | 6. Autonomous single-agent | ✗ | provider-neutral DecisionPacket seam만 구현; canonical event/FSM/resume 없음 | M3-A engineering `4/4`, NS5 `0/7` |
 | 7. Meta-evaluation/release | ✗ | corrected regression은 PASS했지만 learning comparator/generator/unseen benchmark는 없음 | current full `757+115`; NS6 측정 전 |
 

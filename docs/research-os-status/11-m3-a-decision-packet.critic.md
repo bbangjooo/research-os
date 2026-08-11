@@ -109,3 +109,10 @@ the claim is withdrawn, verifier corrected, and same command remeasured `757+115
 decision rule: misaligned criterion triggers `REQUIREMENT-WRONG` + correction phase; demonstrable runner/data
 contamination triggers withdrawal/re-measurement; a valid unexpected result triggers `GENUINE-FINDING` +
 EXPLORATORY holdout. No frozen M3-A case diverged.
+
+## Independent verify verdict — PASS
+
+- Questions: `8`; DIRECT verified `8`; failed `0`; reproducibility `8/8` matched.
+- Focused `41`, release + M3-A `58`, frozen/receipt `32/32`, manifest hash/diff PASS.
+- End-state Cycle 11 row, M3-A ADVANCE/prerequisite, MIXED chronology, RESULT-INVALID exclusion PASS.
+- Product/test/script diff after measured checkpoint `42c7557`: none.

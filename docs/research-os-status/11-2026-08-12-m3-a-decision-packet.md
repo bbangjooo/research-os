@@ -1,6 +1,6 @@
 # §11 — M3-A provider-neutral DecisionPacket (2026-08-12)
 
-> Status: **MEASUREMENT COMPLETE — ADVANCE; engineering 4/4, critic/audit pending**
+> Status: **CLOSE CANDIDATE — ADVANCE; engineering 4/4, critic PASS, audit pending**
 > Previous phase: [§10](10-2026-08-12-m2-d-disposition-v04-release.md)
 > Active milestone: `M3-A`; M3-B~D blocked
 
@@ -10,7 +10,8 @@ M3-A는 외부 provider가 반환한 candidate + typed Proposal + knowledge disp
 `DecisionPacket v1`로 받아 current canonical state에 대해 재검산한다. Frozen `32/32`, focused `41`,
 adjacent `103`, corrected full `757+115`, ruff/ty가 PASS했다. 첫 full의 historical v0.4 verifier 결함은
 `RESULT-INVALID`로 철회하고 checkpoint-bound verifier로 고쳤다. Engineering conjunct는 `4/4`지만
-critic/audit 전이므로 M3-A는 `ADVANCE`, M3-B는 blocked, NS5 transition은 `0/7`이다.
+critic은 Q1~Q8 재현 `8/8`로 PASS했다. Audit 전이므로 M3-A는 `ADVANCE`, M3-B는 blocked,
+NS5 transition은 `0/7`이다.
 
 ## 11.1 Scope, end-state, and authority
 
@@ -146,7 +147,7 @@ additions after first result become EXPLORATORY/MIXED.
 
 ### 11.6.4 Milestone progress claim
 
-**Label: `ADVANCE` — M3-A engineering conjunct `4/4`, close gate `0/2`.**
+**Label: `ADVANCE` — M3-A engineering conjunct `4/4`, close gate `1/2`.**
 
 | M3-A exit conjunct | 이전 | 이번 phase 후 | 근거 |
 |---|---:|---:|---|
@@ -156,7 +157,8 @@ additions after first result become EXPLORATORY/MIXED.
 | malformed/stale/non-null rejection 100% | 0/24 | `24/24` | literal frozen rejection rows and exact codes |
 
 - **Prerequisite gate:** M2-D/parent M2 is closed by phase §10 critic + corrected audit PASS.
-- **Close gate:** independent critic and seven-pass audit are pending; status remains M3-A active, M3-B blocked.
+- **Close gate:** independent critic Q1~Q8 is PASS; seven-pass audit is pending. Status remains M3-A active,
+  M3-B blocked.
 - This seam is not an FSM transition: NS5 remains `0/7`.
 
 ### 11.6.5 End-state delta
@@ -215,7 +217,6 @@ not evidence of learning quality or NS5 transition progress.
 
 ## 11.10 Next action
 
-Fill critic Q1~Q8 from the receipt and actual witnesses, obtain independent critic PASS, sync status/pipeline as
-an M3-A close candidate, then obtain independent seven-pass audit PASS. The final M3-D code-freeze verifier
-contract will be precommitted and will re-run the corrected historical gate/full suite before release. M3-B stays
-blocked until both M3-A independent gates pass.
+Obtain independent seven-pass audit PASS on this close candidate. The final M3-D code-freeze verifier contract
+will be precommitted and will re-run the corrected historical gate/full suite before release. M3-B stays blocked
+until the M3-A audit passes.
