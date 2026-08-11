@@ -67,7 +67,7 @@
   - M3-B finite episode는 frozen `43/43`, corrected focused `60`, adjacent `125`를 PASS했다.
     Critic Attempt 1의 copied-ref/proxy/boundary FAIL을 `f53e37c`에서 canonical three-log reconciliation,
     actual ResearchService E2E, post-terminal retry matrix로 교정했고 Attempt 2 Q1~Q8이 PASS했다.
-    Six conjunct `6/6`; audit Attempt 2 FAIL을 보존하고 claim schema를 교정해 re-audit 대기 중이다.
+    Six conjunct `6/6`; audit Attempt 3의 final LOC/next-action sync FAIL을 교정 중이다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 

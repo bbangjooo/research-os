@@ -25,5 +25,5 @@ cycle is `3,848/3,900`. M3-B is not close-eligible and M3-C remains blocked pend
 - The prose also attributes `e60b5dd`'s type-contract correction to `f53e37c`. No S2 findings.
 - Engineering and prior fixes reproduced: `60/125/9/12`, ruff/ty PASS, exact `3,890/3,900`; 22/24 matched.
 
-## Attempt 3 — PENDING
-Awaiting corrected independent re-audit; M3-C remains blocked.
+## Attempt 3 — FAIL
+Exact docs are `473` and `3,900/3,900`, not `463`/`3,890`; next-action text is stale. Prior S1s PASS; no S2.
