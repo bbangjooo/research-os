@@ -10,6 +10,7 @@ import pytest
 import scripts.verify_release as verifier
 from scripts.verify_release import (
     CURRENT_MANIFEST,
+    CURRENT_RECEIPT,
     DEFAULT_MANIFEST,
     DEFAULT_RECEIPT,
     DURABLE_THREE_WAY_NODE,
@@ -32,7 +33,6 @@ from scripts.verify_release import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-CURRENT_RECEIPT = ROOT / "docs/research-os-status/v0.4.0-release-receipt.json"
 
 
 def test_v03_release_manifest_fields_are_consumed_by_static_gate() -> None:
@@ -105,6 +105,27 @@ def test_v04_static_gate_binds_frozen_m2d_and_product_checkpoint() -> None:
     }
 
 
+def test_v04_static_gate_recomputes_the_historical_receipt_commit_tree() -> None:
+    manifest = _strict_json(CURRENT_MANIFEST)
+    receipt = _strict_json(CURRENT_RECEIPT)
+    commit, tree = _sealed_release_tree(manifest)
+
+    assert commit == receipt["commit"] == "9dbb413d0691c0fbec5dd8dc7bbba2ba73ccf0a0"
+    assert tree == receipt["static"]["product_python_tree"]
+
+
+def test_v04_full_verifier_refuses_reissue_from_a_later_commit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sealed_commit = "a" * 40
+    later_commit = "b" * 40
+    monkeypatch.setattr(verifier, "_sealed_release_tree", lambda _: (sealed_commit, {}))
+    monkeypatch.setattr(verifier, "_run", lambda _: later_commit)
+
+    with pytest.raises(ReleaseGateError, match="cannot be reissued"):
+        verify(CURRENT_MANIFEST)
+
+
 def test_v04_contract_rejects_any_frozen_case_binding_drift() -> None:
     manifest = copy.deepcopy(_strict_json(CURRENT_MANIFEST))
     manifest["m2d_contract"]["case_ids"][-1] = "release-constant-pass"
@@ -120,9 +141,7 @@ def test_v04_saved_receipt_binds_actual_case_results_and_release_surfaces() -> N
     assert receipt["result"] == "PASS"
     assert receipt["release"] == manifest["release"] == "0.4.0"
     assert receipt["m2d_contract"]["case_ids"] == list(M2D_CASE_IDS)
-    assert receipt["m2d_contract"]["case_results"] == {
-        case_id: "PASS" for case_id in M2D_CASE_IDS
-    }
+    assert receipt["m2d_contract"]["case_results"] == {case_id: "PASS" for case_id in M2D_CASE_IDS}
     assert receipt["m2d_contract"]["durable_three_way"] == {
         "node": DURABLE_THREE_WAY_NODE,
         "passed": 1,
@@ -131,17 +150,11 @@ def test_v04_saved_receipt_binds_actual_case_results_and_release_surfaces() -> N
         "case_ids": list(V04_UPGRADE_CASE_IDS),
         "passed": 6,
     }
-    assert receipt["full_suite"]["passed"] >= manifest["release_gate"][
-        "minimum_collected_tests"
-    ]
-    assert receipt["full_suite"]["subtests_passed"] >= manifest["release_gate"][
-        "minimum_subtests"
-    ]
+    assert receipt["full_suite"]["passed"] >= manifest["release_gate"]["minimum_collected_tests"]
+    assert receipt["full_suite"]["subtests_passed"] >= manifest["release_gate"]["minimum_subtests"]
     assert receipt["authorized_action_non_null"] == 0
     assert receipt["static"]["product_multi_agent"] is False
-    assert _python_tree_at_commit(receipt["commit"]) == receipt["static"][
-        "product_python_tree"
-    ]
+    assert _python_tree_at_commit(receipt["commit"]) == receipt["static"]["product_python_tree"]
 
 
 def test_v03_full_verifier_refuses_reissue_from_a_later_commit(
@@ -164,10 +177,7 @@ def test_release_verifier_snapshots_all_external_research_os_state_read_only() -
 
     assert set(before) == {"crypto-new", "manager", "BinancePredictionStrategy"}
     assert before == after
-    assert all(
-        set(snapshot) == {"exists", "entry_count", "sha256"}
-        for snapshot in before.values()
-    )
+    assert all(set(snapshot) == {"exists", "entry_count", "sha256"} for snapshot in before.values())
 
 
 def test_v04_external_snapshots_bind_bytes_modes_and_symlink_count() -> None:
@@ -179,8 +189,7 @@ def test_v04_external_snapshots_bind_bytes_modes_and_symlink_count() -> None:
 
     assert before == after
     assert all(
-        set(snapshot)
-        == {"exists", "entry_count", "sha256", "metadata_sha256", "symlink_count"}
+        set(snapshot) == {"exists", "entry_count", "sha256", "metadata_sha256", "symlink_count"}
         for snapshot in before.values()
     )
     assert before["BinancePredictionStrategy"]["exists"] is False

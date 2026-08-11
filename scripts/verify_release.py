@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "tests/fixtures/releases/v0.3.0/manifest.json"
 DEFAULT_RECEIPT = ROOT / "docs/research-os-status/v0.3.0-release-receipt.json"
 CURRENT_MANIFEST = ROOT / "tests/fixtures/releases/v0.4.0/manifest.json"
+CURRENT_RECEIPT = ROOT / "docs/research-os-status/v0.4.0-release-receipt.json"
 M2D_MANIFEST = ROOT / "tests/fixtures/program_memory/v3/m2d-manifest.json"
 AUTHORITY_TESTS = (
     "tests/test_m1a_evidence_e2e.py::test_m1a_changed_surfaces_keep_authority_null",
@@ -40,8 +41,18 @@ DOC_REQUIREMENTS = {
         "legacy_unstructured",
         "never store raw legacy content",
     ),
-    "src/research_os/resources/research-os/SKILL.md": ("0.4.0", "Context", "knowledge disposition", "legacy_unstructured"),
-    "src/research_os/resources/research-os/references/scientific-protocol.md": ("0.4.0", "ProgramLog", "knowledge disposition", "legacy_unstructured"),
+    "src/research_os/resources/research-os/SKILL.md": (
+        "0.4.0",
+        "Context",
+        "knowledge disposition",
+        "legacy_unstructured",
+    ),
+    "src/research_os/resources/research-os/references/scientific-protocol.md": (
+        "0.4.0",
+        "ProgramLog",
+        "knowledge disposition",
+        "legacy_unstructured",
+    ),
 }
 PRODUCT_MULTI_AGENT_MARKERS = ("multi_agent", "multi-agent", "agent_swarm", "role_swarm")
 INSTALLER_CASE_IDS = (
@@ -241,9 +252,7 @@ def _installer_gate(manifest: dict[str, Any]) -> dict[str, object]:
         )
     elif release == "0.4.0":
         expected_ids = V04_UPGRADE_CASE_IDS
-        node_prefix = (
-            "tests/test_m2d_release_gate.py::test_v04_managed_upgrade_subcase"
-        )
+        node_prefix = "tests/test_m2d_release_gate.py::test_v04_managed_upgrade_subcase"
     else:
         raise ReleaseGateError(f"unsupported release manifest: {release!r}")
     _require(case_ids == list(expected_ids), "managed skill upgrade case IDs drifted")
@@ -306,10 +315,40 @@ def _python_tree_at_commit(commit: str) -> dict[str, object]:
     return {"file_count": len(names), "sha256": digest.hexdigest()}
 
 
+def _git_file_bytes(commit: str, relative: str) -> bytes:
+    shown = subprocess.run(
+        ["git", "show", f"{commit}:{relative}"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+    )
+    _require(shown.returncode == 0, f"cannot read release path: {relative}")
+    return shown.stdout
+
+
+def _python_sources_at_commit(commit: str) -> dict[str, str]:
+    listed = subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", "-z", commit, "--", "src/research_os"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+    )
+    _require(listed.returncode == 0, "cannot list release product sources")
+    names = sorted(
+        name.decode("utf-8") for name in listed.stdout.split(b"\0") if name.endswith(b".py")
+    )
+    return {name: _git_file_bytes(commit, name).decode("utf-8") for name in names}
+
+
 def _sealed_release_tree(manifest: dict[str, Any]) -> tuple[str, dict[str, object]]:
-    receipt = _strict_json(DEFAULT_RECEIPT)
+    release = manifest.get("release")
+    receipt_path = DEFAULT_RECEIPT if release == "0.3.0" else CURRENT_RECEIPT
+    _require(release in {"0.3.0", "0.4.0"}, "unsupported sealed release")
+    receipt = _strict_json(receipt_path)
     _require(receipt.get("schema_version") == 1, "release receipt schema drifted")
-    _require(receipt.get("kind") == "research_os.release_gate_receipt", "release receipt kind drifted")
+    _require(
+        receipt.get("kind") == "research_os.release_gate_receipt", "release receipt kind drifted"
+    )
     _require(receipt.get("release") == manifest.get("release"), "release receipt version drifted")
     _require(receipt.get("result") == "PASS", "release receipt is not passing")
     commit = receipt.get("commit")
@@ -383,7 +422,10 @@ def _control_tree_strict(path: Path) -> dict[str, object]:
 def _external_snapshots(manifest: dict[str, Any]) -> dict[str, dict[str, object]]:
     gate = manifest["release_gate"]
     names = gate.get("external_projects")
-    _require(names == ["crypto-new", "manager", "BinancePredictionStrategy"], "external project set drifted")
+    _require(
+        names == ["crypto-new", "manager", "BinancePredictionStrategy"],
+        "external project set drifted",
+    )
     surface = gate.get("external_snapshot_surface")
     _require(surface == ".research-os", "external snapshot surface drifted")
     snapshots: dict[str, dict[str, object]] = {}
@@ -397,7 +439,10 @@ def _external_snapshots(manifest: dict[str, Any]) -> dict[str, dict[str, object]
 def _external_snapshots_strict(manifest: dict[str, Any]) -> dict[str, dict[str, object]]:
     gate = manifest["release_gate"]
     names = gate.get("external_projects")
-    _require(names == ["crypto-new", "manager", "BinancePredictionStrategy"], "external project set drifted")
+    _require(
+        names == ["crypto-new", "manager", "BinancePredictionStrategy"],
+        "external project set drifted",
+    )
     surface = gate.get("external_snapshot_surface")
     _require(surface == ".research-os", "external snapshot surface drifted")
     snapshots: dict[str, dict[str, object]] = {}
@@ -408,16 +453,26 @@ def _external_snapshots_strict(manifest: dict[str, Any]) -> dict[str, dict[str, 
     return snapshots
 
 
-def _version_surfaces(manifest: dict[str, Any]) -> dict[str, str]:
+def _version_surfaces(
+    manifest: dict[str, Any],
+    *,
+    commit: str | None = None,
+) -> dict[str, str]:
     release = manifest.get("release")
     _require(isinstance(release, str) and bool(release), "release must be text")
     gate = manifest.get("release_gate")
     _require(isinstance(gate, dict), "release_gate must be an object")
     expected_paths = ["pyproject.toml", "src/research_os/__init__.py", "uv.lock"]
     _require(gate.get("version_surfaces") == expected_paths, "version surfaces drifted")
-    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
-    init_source = (ROOT / "src/research_os/__init__.py").read_text(encoding="utf-8")
+
+    def source(relative: str) -> str:
+        if commit is None:
+            return (ROOT / relative).read_text(encoding="utf-8")
+        return _git_file_bytes(commit, relative).decode("utf-8")
+
+    pyproject = tomllib.loads(source("pyproject.toml"))
+    lock = tomllib.loads(source("uv.lock"))
+    init_source = source("src/research_os/__init__.py")
     match = re.search(r'^__version__\s*=\s*"([^"]+)"$', init_source, re.MULTILINE)
     _require(match is not None, "__version__ surface is missing")
     package = next(
@@ -459,8 +514,7 @@ def _m2d_contract(manifest: dict[str, Any]) -> dict[str, Any]:
     _require(case_ids == list(M2D_CASE_IDS), "frozen M2-D case IDs drifted")
     _require(len(case_ids) == len(set(case_ids)) == 23, "M2-D case IDs are not unique")
     _require(
-        contract.get("managed_upgrade", {}).get("upgrade_cases")
-        == list(V04_UPGRADE_CASE_IDS),
+        contract.get("managed_upgrade", {}).get("upgrade_cases") == list(V04_UPGRADE_CASE_IDS),
         "frozen M2-D upgrade cases drifted",
     )
     release = contract.get("release")
@@ -473,13 +527,11 @@ def _m2d_contract(manifest: dict[str, Any]) -> dict[str, Any]:
 
 def _m2d_case_gate() -> dict[str, object]:
     nodes = [
-        "tests/test_m2d_knowledge_disposition.py::"
-        f"test_frozen_disposition_case[{case_id}]"
+        f"tests/test_m2d_knowledge_disposition.py::test_frozen_disposition_case[{case_id}]"
         for case_id in M2D_DISPOSITION_CASE_IDS
     ]
     nodes.extend(
-        "tests/test_m2d_knowledge_disposition.py::"
-        f"test_frozen_legacy_case[{case_id}]"
+        f"tests/test_m2d_knowledge_disposition.py::test_frozen_legacy_case[{case_id}]"
         for case_id in M2D_LEGACY_CASE_IDS
     )
     output = _run([sys.executable, "-m", "pytest", "-q", *nodes])
@@ -490,8 +542,7 @@ def _m2d_case_gate() -> dict[str, object]:
         "case_ids": [*M2D_DISPOSITION_CASE_IDS, *M2D_LEGACY_CASE_IDS],
         "passed": passed,
         "results": {
-            case_id: "PASS"
-            for case_id in (*M2D_DISPOSITION_CASE_IDS, *M2D_LEGACY_CASE_IDS)
+            case_id: "PASS" for case_id in (*M2D_DISPOSITION_CASE_IDS, *M2D_LEGACY_CASE_IDS)
         },
     }
 
@@ -549,17 +600,16 @@ def _static_gate(manifest: dict[str, Any]) -> dict[str, object]:
 
     _require(manifest.get("release") == "0.4.0", "unsupported current release manifest")
 
+    receipt_commit, sealed_tree = _sealed_release_tree(manifest)
     for relative, phrases in DOC_REQUIREMENTS.items():
-        path = ROOT / relative
-        source = path.read_text(encoding="utf-8")
+        source = _git_file_bytes(receipt_commit, relative).decode("utf-8")
         missing = [phrase for phrase in phrases if phrase not in source]
         _require(not missing, f"documentation drift in {relative}: {missing}")
 
-    product_sources = list((ROOT / "src/research_os").rglob("*.py"))
-    for path in product_sources:
-        source = path.read_text(encoding="utf-8").lower()
+    for path, source in _python_sources_at_commit(receipt_commit).items():
+        source = source.lower()
         found = [marker for marker in PRODUCT_MULTI_AGENT_MARKERS if marker in source]
-        _require(not found, f"product multi-agent marker in {path.relative_to(ROOT)}: {found}")
+        _require(not found, f"product multi-agent marker in {path}: {found}")
     expected_tree = {
         "file_count": gate.get("product_python_file_count"),
         "sha256": gate.get("product_python_tree_sha256"),
@@ -570,11 +620,11 @@ def _static_gate(manifest: dict[str, Any]) -> dict[str, object]:
         _python_tree_at_commit(product_code_commit) == expected_tree,
         "v0.4 product code commit tree drifted",
     )
-    _require(_python_tree() == expected_tree, "working v0.4 product tree drifted")
+    _require(sealed_tree == expected_tree, "sealed v0.4 receipt product tree drifted")
 
     return {
         "python": current_python,
-        "versions": _version_surfaces(manifest),
+        "versions": _version_surfaces(manifest, commit=receipt_commit),
         "documentation_surfaces": len(DOC_REQUIREMENTS),
         "product_code_commit": product_code_commit,
         "product_python_tree": expected_tree,
@@ -596,7 +646,11 @@ def _wheel_gate(release: str) -> dict[str, object]:
             _require(len(metadata_names) == 1, "wheel must contain one METADATA file")
             metadata = Parser().parsestr(archive.read(metadata_names[0]).decode("utf-8"))
             _require(metadata["Version"] == release, "wheel metadata version drifted")
-            skill_paths = [name for name in archive.namelist() if name.endswith("research_os/resources/research-os/SKILL.md")]
+            skill_paths = [
+                name
+                for name in archive.namelist()
+                if name.endswith("research_os/resources/research-os/SKILL.md")
+            ]
             _require(len(skill_paths) == 1, "wheel packaged skill is missing")
 
         venv = work / "install"
@@ -675,9 +729,7 @@ def _verify_current(manifest: dict[str, Any]) -> dict[str, object]:
     _external_snapshot_matches_contract(contract, external_before)
     try:
         m2d = _m2d_case_gate()
-        durable_output = _run(
-            [sys.executable, "-m", "pytest", "-q", DURABLE_THREE_WAY_NODE]
-        )
+        durable_output = _run([sys.executable, "-m", "pytest", "-q", DURABLE_THREE_WAY_NODE])
         _require(_passed_count(durable_output) == 1, "durable three-way case did not pass")
         external_output = _run(
             [
@@ -754,6 +806,12 @@ def verify(manifest_path: Path) -> dict[str, object]:
         _require(manifest.get("release") == "0.3.0", "historical manifest version drifted")
         return _verify_historical(manifest)
     _require(manifest.get("release") == "0.4.0", "current manifest version drifted")
+    sealed_commit, _ = _sealed_release_tree(manifest)
+    current_commit = _run(["git", "rev-parse", "HEAD"]).strip()
+    _require(
+        current_commit == sealed_commit,
+        "historical v0.4 release receipt cannot be reissued from a later commit",
+    )
     return _verify_current(manifest)
 
 
