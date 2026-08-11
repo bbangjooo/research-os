@@ -1,6 +1,6 @@
 # §13 — M3-C crash-resume and authority closure (2026-08-12)
 
-> Status: **ADVANCE 5/5 — frozen 31/31; critic Attempt 2 PASS; audit pending**
+> Status: **ADVANCE 5/5 — critic Attempt 2 PASS; audit Attempt 1 FAIL correction active**
 > Previous phase: [§12](12-2026-08-12-m3-b-finite-autonomy-loop.md)
 > Active milestone: `M3-C`; M3-D blocked
 
@@ -12,7 +12,7 @@ provider to recreate already-used truth. Thirteen frozen cutpoints must cold-res
 with one terminal/disposition/Diagnosis/origin/Claim each, stale heads fail-closed, recursive authority null, and
 deploy/merge/trade operation surface zero. The frozen result is `31/31`; focused/adjacent evidence passes. Critic
 Attempt 1 exposed a lookup→append race witness gap; three exploratory interleavings now fail closed without controller
-writes. Critic Attempt 2 passed; M3-D unseen quality is not claimed and remains blocked by the independent audit.
+writes. Critic Attempt 2 passed; audit Attempt 1 found only ledger defects, so M3-D remains blocked by re-audit.
 
 ## 13.1 Scope, anchors, and exclusions
 
@@ -140,8 +140,15 @@ unseen release evidence remain absent.
 
 ### 13.6.6 Intent-execution reconciliation
 
-**Label: `MATCH`.** The work implements the approved M3-C crash-resume/authority conjuncts without
-changing M3-D thresholds, external migration timing, multi-agent gate, or product authorization policy.
+- **Intent (§13.1; NS1/NS5):** source = approved M3-C chain and frozen manifest; sample = 13 incomplete boundaries,
+  four stale cases, six authority rows and three forbidden operations; measurement = cold restart, no duplicate truth,
+  fail-closed stale state and zero authority/operation calls, with M3-D/NS6/NS7 excluded.
+- **Execution (§13.2~§13.6; NS1/NS5):** source = three canonical logs plus public service/store boundaries; sample =
+  frozen `31` and exploratory capture/service/race/authority witnesses; measurement = `31/31`, race `3/3`, focused
+  `41`, adjacent `142`, product/test caps PASS, external billing/hostile-provider/distributed quality unclaimed.
+
+**Label: `MATCH`.** The executed sample and measurements implement exactly that intent without changing M3-D
+thresholds, external migration timing, multi-agent gate, or product authorization policy.
 
 ### 13.6.7 Claim mode
 
@@ -175,5 +182,8 @@ guarded append. A real interleaving also exposed a boundary exception that neede
 
 ## 13.10 Next action
 
-Run the independent seven-pass audit. Only its PASS, together with the recorded critic Attempt 2 PASS, permits
-`CLOSE` and M3-D activation.
+Corrected re-audit must PASS before `CLOSE` and M3-D activation. The M3-D code-freeze pre-spec must also commit a
+`race-confirmation-v1` generator before nonce reveal: a fresh 256-bit nonce selects 12 subprocess schedules (four
+each for experiment lookup→service, disposition lookup→append, Claim lookup→append). Confirmatory PASS requires
+`12/12` stable stale code, restarted provider/service call `0`, controller Project/Program delta `0/0`, unchanged
+truth counts, and no product/policy edit after nonce reveal.

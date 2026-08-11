@@ -66,11 +66,14 @@
     "tests_and_fixture_target": 1400,
     "phase_critic_receipt_and_paired_churn_before_audit": 384,
     "inclusive_before_audit": 1566,
+    "phase_critic_receipt_and_audit_lines_current": 395,
+    "paired_evidence_churn_current": 449,
+    "inclusive_current": 1631,
     "inclusive_target": 2800,
     "all_measured_targets_met_before_independent_gates": true
   },
   "claim_mode": "MIXED (frozen 31 confirmatory; critic-driven witnesses exploratory)",
   "critic_verdict": "Attempt 1 FAIL preserved; Attempt 2 PASS (Q1-Q8; race 3; focused 41; combined 101)",
-  "audit_verdict": "PENDING",
+  "audit_verdict": "Attempt 1 FAIL (phase index, LOC ledger, intent/execution split, pessimistic re-score); correction active",
   "authorized_action": null
 }
