@@ -330,7 +330,7 @@ EXPLORATORY의 `MIXED`다.
 | 04 M1-D | cycle base `a5f232d` 대비 tracked `+126,150/-331` + untracked support `9,955` lines (`git diff --numstat a5f232d`; untracked `wc -l`) | product core보다 frozen JSON fixtures/observer/correction harness가 압도적으로 커진 과잉설계 비용을 명시; `state.py` 3,171 lines, oracle 2,724, rebuild script 2,256 | final transition `92551a…c54`; `26/23/54/37/7`; negative `460/460`; direct `67`; bounded `56`; compatibility `20/20`; floor PASS; auditor PASS |
 | 05 M1-E vertical | pre-spec `38446f1` → product `7fcfd10`: source `+365/-8`, commit 11 files `+686/-8` | 1,200-line cap 이하; 신규 manifest/graph reducer 없음; temp replay O(n) limitation 명시 | vertical `4`; final focused/compatibility `127+23`; demo/ruff/ty/diff와 independent audit PASS |
 | 06 M1-E release close correction | first `3eaba21→1aa9c58`; second `ff608af→58b731e`; third `b70a98f→e120292` | Rule9 second PIVOT cap total 1,600; nested latency | `609+115`; installer `6/6`; critic + auditor PASS; M1 closed |
-| 07 M2-A candidate | `61adebc..c70efe9`: product+release `1,635`, tests+fixture `980`, docs `384`, total `2,999` | explicit audit cutoff; category caps `1,650/1,000/450`, pivoted total cap `3,100` | corrected `22`, race `50/50`, fresh `635+115`; critic PASS; first audit FAIL pending correction |
+| 07 M2-A candidate | `61adebc..9840208`: product+release `1,635`, tests+fixture `980`, docs `404`, total `3,019` | corrected audit-ledger cutoff; category caps `1,650/1,000/450`, pivoted total cap `3,100` | corrected `22`, race `50/50`, fresh `635+115`; critic PASS; first audit FAIL corrected |
 
 ---
 

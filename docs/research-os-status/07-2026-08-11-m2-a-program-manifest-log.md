@@ -127,8 +127,8 @@ original `3065d242…b1a4`, corrected expected manifest `14a6aea9…83f9`, origi
   schema/digest recipe, public error, four conjunct, total cap은 바꾸지 않는다.
 - Post-result execution PIVOT: verifier/recursive-observer correction snapshot
   `61adebc..0f24ef6`은 product+release `1,635`, tests+fixture `946`, docs `276`, total `2,857`로
-  old total cap `2,750`을 정확히 107줄 초과했다. Candidate-audit snapshot
-  `61adebc..c70efe9`은 `1,635+980+384=2,999`, 즉 old cap보다 249줄 많고 new cap보다 101줄
+  old total cap `2,750`을 정확히 107줄 초과했다. Corrected audit-ledger snapshot
+  `61adebc..9840208`은 `1,635+980+404=3,019`, 즉 old cap보다 269줄 많고 new cap보다 81줄
   적다. Category cap `1,650/1,000/450`은 둘 다 충족한다. 이 결과 뒤 관측을 소급하지 않고
   historical harness/total-cap을 `EXPLORATORY`, total cap을 `<=3,100`으로 PIVOT한다.
   Race case의 ID/operation/denominator는 유지했지만 critic 뒤 expected에
