@@ -1,0 +1,81 @@
+{
+  "release_manifest_schema_version": 1,
+  "release": "0.5.0",
+  "status": "precommitted-before-acceptance-nonce",
+  "generator_manifest": "tests/fixtures/meta_evaluation/v1/generator-manifest.json",
+  "protocol_attack_manifest": "tests/fixtures/protocol_attacks/v1/manifest.json",
+  "public_boundary_manifest": "tests/fixtures/meta_evaluation/v1/public-boundary-manifest.json",
+  "external_read_only_manifest": "tests/fixtures/meta_evaluation/v1/external-read-only-manifest.json",
+  "generated_artifacts": {
+    "suite": "tests/fixtures/meta_evaluation/v1/acceptance-suite.json",
+    "race_suite": "tests/fixtures/meta_evaluation/v1/acceptance-race-suite.json",
+    "custody_transcript": "docs/research-os-status/14-m3-d-custody-transcript.json",
+    "prearm_seal": "docs/research-os-status/14-m3-d-prearm-seal.json",
+    "final_receipt": "docs/research-os-status/v0.5.0-release-receipt.json"
+  },
+  "pre_nonce_artifacts": [
+    {"path":"src/research_os/meta_evaluation.py","sha256":"a4f7555f56158652f63f5e7845f2eddbfe2d7390a62d285f1fb5044889b2ef37"},
+    {"path":"src/research_os/autonomy/loop.py","sha256":"0305d1da21d38d60a9cbce5761e27529fa8bbeef97f3edc353dbf3897bad50c6"},
+    {"path":"src/research_os/agent_install.py","sha256":"e0a25cf8ba61545b7f1b7a2d0a1fae656b3c18fba42ff0941a9dd7ca2cc1c5db"},
+    {"path":"tests/fixtures/meta_evaluation/v1/generator-manifest.json","sha256":"3f7e010a79106140fb311578300af4cda5b43e87fa8a5e813e9bc1c6959ff46c"},
+    {"path":"tests/fixtures/meta_evaluation/v1/public-boundary-manifest.json","sha256":"f9f72341f21f03229c754297aed12686c141da39183e0cb8317ecffe0248b900"},
+    {"path":"tests/fixtures/meta_evaluation/v1/external-read-only-manifest.json","sha256":"b06ba0f95c453bb314dc55f73d308c8600a759dcc312ccc68d8a339a11eb9c8a"},
+    {"path":"tests/fixtures/protocol_attacks/v1/manifest.json","sha256":"8018d01c684c100b7d61acbb2232e09aa36a0925df7818d135e1dc32136b11b8"},
+    {"path":"scripts/prepare_m3d_acceptance.py","sha256":"41af08728a9b04a6d51e7836ea682d569cee3eff9609a5d9c56d02e392d338d4"},
+    {"path":"scripts/run_m3d_acceptance.py","sha256":"b01f4efc6f79e84a38545e41e5118403f98fb9e02c911f38e5a1d4e89f53dd3b"},
+    {"path":"scripts/verify_v05_release.py","sha256":"2842172a64fff3e524148a4296e24d8e5362a5c081912748805d7cd39a73cf79"},
+    {"path":"tests/test_m3d_meta_evaluation.py","sha256":"b06742f7da7f29372d8380c9bbc78c15684d143dd84cd1faa1efe4443b62ee74"},
+    {"path":"tests/test_m3d_protocol_attacks.py","sha256":"3c29da49e9e3823b4b3322dec91bf4a60623b15d3f78d5a1dd56deb283220353"},
+    {"path":"tests/test_m3d_external_compatibility.py","sha256":"9dbf187517dce6d5e316ef73f95d61f875b50a07ce0bdf00117e94a1022d9d33"},
+    {"path":"tests/test_m3d_release_gate.py","sha256":"30f997e4f9ad9b5a94022fd67e2ab5a53b14ba4eb51638c425ad86c1f69a5f68"},
+    {"path":"pyproject.toml","sha256":"b51af387191aa4da5c95d8f7bf00e20bce9de00ee694452bd7037b98a1b9087c"},
+    {"path":"src/research_os/__init__.py","sha256":"e30ceec48ff70ae015b75fc8c5bc04a8e28194e1db713203b2a0d9b7fc6f18ce"},
+    {"path":"uv.lock","sha256":"d7dee412a1dfb8907fdcd9cf9609e4d5ff5d88fb3cafa7277e496d77c5fd8de4"},
+    {"path":"README.md","sha256":"ba767102bf90cd35f1b54100aa873fdfb735cd0459152e3334a74b4a0a757d59"},
+    {"path":"docs/architecture.md","sha256":"ade52154e28032803d417ac6ec67b34ae06328300b63d355317b33c1e4232f49"},
+    {"path":"docs/agent-usage.md","sha256":"97ff435d7273981c8303638c539dd0235d93a2f5583d118efcf6f85e20377bcb"},
+    {"path":"docs/new-project.md","sha256":"f99fddc210b646444f1f4eafcb77cb331b7e1579ab8a0b05437f13ccf52bff88"},
+    {"path":"src/research_os/resources/research-os/SKILL.md","sha256":"8ee52ee54d8ccd5a60ea13d4fb425130d0fff92d6b460506cff560c570f30f40"},
+    {"path":"src/research_os/resources/research-os/references/scientific-protocol.md","sha256":"f8b32832b912c2ed766490e78aeadfb4ad2246e3f211112f71d4ebeb8a794e80"}
+  ],
+  "managed_skill_upgrade": {
+    "from_releases": ["0.2.0", "0.3.0", "0.4.0"],
+    "to_release": "0.5.0",
+    "case_count": 7,
+    "cases_source": "scripts/verify_v05_release.py::V05_UPGRADE_CASES"
+  },
+  "acceptance": {
+    "episode_count": 36,
+    "family_count": 6,
+    "protocol_attack_rows": 24,
+    "public_boundary_families": 6,
+    "public_boundary_pytest_count": 8,
+    "external_projects": 3,
+    "opaque_classifications": 3,
+    "race_schedules": 12,
+    "arm_run_count": 1,
+    "nonce_draw_count": 1,
+    "quality_miss_policy": "GENUINE-FINDING blocks release; no threshold change or acceptance rerun",
+    "runner_corruption_policy": "RESULT-INVALID requires a new pre-spec and nonce cycle",
+    "oracle_metric_defect_policy": "REQUIREMENT-WRONG requires a new pre-spec and nonce cycle"
+  },
+  "receipt_contract": {
+    "schema_version": 1,
+    "kind": "research_os.v0.5.acceptance_release_receipt",
+    "required_result": "PASS",
+    "required_conjunctions": ["benchmark","protocol_attacks","public_boundaries","external_read_only","managed_upgrades","race_confirmation","full_suite","wheel"],
+    "authorized_action": null
+  },
+  "release_gate": {
+    "python": "3.12",
+    "version_surfaces": ["pyproject.toml", "src/research_os/__init__.py", "uv.lock"],
+    "minimum_passed_tests": 757,
+    "minimum_subtests": 115,
+    "single_verifier": "scripts/verify_v05_release.py",
+    "product_multi_agent": false,
+    "live_migration": false,
+    "external_mode": "read-only-temp-replay-no-adapter-no-install",
+    "authorized_action_non_null": 0
+  },
+  "authorized_action": null
+}

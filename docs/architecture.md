@@ -363,6 +363,22 @@ signature, conclusion, confidence, and next step to the canonical terminal event
 IDs and hashes. This makes class closure and materially supported replicated
 branches durable without promoting agent interpretation to deployment authority.
 
+## Autonomous single-researcher loop (v0.5.0)
+
+The v0.5.0 controller composes the existing public boundaries instead of
+creating a second source of scientific truth. A finite episode reads Context
+v3 and Program retrieval, validates a provider-neutral DecisionPacket, then
+routes at most the precommitted retry and experiment budgets through the
+canonical ResearchService and ProgramStore. Its separate autonomy log records
+only orchestration state and exact references to Project/Program events.
+
+Every continuation replays all three logs, verifies bound heads and referenced
+event hashes, and resumes the one pending seam. A concurrent write between
+lookup and append returns a stable stale-context result with controller writer
+delta zero. Terminal episodes are idempotent and cannot recharge a budget or
+append a second conclusion. This is local single-worker orchestration; it adds
+no deployment, migration, trading, or multi-agent authority.
+
 ## Authority boundary
 
 Research OS is a trusted local-process boundary on POSIX, not an operating

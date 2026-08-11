@@ -278,3 +278,23 @@ legacy input is never semantically inferred: record only source metadata,
 content SHA-256 and size, literal `legacy_unstructured`, and an empty typed-Claim
 list. Raw legacy content is not part of ProgramLog. Neither record authorizes
 deployment, merge, release, capital allocation, or trading.
+
+## Finite autonomous research protocol (v0.5.0)
+
+One episode is a deterministic finite-state orchestration over canonical
+Project evidence, Program memory, and a separate append-only autonomy log. The
+provider sees a DecisionPacket bound to current Context v3, retrieval result,
+Program head, candidate set, and fixed budgets. It never sees hidden oracle
+state and supplies no authority. Exact schema validation precedes every write;
+invalid responses consume only the precommitted provider-retry budget.
+
+Experiment actions pass through the existing ResearchService, so terminal
+evidence, Diagnosis, ClassState, and retry rules retain their original owners.
+Memory disposition passes through ProgramStore against the exact referenced
+Proposal and retrieval prefix. The autonomy log stores references and pending
+seams, not copied scientific truth. On restart, replay all owners, verify heads
+and event hashes, and continue only the single pending seam. Lookup-to-append
+drift fails closed with controller writer delta zero. A terminal or exhausted
+episode is idempotent and cannot reopen a class, append duplicate truth, or
+recharge budget. The protocol remains single-worker and authorizes no live
+migration, deployment, capital allocation, or trade.

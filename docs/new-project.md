@@ -488,6 +488,17 @@ After recovery, `replay` rebuilds SQLite again and verifies every canonical
 baseline and candidate artifact record, manifest, and blob. A successful replay
 returns `events_replayed`, `artifacts_verified`, and current projected `status`.
 
+## Optional v0.5.0 autonomy integration
+
+Treat the v0.5.0 finite loop as an optional controller above an already working
+ResearchService and ProgramStore. First establish Context v3, typed Proposal and
+Diagnosis/ClassState, Claim retrieval/disposition, and exact replay. Then bind a
+provider-neutral decision port and explicit provider-retry, experiment, and stop
+budgets. Preserve separate append-only Project, Program, and autonomy logs; never
+copy Project or Program truth into controller-owned mutable state. Crash resume
+must revalidate all referenced heads before continuing. New-project setup does
+not authorize deployment or a live external-project migration.
+
 ## Production separation
 
 `VALIDATED` means only that the sealed experiment passed its configured comparison and constraints. Every result has `authorized_action: null`. A separate reviewed system must decide whether to merge code, train a production model, allocate capital, or send an order.

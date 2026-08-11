@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "manifest_id": "research-os-m3d-external-read-only-v1",
+  "status": "precommitted-before-acceptance-nonce",
+  "selection_rule": "use a non-empty root .research-os; otherwise select the lexicographically first nested .research-os among those with the maximum complete canonical event count, requiring count > 0",
+  "projects": [
+    {
+      "name": "crypto-new",
+      "top_level_root": "/Users/bbangjo/crypto-new",
+      "selected_control_root": "/Users/bbangjo/crypto-new/.research-os",
+      "selection_kind": "non-empty-root",
+      "project_id": "crypto-new-sma-vwma",
+      "event_count": 1,
+      "event_bytes_sha256": "994a82c9999d848d82dbb794cc2e0a5cd2ae9ad3c004b0da1bdf0c40e8032bfe",
+      "event_head_sha256": "3d9b3dd15a88601c3d872755374b3d531a785fed41b288e1cff3749bda4cc99e",
+      "science_state_sha256": "61b64bd1dca3d00e2a0498ad181c7e6c9eef190ad834e7c2b575f854cd77192a",
+      "opaque_source": "research-brief.md",
+      "opaque_bytes": 2479,
+      "opaque_sha256": "489367b47d9433f0bfb3a0c48ad123b204ceee1e219dd72ba7687cc677a47cde"
+    },
+    {
+      "name": "manager",
+      "top_level_root": "/Users/bbangjo/manager",
+      "selected_control_root": "/Users/bbangjo/manager/.research-os",
+      "selection_kind": "non-empty-root",
+      "project_id": "portfolio-manager",
+      "event_count": 15,
+      "event_bytes_sha256": "59e7f9e163cd2a5002590a6474ba7f020161bbed991af6424a40908d7329966f",
+      "event_head_sha256": "db8e4c96d127b25493c7d928fc6a6941b12db9ffac18b4f12fdb11b5f3dd446c",
+      "science_state_sha256": "c89b1c41d3a2a78e3e4fb4900fa125f5b3095bcaa306829fcc19bc8f75e4c8a1",
+      "opaque_source": "research-brief.md",
+      "opaque_bytes": 11615,
+      "opaque_sha256": "9d2df63051e70ad298293c2030f23bdf64e47fe64a4019eea3055d86eecfb1a0"
+    },
+    {
+      "name": "BinancePredictionStrategy",
+      "top_level_root": "/Users/bbangjo/BinancePredictionStrategy",
+      "selected_control_root": "/Users/bbangjo/BinancePredictionStrategy/research/research-os/polymarket-profit-g2/.research-os",
+      "selection_kind": "nested-max-event-count",
+      "project_id": "polymarket-profit-g2",
+      "event_count": 32,
+      "event_bytes_sha256": "5a408e716776dc43f1c61b198fb6cde683dd8063195efddc441082832222d449",
+      "event_head_sha256": "ed0421db4cc8d82d770e256fb05e240730082099bb11d343829aec565dee75a4",
+      "science_state_sha256": "37c15007cc917ad962ffa23fc9ccd950339057d6e49354daf0d620ccc8ca3422",
+      "opaque_source": "research-brief.md",
+      "opaque_bytes": 10218,
+      "opaque_sha256": "25e4c6b0093f43377c67e805675c89178f6be63127251b19eaf84da2eddc92e8"
+    }
+  ],
+  "requirements": {
+    "event_replay": "3/3 exact canonical bytes, hash chain, head and derived scientific state",
+    "opaque_classification": "3/3 legacy_unstructured with zero typed Claim IDs and no raw storage",
+    "writer_delta": "zero bytes, modes and symlink-target delta over each selected control tree",
+    "forbidden": [
+      "opening source SQLite writable",
+      "loading or invoking source adapters",
+      "installing or upgrading source projects",
+      "inferring typed claims from opaque source bytes"
+    ]
+  },
+  "authorized_action": null
+}

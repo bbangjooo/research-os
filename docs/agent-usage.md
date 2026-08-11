@@ -319,6 +319,18 @@ research-os --project PATH conclude-branch \
 The command binds the finding to the named terminal events. It authorizes no
 production action, and the agent refreshes `agent-context` afterward.
 
+## Running a v0.5.0 finite research episode
+
+The 0.5.0 autonomy API is a bounded orchestration surface, not an open-ended
+agent permission. Start only from a fresh Context v3 and current Program head.
+The provider response must satisfy the DecisionPacket schema exactly; invalid
+responses consume only the fixed provider-retry allowance and create no
+scientific evidence. Refresh on a stale Project or Program head, never edit the
+packet around the validator, and resume a crash only through replay of the
+recorded pending seam. Stop when the episode reaches its terminal state or any
+budget/class gate closes. Existing projects are not upgraded or written by the
+0.5.0 release gate; live pilot and migration remain separate reviewed work.
+
 ## Authority
 
 `VALIDATED` means that one sealed experiment met the research constitution. It

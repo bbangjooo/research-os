@@ -209,6 +209,16 @@ auditable authority. Legacy free text is stored only as a digest/size
 These records authorize no deployment, merge, model release, capital allocation,
 or live trade.
 
+Research OS 0.5.0 adds a finite, restartable single-researcher loop over those
+scientific and Program-memory contracts. Each provider decision is a strict
+DecisionPacket bound to the current Context, retrieval result, Program head,
+candidate budget, and literal-null authority. Invalid provider output has a
+bounded retry path; closed classes, stale heads, exhausted budgets, and
+post-terminal calls fail closed. Pending seams resume from append-only Project,
+Program, and autonomy logs without duplicating scientific truth. The release
+does not enable live migration or product multi-agent behavior: existing
+projects remain read-only compatibility targets until a separate pilot.
+
 Codex and Claude Code use `agent-context` plus `--context-token`; that guarded
 path requires a current independent evaluator certificate and an already sealed
 baseline. Tokenless `run-once` remains only as a legacy/manual compatibility path

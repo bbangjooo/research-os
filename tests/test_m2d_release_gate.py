@@ -30,6 +30,7 @@ SEALED_COMMITS = {
         ["git", "rev-parse", "6f36a1b^{commit}"], cwd=ROOT, text=True
     ).strip(),
     "0.3.0": M2D_MANIFEST["managed_upgrade"]["sealed_0_3_commit"],
+    "0.4.0": "9dbb413d0691c0fbec5dd8dc7bbba2ba73ccf0a0",
 }
 UPGRADE_CASE_IDS = tuple(M2D_MANIFEST["managed_upgrade"]["upgrade_cases"])
 
@@ -177,7 +178,14 @@ def _observe_upgrade(case_id: str, home: Path) -> dict[str, object]:
 @pytest.mark.parametrize("case_id", UPGRADE_CASE_IDS, ids=UPGRADE_CASE_IDS)
 def test_v04_managed_upgrade_subcase(case_id: str, tmp_path: Path) -> None:
     observed = _observe_upgrade(case_id, tmp_path)
-    expected = next(case["expected"] for case in V04_UPGRADE_CASES if case["id"] == case_id)
+    expected = dict(
+        next(case["expected"] for case in V04_UPGRADE_CASES if case["id"] == case_id)
+    )
+    # The sealed v0.4 receipt preserves the historical 0.4 destination.  On a
+    # later release this regression exercises the same recognized-prior path
+    # against the current packaged tree instead of pretending to reinstall 0.4.
+    if case_id in {"exact-0.2-to-0.4", "exact-0.3-to-0.4"}:
+        expected["to_release"] = __version__
     assert observed == expected
 
 
@@ -226,4 +234,5 @@ def test_v04_release_contract_binds_all_literal_ids() -> None:
         "commit-failure-restores-prior",
         "publish-failure-retains-recovery",
     )
-    assert M2D_MANIFEST["release"]["version"] == __version__ == "0.4.0"
+    assert M2D_MANIFEST["release"]["version"] == "0.4.0"
+    assert __version__ == "0.5.0"

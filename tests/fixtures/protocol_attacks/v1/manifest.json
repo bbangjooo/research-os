@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "manifest_id": "research-os-protocol-attacks-v1",
+  "source_contract": {
+    "path": "tests/fixtures/autonomy/v1/m3a-manifest.json",
+    "sha256": "a43ba5980c257706fe49f0c5107b520683f85ff46b3d7d9848071a0382d747a2",
+    "rejection_rows": 24
+  },
+  "case_count": 24,
+  "no_write_semantics": "Project/Program/Autonomy deltas are attributable to the validator/controller after the attack precondition; reject-stale-program-head first commits one legitimate competing Program writer, then requires validator delta zero",
+  "cases": [
+    {"id":"reject-wrong-packet-version","source_case_id":"reject-wrong-packet-version","surface":"decision_packet","schema_version":1,"malformed_input":"wrong_version","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-bool-packet-version","source_case_id":"reject-bool-packet-version","surface":"decision_packet","schema_version":1,"malformed_input":"bool_version","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-extra-packet-key","source_case_id":"reject-extra-packet-key","surface":"decision_packet","schema_version":1,"malformed_input":"extra_key","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-forged-packet-id","source_case_id":"reject-forged-packet-id","surface":"decision_packet","schema_version":1,"malformed_input":"packet_id","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-request-id-mismatch","source_case_id":"reject-request-id-mismatch","surface":"decision_packet","schema_version":1,"malformed_input":"provider_request_id","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-stale-context-token","source_case_id":"reject-stale-context-token","surface":"decision_packet","schema_version":1,"malformed_input":"context_token","expected":{"error_code":"DECISION_PACKET_STALE","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-forged-program-snapshot-digest","source_case_id":"reject-forged-program-snapshot-digest","surface":"decision_packet","schema_version":1,"malformed_input":"program_snapshot_digest","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-forged-program-snapshot","source_case_id":"reject-forged-program-snapshot","surface":"decision_packet","schema_version":1,"malformed_input":"program_snapshot","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-stale-program-head","source_case_id":"reject-stale-program-head","surface":"decision_packet","schema_version":1,"malformed_input":"program_head","expected":{"error_code":"DECISION_PACKET_STALE","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-forged-query-digest","source_case_id":"reject-forged-query-digest","surface":"decision_packet","schema_version":1,"malformed_input":"query_digest","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-forged-result-digest","source_case_id":"reject-forged-result-digest","surface":"decision_packet","schema_version":1,"malformed_input":"retrieval_result_digest","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-missing-returned-claim","source_case_id":"reject-missing-returned-claim","surface":"decision_packet","schema_version":1,"malformed_input":"missing_claim","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-duplicate-returned-claim","source_case_id":"reject-duplicate-returned-claim","surface":"decision_packet","schema_version":1,"malformed_input":"duplicate_claim","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-forged-retrieval-reason","source_case_id":"reject-forged-retrieval-reason","surface":"decision_packet","schema_version":1,"malformed_input":"reason","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-candidate-digest-mismatch","source_case_id":"reject-candidate-digest-mismatch","surface":"decision_packet","schema_version":1,"malformed_input":"candidate","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-proposal-generation-mismatch","source_case_id":"reject-proposal-generation-mismatch","surface":"decision_packet","schema_version":1,"malformed_input":"generation_id","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-proposal-class-mismatch","source_case_id":"reject-proposal-class-mismatch","surface":"decision_packet","schema_version":1,"malformed_input":"hypothesis_class_id","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-proposal-scope-mismatch","source_case_id":"reject-proposal-scope-mismatch","surface":"decision_packet","schema_version":1,"malformed_input":"evaluation_scope_id","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-disposition-mismatch","source_case_id":"reject-disposition-mismatch","surface":"decision_packet","schema_version":1,"malformed_input":"knowledge_disposition","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-non-null-authority","source_case_id":"reject-non-null-authority","surface":"decision_packet","schema_version":1,"malformed_input":"authorized_action","expected":{"error_code":"DECISION_PACKET_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-subprocess-duplicate-key","source_case_id":"reject-subprocess-duplicate-key","surface":"provider_subprocess","schema_version":1,"malformed_input":"duplicate_key","expected":{"error_code":"PROVIDER_PROTOCOL_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-subprocess-extra-stdout","source_case_id":"reject-subprocess-extra-stdout","surface":"provider_subprocess","schema_version":1,"malformed_input":"extra_stdout","expected":{"error_code":"PROVIDER_PROTOCOL_INVALID","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-subprocess-timeout","source_case_id":"reject-subprocess-timeout","surface":"provider_subprocess","schema_version":1,"malformed_input":"timeout","expected":{"error_code":"PROVIDER_TIMEOUT","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}},
+    {"id":"reject-subprocess-output-limit","source_case_id":"reject-subprocess-output-limit","surface":"provider_subprocess","schema_version":1,"malformed_input":"output_limit","expected":{"error_code":"PROVIDER_OUTPUT_LIMIT","project_log_delta":0,"program_log_delta":0,"autonomy_log_delta":0}}
+  ],
+  "authorized_action": null
+}

@@ -105,6 +105,28 @@ _KNOWN_MANAGED_RELEASE_FILES: Final[dict[str, dict[Path, tuple[int, str]]]] = {
             "5e7654d2913dc7bde67eff937126cf25808b92b4cf87625aa6f354a7f4da429e",
         ),
     },
+    "0.4.0": {
+        Path(".research-os-managed.json"): (
+            595,
+            "64e6c2c74b6a5cb939a3b321b894d1d66c06d22cb84e8a089d3d64f00276b705",
+        ),
+        Path("SKILL.md"): (
+            16128,
+            "90df221007e489355bf85f76ca08d1afcbd8fce2165bb510a9cea5840b77969d",
+        ),
+        Path("agents/openai.yaml"): (
+            218,
+            "a4e0ea2cb6b7ee315c578092a09c09e961e86cb729b457fe276b056c903b359b",
+        ),
+        Path("references/scientific-protocol.md"): (
+            14755,
+            "ef19072bf83b896bd4038674b834b24a8004ee23044ecb4c217a6e56177b470a",
+        ),
+        Path("references/status-actions.md"): (
+            2686,
+            "5e7654d2913dc7bde67eff937126cf25808b92b4cf87625aa6f354a7f4da429e",
+        ),
+    },
 }
 _KNOWN_MANAGED_RELEASE_DIRECTORIES: Final = frozenset(
     {Path("agents"), Path("references")}

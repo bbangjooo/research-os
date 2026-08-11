@@ -351,9 +351,9 @@ def test_v03_release_manifest_binds_versions_context_and_published_v02_skill() -
     lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
 
     assert release["release"] == "0.3.0"
-    assert __version__ == pyproject["project"]["version"] == "0.4.0"
+    assert __version__ == pyproject["project"]["version"] == "0.5.0"
     package = next(row for row in lock["package"] if row["name"] == "research-os")
-    assert package["version"] == "0.4.0"
+    assert package["version"] == "0.5.0"
 
     context_contract = release["context"]
     assert isinstance(context_contract, dict)

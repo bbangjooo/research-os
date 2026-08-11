@@ -243,6 +243,18 @@ not consume experiment budget because no experiment was registered.
    before resuming. Never
    mix the resulting evidence graph with the old compatibility generation.
 
+## v0.5.0 finite-loop discipline
+
+When a project exposes the 0.5.0 autonomy controller, operate one bounded
+single-researcher episode at a time. Build every decision from a fresh Context
+v3, deterministic Program retrieval, and the current recovery head. Submit only
+the strict provider DecisionPacket. An invalid packet may use the configured
+provider retry once; it is never scientific evidence. Do not retry a closed
+class, recharge an exhausted budget, or continue after terminal. On stale heads
+or interruption, replay the Project, Program, and autonomy logs and resume only
+the recorded pending seam. The loop grants no live migration, deployment,
+trading, or multi-agent authority; `authorized_action` remains `null`.
+
 ## Preserve authority boundaries
 
 - Treat `VALIDATED` as research evidence, not permission to merge, deploy,
