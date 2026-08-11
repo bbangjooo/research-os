@@ -139,7 +139,8 @@ additions after first result become EXPLORATORY/MIXED.
 - **Downstream/user-visible:** operators can reproduce an exact error code and request/packet bytes; no research
   episode completes yet, so this is infrastructure that enables M3-B/C rather than NS5 transition progress.
 
-- M3-A product is `1,081/1,100` lines; focused test + provider fixture is `648/1,250` lines.
+- M3-A product is `1,081/1,100` lines; frozen manifest + provider fixture + focused test are
+  `96 + 51 + 597 = 744/1,250` lines.
 - Result-triggered historical release correction changed verifier/tests only and did not change the frozen manifest,
   packet/provider product, 32 IDs, thresholds, or expected error classes.
 - `50ee73d..42c7557` adds `1,944` and removes `59` lines including critic/docs and the correction; closure docs

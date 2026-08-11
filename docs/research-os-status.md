@@ -81,8 +81,8 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** M3-A receipt로 independent critic Q1~Q8을 verify하고 paired-core
-  close candidate를 만든 뒤 seven-pass audit한다. 두 gate 전 M3-B를 시작하지 않는다.
+- [ ] **단일 최우선 행동:** corrected M3-A close candidate를 independent seven-pass re-audit한다.
+  PASS 전 M3-B를 시작하지 않는다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
@@ -142,7 +142,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 - 저장소: `/Users/bbangjo/research-os`, 제품 버전 `0.4.0`, M3-A measured checkpoint `42c7557`;
   v0.4 release receipt checkpoint `f1ab646`.
 - 구현 크기: `rg --files src tests -g '*.py' | sort | xargs wc -l`의 Python 합계
-  62,606 LOC (Cycle 10 candidate).
+  64,344 LOC (Cycle 11 candidate).
 - 검증 기준선: 보존 tag `research-os-m1a-working-tree-baseline`에서 Python 3.12 `262 tests + 57 subtests` PASS.
 - 강점: append-only hash-chained event log, disposable projection, artifact CAS, evaluator
   certification, stale-context와 compatibility gate, fail-closed recovery, `authorized_action=null`,
@@ -396,7 +396,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 08 M2-B close | product `1,463`; tests+fixture `1,242`; docs `376`; total `3,081` | caps `1,500/1,250/500`, total `3,100`; PIVOT/MIXED | `25`, focused `37`, adjacent `96`, full `672+115`; critic + corrected audit PASS |
 | 09 M2-C close | product `684`; tests+fixture `921`; docs `<=500`; total `<2,550` | caps `900/1,150/500`, total `2,550`; CONFIRMATORY | receipt `100/100/100/0`; full `676+115`; critic + audit PASS |
 | 10 M2-D v0.4 close | `git diff --numstat 4b0d0a1..f1ab646`: product `1,150`, tests+fixture `1,242`, verifier `398`, other release/docs surfaces `237`; total `3,027/3,200` | frozen rows CONFIRMATORY + critic correction EXPLORATORY = MIXED; external writer/live migration 0 | frozen `23/23`; durable `1/1`; full `713+115`; upgrades `6/6`; critic + corrected audit PASS; parent M2 closed |
-| 11 M3-A close candidate | product `1,081/1,100`; M3-A tests+fixture `648/1,250`; phase+critic+receipt docs `428/450`; result-triggered verifier correction `+119/-52`; paired-core additions `64`; inclusive gross `2,340/2,800` | frozen 32 CONFIRMATORY + historical-gate correction EXPLORATORY = MIXED; product/test/script sealed at `42c7557` | frozen `32/32`; focused `41`; adjacent `103`; full `757+115`; critic PASS, audit pending |
+| 11 M3-A close candidate | product `1,081/1,100`; M3-A tests+fixtures `744/1,250` (frozen manifest `96` + provider fixture `51` + test `597`); phase+critic+receipt+audit docs `445/450`; result-triggered verifier correction `+119/-52`; paired-core additions `67`; inclusive gross `2,456/2,800` | frozen 32 CONFIRMATORY + historical-gate correction EXPLORATORY = MIXED; product/test/script sealed at `42c7557` | frozen `32/32`; focused `41`; adjacent `103`; full `757+115`; critic PASS, audit pending |
 
 ---
 
@@ -456,4 +456,6 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - [x] Cycle 11 status §12와 pipeline §8.4·§8.5·§10을 M3-A close candidate로 동기화
 - [x] Cycle 11 M chain 정의 변경 없음; M3-A progress만 engineering 4/4 ADVANCE로 갱신
 - [x] Cycle 11 progress critic Q1~Q8 independent verify — **PASS**
-- [ ] Cycle 11 independent seven-pass audit — pending; M3-B blocked
+- [x] Cycle 11 independent seven-pass audit Attempt 1 — **FAIL** (cold-start action, Python LOC,
+  frozen manifest denominator)
+- [ ] Cycle 11 corrected independent re-audit — pending; M3-A ADVANCE, M3-B blocked
