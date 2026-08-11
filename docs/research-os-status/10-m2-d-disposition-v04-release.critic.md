@@ -85,3 +85,14 @@ GENUINE-FINDING→EXPLORATORY holdout으로 별도 분기한다.
   contradiction, cross-scope Claim을 세 disposition으로 append하고 cold replay하는 증거가 없었다.
 - Disposition: Attempt 1 receipt 철회, current M2-D open, combined durable test와 release binding 추가 후
   independent reverify.
+
+## Verify attempt 2 — PASS
+
+- Q1~Q8: `DIRECT` 8/8 verified.
+- Corrected Q2: actual registered Proposal + validated Context v3 + two-scope/origin
+  active·contradiction·cross-scope Claims → `used|rejected|not_applicable` append → cold replay exact `3/3`.
+- Corrected release: durable node `1/1`, commit `9dbb413`, full `713+115`, saved-receipt product-tree
+  binding PASS.
+- Bounded independent rerun: corrected/durable/external/receipt `4`, M2-D/release/verifier focused `47`,
+  ruff/ty/diff PASS.
+- Milestone remains `ADVANCE`; independent audit 전 M2-D/M2 close 없음.

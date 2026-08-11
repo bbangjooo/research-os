@@ -48,19 +48,19 @@
 6. **유한 자율 루프** (§6): provider의 출력은 비신뢰 packet이며 kernel preflight 뒤에만 실행된다.
 7. **비교 가능한 효과 측정** (§7): 동일 후보 언어·실험 budget에서 정확도와 낭비를 비교한다.
 
-현재 상태 (Cycle 09 M2-C **COMPLETE**; M2-D active):
+현재 상태 (Cycle 10 M2-D **CANDIDATE 5/5**; independent audit pending):
 
 - 1번 ✅/○ — directional delta, constitution-owned typed gate/slack, baseline/candidate verify 대칭과 nested/flat certification lifecycle이 구현·검증됐다.
 - 2번 ○ — checkpoint `df2c900`에서 canonical StudyContract·evaluation-sealed generation·replayable cumulative reservation ledger·locked overrun gate가 구현됐다. executable manifest `29/29`, focused `81+37`; 단, generation별 non-refundable reservation이지 actual usage telemetry나 study lifetime cap은 아니며 successor 반복 증액을 막지 않는다.
 - 3번 ○ — exact terminal-bound Diagnosis, pending gate, derived ClassState/immutable closure, semantic/retry frontier가 canonical reducer/service/replay에서 동작한다. Final transition `26/23/54/37/7`, negative path `460/460`, five conjunct `5/5`를 충족했다. Diagnosis narrative의 인과 타당성과 learned ranking은 아직 증명하지 않았다.
-- 4번 △ — ProgramManifest/Log의 immutable Claim/typed relation은 `25/25`, focused `37`, full
-  `672+115`, critic + corrected audit PASS로 closed다. Deterministic retrieval도 Cycle 09 audit PASS다.
-- 5번 △ — default Context v3가 M1 generation/budget/pending/ClassState/frontier를 노출하고
-  fail-closed Diagnosis template, explicit v2 compatibility, exact managed upgrade와 installer
-  six-case executable receipt가 PASS했다. Relevant Claim/retrieval reason은 M2까지 open이라
-  전체 단계는 △다.
+- 4번 ○ — ProgramManifest/Log, immutable Claim/relation, deterministic retrieval 4/4에 registered
+  Proposal-bound disposition과 digest-only legacy replay를 추가했다. Corrected actual durable
+  three-way `1/1`, frozen `23/23`, full `713+115`, critic reverify PASS이고 audit만 pending이다.
+- 5번 ○ — default Context v3/explicit v2를 보존하면서 exact Claim/reason/contradiction,
+  Program head, registered Proposal disposition write companion이 actual append/cold replay로 이어진다.
+  M3 DecisionPacket의 next-action 소비는 아직 없다.
 - 6번 ❌ — 외부 agent가 수동으로 단계를 잇고 canonical loop resume state가 없다.
-- 7번 ❌ — fresh full `672+115`와 v0.3 historical gate는 PASS했지만 v0.2 comparator와
+- 7번 ❌ — fresh full `713+115`와 v0.4 corrected gate는 PASS했지만 v0.2 comparator와
   precommitted unseen learning episode suite는 없다.
 
 ---
@@ -325,7 +325,7 @@ Canonical truth boundaries:
 | Program memory | conditional Claim graph가 exact origin evidence를 참조 | Claim graph/retrieval 위에 registered Proposal-bound disposition과 digest-only legacy opaque event가 canonical ProgramLog에 저장·replay됨; critic reverify/audit pending | Cycle 10 frozen `23/23`; corrected actual three-way `1/1`; full `713+115` |
 | Context | v3가 budget/class/pending diagnosis/relevant claim/reason을 제공 | default v3/explicit v2를 보존하며 exact retrieval read set이 registered Proposal disposition write companion으로 이어짐; M3 packet 소비는 open | Cycle 10 actual Context→Proposal→ProgramLog vertical과 stale/no-write PASS |
 | Autonomy | provider-neutral finite state machine이 stop/resume | 외부 대화가 수동으로 단계를 연결 | 추가 |
-| Meta-evaluation | post-freeze unseen 36 episodes와 choice oracle로 v0.2/v0.5 paired comparison | v0.3 corrected full `609+115`와 release build는 PASS; learning benchmark/comparator/oracle/generator는 없음 | Cycle 06 release evidence 보강; learning 효과는 여전히 미측정 |
+| Meta-evaluation | post-freeze unseen 36 episodes와 choice oracle로 v0.2/v0.5 paired comparison | v0.4 corrected full `713+115`와 release build는 PASS; learning benchmark/comparator/oracle/generator는 없음 | Cycle 10 release evidence 보강; learning 효과는 여전히 미측정 |
 | Compatibility/authority | v1 logs 무변환, legacy 격리, authority null 유지 | version 0.4.0, sealed 0.2/0.3 upgrade/recovery `6/6`, authority 0, external bytes/mode/symlink pre/post 3/3, corrected wheel install PASS; actual replay/opaque 3/3은 M3-D | Cycle 10 corrected single receipt `713+115`; critic/audit pending |
 
 ### 8.5 비전 변경 이력 ★
@@ -342,7 +342,7 @@ Canonical truth boundaries:
 | 07 | 2026-08-11 | 구체화·검증 | ProgramManifest/Log origin boundary와 projection을 구현하고 critic의 race gap을 barrier·loser writes `0/0`으로 보정했다; Claim/retrieval은 유지 | `d635c61→b10e1b4→704fcb8→5d02fd0`; corrected `22`, race `50/50`, fresh `635+115`; critic + corrected audit PASS; M2-A close |
 | 08 | 2026-08-11 | PIVOT·close | Immutable Claim/evidence/relation을 구현하고 critic·audit no-write gaps를 actual writer 측정으로 보강; retrieval은 유지 | `5659c67→529283c→dbd7caa→1b1e22f`; `25`, focused `37`, full `672+115`; critic + corrected audit PASS |
 | 09 | 2026-08-11 | 구체화·검증 | ProgramLog→ClaimSnapshot→deterministic retrieval→opt-in Context v3 read path를 구현; disposition은 유지 | `e6de927→e002076→bc0b79a`; receipt `100/100/100/0`; full `676+115`; critic + independent audit PASS; M2-C close |
-| 10 | 2026-08-12 | PIVOT·correction | Proposal-bound disposition과 legacy opaque event를 구체화; Attempt 1이 durable three-way를 proxy로 과장해 receipt를 철회하고 actual two-scope append/cold-replay witness로 보정; actual external replay와 M3 loop는 유지 | `4b0d0a1→f5d55ad→9dbb413→f1ab646`; corrected `713+115`, durable `1/1`; critic reverify/audit pending |
+| 10 | 2026-08-12 | 구체화·검증 (PIVOT correction) | Proposal-bound disposition과 legacy opaque event를 구체화; Attempt 1이 durable three-way를 proxy로 과장해 receipt를 철회하고 actual two-scope append/cold-replay witness로 보정; actual external replay와 M3 loop는 유지 | `4b0d0a1→f5d55ad→9dbb413→f1ab646`; corrected `713+115`, durable `1/1`; critic reverify PASS, audit pending |
 
 ---
 
@@ -430,8 +430,9 @@ Canonical truth boundaries:
 총평: v0.3 integrity·audit·replay와 M1-A/B study control, M1-C Proposal identity,
 M1-D Diagnosis/ClassState/frontier 위에 default Context v3, tokenless legacy boundary, exact
 managed upgrade와 structured six-case release evidence가 `5/5`로 독립 감사 PASS해 M1/v0.3을
-닫았다. M2-A `4/4`, M2-B Claim/relation `5/5`, M2-C retrieval `5/5`도 closed했고 M2-D가 active다.
-이후 disposition과 autonomous loop·unseen gate를 M2-D→M3 순서로 진행한다.
+닫았다. M2-A `4/4`, M2-B Claim/relation `5/5`, M2-C retrieval `5/5`는 closed했고,
+M2-D disposition/legacy/v0.4 evidence도 corrected 5/5와 critic PASS까지 왔다. Independent audit 후
+M2를 닫고 autonomous loop·unseen gate를 M3-A→D 순서로 진행한다.
 
 ### 10.1 단계별 평가
 
@@ -440,10 +441,10 @@ managed upgrade와 structured six-case release evidence가 `5/5`로 독립 감�
 | 1. Evidence semantics | ○ | `results.py`, `config.py`, `policy.py`, `service.py`; typed gates·delta/margin·VERIFY 대칭 구현, metric 의미 타당성은 adapter/diagnosis 후속 대상 | M1-A E1~E9; M1-C 포함 full `442 tests + 111 subtests` PASS |
 | 2. Study generation | ○ | `science/{contracts,state}.py`, `service.py`, `kernel/{ids,projection}.py`; canonical contract/generation/replay와 locked cumulative reservation 구현. generation별 non-refundable reservation이며 actual telemetry·study lifetime cap·successor 반복 증액 방지는 없음 | M1-B executable manifest `29/29`, focused `81+37`, checkpoint `df2c900` |
 | 3. Study inference | ○ | `science/{proposals,diagnoses,state}.py`, `service.py`; Proposal/Diagnosis/ClassState/frontier/Claim replay는 동작하나 interpretation quality·learned ranking은 없음 | NS3 audited `4/4`; M2-B closed |
-| 4. Program memory | △ | `memory/{program,claims,retrieval}.py`; audited Claim graph + deterministic retrieval 4/4, disposition은 없음 | phase §09 receipt + critic/audit PASS |
-| 5. Relevant context v3 | △ | default v3/explicit v2 보존 + audited opt-in exact Claim/reason/manifest/Program-head token; write-path consumption은 M2-D | phase §09 stale/no-write, full `676+115`, audit PASS |
+| 4. Program memory | ○ | `memory/{program,claims,retrieval,knowledge}.py`; Claim graph/retrieval 4/4 + registered Proposal disposition + legacy opaque cold replay; M3 consumer는 open | phases §09~§10; corrected `713+115`, durable `1/1`, critic PASS |
+| 5. Relevant context v3 | ○ | default v3/explicit v2 보존 + exact Claim/reason/manifest/Program-head + disposition write companion; DecisionPacket은 open | phase §10 actual Context→Proposal→ProgramLog cold replay; critic PASS |
 | 6. Autonomous single-agent | ✗ | provider-neutral CLI는 있으나 canonical loop state 없음 | `docs/architecture.md` |
-| 7. Meta-evaluation/release | ✗ | v0.3 corrected release는 PASS했지만 learning comparator/generator/unseen benchmark는 없음 | current full `672+115`; v0.3 installer `6/6`; NS6 측정 전 |
+| 7. Meta-evaluation/release | ✗ | v0.4 corrected release는 PASS했지만 learning comparator/generator/unseen benchmark는 없음 | current full `713+115`; upgrade `6/6`; NS6 측정 전 |
 
 범례: ◎ 우수 / ○ 양호 / △ 부분 / ✗ 미구현
 
@@ -457,7 +458,8 @@ managed upgrade와 structured six-case release evidence가 `5/5`로 독립 감�
 
 1. Study control은 canonical generation별 reservation까지 왔지만 actual usage settlement·study-lifetime ceiling·successor 반복 증액 방지가 없다.
 2. Historical floor 상호 재귀는 차단했지만 세 self-oracle child 때문에 full suite가 약 20분이다.
-3. Deterministic retrieval은 audited PASS지만 knowledge disposition과 v0.4 release가 없다.
+3. Program memory/disposition/v0.4 evidence는 candidate 5/5지만 independent audit 전이다;
+   M3가 이 memory를 next action에 소비하는 것은 아직 없다.
 4. autonomous loop와 fixed-budget unseen learning benchmark가 없다. 제품 multi-agent는 이 NS6 gate 통과 이후까지 명시적으로 유예한다.
 
 ### 10.4 한 문장 요약

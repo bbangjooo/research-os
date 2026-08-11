@@ -78,9 +78,10 @@ legacy 문장을 몰래 typed Claim으로 승격하고, release verifier가 외�
 설치한다”이다. Exact full-coverage/ref equality, raw-content/typed count 0, actual ProgramLog no-write,
 three-tree before/after equality가 이를 반증해야 한다.
 
-Disposition/legacy/release criteria와 expected outcomes는 product/result 전 commit했으므로 label은
-`CONFIRMATORY`다. 현재 external digest는 observed baseline이라 그 절대값 자체는 descriptive이고,
-pre/post writer delta 0이 confirmatory gate다. Result-triggered contract 수정은 없었다.
+Disposition/legacy/release criteria와 expected outcomes는 product/result 전 commit했으므로 frozen rows는
+`CONFIRMATORY`다. External digest의 절대값 자체는 descriptive이고 pre/post writer delta 0만
+confirmatory gate다. Critic FAIL 후 추가한 durable three-way witness는 `EXPLORATORY`이므로
+phase 전체는 `MIXED`다(§10.6.7).
 
 ### 10.6.1 What was built
 
@@ -114,9 +115,10 @@ binding을 재검증한다.
 
 ### 10.6.3 Bounded scope
 
-Pre-spec `4b0d0a1` 이후 gross additions는 product Python `1,118/1,400`, tests+release fixture
-`947/1,450`이다. Release verifier script `389`와 close 문서/receipt를 포함해도 total `3,200` cap
-이하다. External projects에는 file writer가 없었고 live migration·loop·product multi-agent 코드는 0이다.
+Pre-spec `4b0d0a1` 이후 `git diff --numstat 4b0d0a1..f1ab646`의 gross additions은 product
+`1,150/1,400`, tests+fixture `1,242/1,450`, release verifier `398`, docs/receipt `331`;
+total `3,121/3,200`이다. External projects에는 file writer가 없었고 live migration·loop·product
+multi-agent 코드는 0이다.
 
 ## 10.6.4 Milestone positioning — ADVANCE, corrected evidence 5/5
 
@@ -148,21 +150,30 @@ Delta classification: **구체화·검증**.
 
 ## 10.6.6 Intent-execution reconciliation — PIVOT
 
-Frozen 범위는 유지했지만 Attempt 1은 standalone three-way validator와 two-way durable vertical을 합쳐
-durable three-way로 과장했다. Critic FAIL을 trigger로 test-only correction을 추가하고 receipt를 철회했다.
+- **의도(§10.1~§10.5):** frozen 23-case contract와 actual durable three-way vertical을 하나의
+  v0.4 release evidence로 닫는다.
+- **실행(§10.6.1~§10.6.4):** product semantics와 frozen denominator는 그대로 구현했지만,
+  Attempt 1의 proxy measurement를 철회하고 combined actual witness와 corrected receipt를 추가했다.
+- **PIVOT 근거:** critic Q2 FAIL이 trigger이었고, amendment는 test-only actual two-scope
+  three-way append/cold replay + receipt node binding이다. Status §2.2.3에 trigger/amendment를 동기화한다.
+
 제품 semantics/manifest/threshold는 바꾸지 않았으며 외부 migration, M3 loop, benchmark, product
 multi-agent는 추가하지 않았다.
 
 ## 10.6.7 Claim mode — MIXED
 
-- Pre-spec: `4b0d0a1` (`2026-08-12 00:29:00 +0900`).
-- Critic questions: `7be69d1` (`00:31:56`).
-- First product/result: `f5d55ad` (`00:44:31`); release code `3ea0726`, manifest/gate `2bc6a59` 순이다.
-- Frozen manifest SHA-256은 `b61da8…b2a7`; `git diff 4b0d0a1 -- m2d-manifest.json`은 0 bytes다.
-- Frozen 23 semantics·threshold와 external delta는 **CONFIRMATORY**: manifest 0-byte drift와 chronology가
-  유지된다.
-- Critic이 요구한 combined actual two-scope durable three-way witness는 **EXPLORATORY correction**이다.
-  이 witness는 denominator를 바꾸지 않지만 Attempt 1 측정 결함을 본 뒤 추가됐다.
+Pre-spec은 `4b0d0a17ad1b9e43c741bd334b67e897cfeecd77`
+(`2026-08-12 00:29:00 +0900`), 첫 product/data commit은
+`f5d55ad11cb6bb2381cf8dd27c0ce9d1bed2a1eb` (`00:44:31 +0900`)이다.
+
+| 청구 row | mode | timestamp/handling evidence |
+|---|---|---|
+| frozen disposition 14 + legacy 6 + external/upgrade/release criteria | CONFIRMATORY | pre-spec `4b0d0a1` < first data `f5d55ad`; manifest SHA `b61da8…b2a7`; `git diff 4b0d0a1 -- tests/fixtures/program_memory/v3/m2d-manifest.json` 0 bytes |
+| external writer delta 0 | CONFIRMATORY | absolute digest는 descriptive; precommitted pre/post bytes·mode·symlink equality만 outcome으로 사용 |
+| combined actual two-scope durable three-way witness | EXPLORATORY | Attempt 1 Q2 FAIL 후 추가; frozen denominator/threshold를 바꾸지 않고 corrected receipt에 node `1/1`로 격리 |
+
+Exploratory row는 frozen 14-case의 confirmatory 결과로 합쳐 청구하지 않고 correction witness로만
+표시한다. Confirmatory-grade 후속 청구는 independent critic/audit 후에도 frozen rows에만 한정한다.
 
 ## 10.6.8 Divergence diagnosis — RESULT-INVALID (Attempt 1)
 
@@ -170,7 +181,8 @@ multi-agent는 추가하지 않았다.
 durable three-way로 청구한 runner coverage 오류였다. 따라서 Attempt 1 receipt/북극성 반영을 철회하고,
 actual two-scope Claim retrieval→registered Proposal→Context→append→cold replay test를 추가해 재측정한다.
 Contract/분모는 바꾸지 않으므로 REQUIREMENT-WRONG이 아니며, 예상 밖 product 동작도 아니므로
-GENUINE-FINDING이 아니다.
+GENUINE-FINDING이 아니다. Invalid Attempt 1 `712+115`는 status §12 북극성 근거에서 제외하고,
+corrected commit `9dbb413`의 `713+115`/durable `1/1`만 별도 재측정 결과로 사용한다.
 
 ## 10.7 Residual issues
 
@@ -180,5 +192,6 @@ GENUINE-FINDING이 아니다.
 
 ## 10.10 Next action
 
-Critic Q1~Q8을 independent reverify하고 independent seven-pass audit을 실행한다. 둘 다 PASS한 뒤에만
-M2-D/parent M2를 close하고 M3-A DecisionPacket pre-spec을 연다.
+Corrected remeasurement(`9dbb413`, receipt `f1ab646`)과 critic reverify는 PASS했다. Paired
+status/pipeline을 candidate 5/5로 동기화한 뒤 independent seven-pass audit을 실행한다. Audit
+PASS 뒤에만 M2-D/parent M2를 close하고 M3-A DecisionPacket pre-spec을 연다.
