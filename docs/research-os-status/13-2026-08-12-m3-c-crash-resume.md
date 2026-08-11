@@ -1,6 +1,6 @@
 # §13 — M3-C crash-resume and authority closure (2026-08-12)
 
-> Status: **PRE-SPEC — product/data not started; critic generation pending**
+> Status: **CLOSE CANDIDATE 5/5 — frozen 31/31; critic verification and audit pending**
 > Previous phase: [§12](12-2026-08-12-m3-b-finite-autonomy-loop.md)
 > Active milestone: `M3-C`; M3-D blocked
 
@@ -10,7 +10,8 @@ M3-C turns M3-B's durable pending markers into exact crash recovery. Diagnosis/s
 captured in AutonomyLog before ProjectLog/ProgramLog side effects, so a restart never asks a nondeterministic
 provider to recreate already-used truth. Thirteen frozen cutpoints must cold-restart to the same terminal episode,
 with one terminal/disposition/Diagnosis/origin/Claim each, stale heads fail-closed, recursive authority null, and
-deploy/merge/trade operation surface zero. M3-D unseen quality is not claimed.
+deploy/merge/trade operation surface zero. The frozen result is `31/31`; focused `38`, combined M3-B/C `98`, and
+adjacent M3-A/B/C `139` pass. M3-D unseen quality is not claimed and remains blocked by the two independent gates.
 
 ## 13.1 Scope, anchors, and exclusions
 
@@ -74,8 +75,8 @@ Fixture: `tests/fixtures/autonomy/v1/m3c-manifest.json`; raw SHA-256:
 | deploy/merge/trade operation surface | 3 | callable surface count `0/0/0` |
 | total | 31 | every literal ID consumed once; no extras |
 
-Expected M3-C exit result: `(13/13) ∧ (duplicate five = 0) ∧ (stale 4/4) ∧ (authority 6/6) ∧
-(operation surface 3/3 zero)`; all five conjuncts must pass together.
+Observed M3-C result: `(13/13) ∧ (duplicate five = 0) ∧ (stale 4/4) ∧ (authority 6/6) ∧
+(operation surface 3/3 zero)`. All five conjuncts pass together; independent close gates remain pending.
 
 ## 13.4 Stale-head and stop semantics
 
@@ -116,40 +117,50 @@ decision. Durable output capture, exact source reconciliation and one-factor sta
 
 ### 13.6.4 Milestone progress claim
 
-**Planned label: `CLOSE`; M3-C `0/5`; no close claim before all 31 literal cases and both independent gates pass.**
+**Current label: `CLOSE CANDIDATE`; M3-C `5/5`; no close claim before critic and audit both pass.**
 
 | M3-C exit conjunct | Previous | Required after phase | Evidence target |
 |---|---:|---:|---|
-| incomplete-step crash resume | M3-B raises `AUTONOMY_INCOMPLETE_STEP` | `13/13` | frozen crash group + cold restart |
-| duplicate terminal/Diagnosis/Claim | unmeasured | five semantic counts exactly `1` | three-log raw/source reconciliation |
-| stale generation/program head | unmeasured | `4/4` fail-closed | one-factor mutations; write delta `0/0` |
-| recursive authority null | M3-B nominal zero | `6/6` | recursive scans and forged reject paths |
-| deploy/merge/trade surface | nominal zero | `3/3` zero | public/call-graph inspection |
+| incomplete-step crash resume | M3-B raises `AUTONOMY_INCOMPLETE_STEP` | `13/13` PASS | frozen handler; new service/store/loop cold-open |
+| duplicate terminal/Diagnosis/Claim | unmeasured | five semantic counts exactly `1` PASS | three-log raw/source reconciliation |
+| stale generation/program head | unmeasured | `4/4` fail-closed PASS | one-factor mutations; write delta `0/0` |
+| recursive authority null | M3-B nominal zero | `6/6` PASS | recursive scans plus exploratory forged rejects |
+| deploy/merge/trade surface | nominal zero | `3/3` zero PASS | AST reachable calls plus injected-method witness |
 
 - **Prerequisite gate:** M3-B closed at `08327ad`; M1/M2/M3-A are closed. No bypass.
 - M3-D remains blocked until M3-C critic and progress audit both PASS.
 
 ### 13.6.5 End-state delta
 
-**Planned classification: `구체화·검증`.** Before: an incomplete provider/service marker intentionally stops with
-`AUTONOMY_INCOMPLETE_STEP`. After: every frozen marker can cold-restart from canonical logs without duplicate truth,
-head laundering or new authority. Learning quality and unseen release evidence remain absent and receive no rating.
+**Classification: `구체화·검증`.** Before: an incomplete provider/service marker could not resume. After: every
+frozen marker cold-restarts from canonical logs without duplicate truth, head laundering or new authority. Context
+and Program memory ratings do not move; external billing exactly-once, distributed consensus, learning quality and
+unseen release evidence remain absent.
 
 ### 13.6.6 Intent-execution reconciliation
 
-**Planned label: `MATCH`.** The work implements the approved M3-C crash-resume/authority conjuncts without
+**Label: `MATCH`.** The work implements the approved M3-C crash-resume/authority conjuncts without
 changing M3-D thresholds, external migration timing, multi-agent gate, or product authorization policy.
 
 ### 13.6.7 Claim mode
 
-**Planned label: `CONFIRMATORY`.** This file and the exact 31-case manifest precede product and result exposure.
-Pre-spec and first-data commit hashes/timestamps will be recorded here. Any critic-driven or result-driven new
-witness is separately `EXPLORATORY`; if both exist the final label becomes `MIXED` with a per-row table.
+**Label: `MIXED`.** Pre-spec `22190bf` (`06:14:30+09:00`) and critic questions `5291945` precede first product/data
+`7394246` (`06:37:22+09:00`); manifest SHA remains `c3752c…65e27c7b`.
+
+| evidence | mode | result |
+|---|---|---|
+| frozen 31 IDs, five conjuncts, stale codes and caps | `CONFIRMATORY` | `31/31`; product `313/900`; tests+fixture `708/1,400` |
+| nondeterministic pre/post capture `4/4` | `EXPLORATORY` | pre-capture reinvoke one; post-capture zero; truth count one |
+| actual service registration-without-terminal | `EXPLORATORY` | one `RECOVERED_INTERRUPTED_RUN` terminal after cold reopen |
+| forged nested authority and injected forbidden methods | `EXPLORATORY` | rejected before commit; calls `0/0/0` |
 
 ### 13.6.8 Requirement-result divergence
 
-Not yet measured. Final result must state `해당 없음 — 사유` or classify every meaningful difference as
-`REQUIREMENT-WRONG`, `RESULT-INVALID`, or `GENUINE-FINDING`; silent cap/denominator/behavior changes are forbidden.
+**해당 없음 — 사유:** frozen denominator, stable codes, functional outcomes and all three caps match the pre-spec.
+Two implementation defects found before the first product checkpoint (pending-call guard ordering and exact-Claim
+successor recognition) were corrected without changing the requirement or fixture. Critic-driven extra witnesses
+are valid `EXPLORATORY` evidence, not denominator changes. No `RESULT-INVALID`, `REQUIREMENT-WRONG`, or unexpected
+`GENUINE-FINDING` remains.
 
 ## 13.7 Residual issues
 
@@ -161,5 +172,5 @@ Not yet measured. Final result must state `해당 없음 — 사유` or classify
 
 ## 13.10 Next action
 
-Commit this phase and frozen manifest, invoke the independent pre-implementation critic, answer every question,
-then implement only the accepted recovery contract. Do not expose first product/result data before those commits.
+Run independent critic verification against receipt `13-m3-c-crash-resume.receipt.json`; if PASS, synchronize the
+paired status/pipeline and run the independent seven-pass audit. M3-D remains blocked until both pass.
