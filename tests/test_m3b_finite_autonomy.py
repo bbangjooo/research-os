@@ -29,6 +29,7 @@ from research_os.autonomy import (
     build_decision_packet,
     canonical_token_units,
     reduce_autonomy_events,
+    verify_autonomy_evidence,
 )
 from research_os.contracts import canonical_json_bytes, sha256_json
 from research_os.kernel.ids import new_experiment_id, stable_id
@@ -50,6 +51,7 @@ from research_os.science import (
     registration_payload_fields,
 )
 from research_os.service import ResearchService
+from tests.test_m1c_service_cli import _scoped_project
 from tests.test_m2d_knowledge_disposition import _entry, _real_vertical
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -263,7 +265,7 @@ class _ReplayResearchService:
 class _EpisodeProvider:
     def __init__(
         self,
-        service: _ReplayResearchService,
+        project_id: str,
         store: Any,
         proposal: Any,
         candidate: Mapping[str, Any],
@@ -272,7 +274,7 @@ class _EpisodeProvider:
         decision: str,
         failure: str | None = None,
     ) -> None:
-        self.service = service
+        self.project_id = project_id
         self.store = store
         self.proposal = proposal
         self.candidate = dict(candidate)
@@ -367,6 +369,10 @@ class _EpisodeProvider:
         if isinstance(request, ProviderDecisionRequest):
             self.calls.append("proposal")
             self.proposal_requests.append(request)
+            if self.failure == "proposal_transport":
+                raise ProviderPortError(
+                    "PROVIDER_PROTOCOL_INVALID", "fixture proposal transport failure"
+                )
             if self.failure == "proposal":
                 return {"invalid": True}
             proposal = self.proposal
@@ -385,11 +391,13 @@ class _EpisodeProvider:
                 proposal = Proposal.from_mapping(proposal_raw)
             retrieval = validate_agent_context_v3_retrieval(
                 request.context,
-                current_project_context_token=self.service.project_token(),
+                current_project_context_token=FiniteAutonomyLoop._project_token(
+                    request.context
+                ),
                 current_claim_snapshot=self.store.claim_snapshot(),
             )
             disposition = create_proposal_knowledge_disposition(
-                project_id=self.service.config.project_id,
+                project_id=self.project_id,
                 proposal=proposal,
                 retrieval=retrieval,
                 context_token=cast(str, request.context["snapshot"]["context_token"]),
@@ -400,7 +408,7 @@ class _EpisodeProvider:
             )
             return build_decision_packet(
                 request=request,
-                project_id=self.service.config.project_id,
+                project_id=self.project_id,
                 candidate=candidate,
                 proposal=proposal,
                 knowledge_disposition=disposition,
@@ -408,6 +416,10 @@ class _EpisodeProvider:
             ).to_dict()
         if isinstance(request, ProviderDiagnosisRequest):
             self.calls.append("diagnosis")
+            if self.failure == "diagnosis_transport":
+                raise ProviderPortError(
+                    "PROVIDER_PROTOCOL_INVALID", "fixture diagnosis transport failure"
+                )
             if self.failure == "diagnosis":
                 return {"invalid": True}
             diagnosis = json.loads(canonical_json_bytes(request.diagnosis_template))
@@ -427,6 +439,10 @@ class _EpisodeProvider:
             ).to_dict()
         assert isinstance(request, ProviderSynthesisRequest)
         self.calls.append("synthesis")
+        if self.failure == "synthesis_transport":
+            raise ProviderPortError(
+                "PROVIDER_PROTOCOL_INVALID", "fixture synthesis transport failure"
+            )
         claim = self._claim(request)
         diagnosis = Diagnosis.from_mapping(cast(Mapping[str, Any], request.diagnosis))
         origin = OriginEvidenceRef.from_mapping(
@@ -477,7 +493,7 @@ class _EpisodeProvider:
 @dataclass(slots=True)
 class Harness:
     loop: FiniteAutonomyLoop
-    service: _ReplayResearchService
+    service: Any
     store: Any
     provider: _EpisodeProvider
     episode_id: str
@@ -536,7 +552,7 @@ def _harness(
     proposal = Proposal.from_mapping(proposal_raw)
     service = _ReplayResearchService(root, vertical["project_log"])
     provider = _EpisodeProvider(
-        service,
+        service.config.project_id,
         store,
         proposal,
         candidate,
@@ -551,6 +567,140 @@ def _harness(
         autonomy_root=root / "autonomy",
     )
     state = loop.start(query, policy or _policy())
+    return Harness(loop, service, store, provider, state.episode_id)
+
+
+def _actual_service_harness(root: Path) -> Harness:
+    _, service, proposal_raw = _scoped_project(root / "actual-service")
+    service.baseline(evaluation_scope_id="development")
+    seed_candidate = {"x": 2.0, "y": 1.0}
+    seed_path = root / "actual-service-seed.json"
+    seed_path.write_text(json.dumps(seed_candidate) + "\n", encoding="utf-8")
+    seed_result = service.run_once(seed_path, proposal=proposal_raw)
+    seed_diagnosis_raw = service.diagnosis_template(cast(str, seed_result["experiment_id"]))
+    seed_diagnosis_raw.update(
+        {
+            "interpretation": "The actual sealed evaluator produced the seed observation.",
+            "failure_type": "mechanism",
+            "falsifier": "A compatible replication reverses the observed effect.",
+            "recommendation": "ablate",
+        }
+    )
+    seed_diagnosis = Diagnosis.from_mapping(seed_diagnosis_raw)
+    seed_record = service.record_diagnosis(seed_diagnosis.to_dict())
+    science = reduce_scientific_state(
+        service.event_log.read(), project_id=service.config.project_id
+    )
+    assert science.contract is not None and science.evaluation_seal is not None
+    scope = next(item for item in science.contract.evaluation_scopes if item.id == "development")
+    scope_raw = {
+        "id": scope.id,
+        "role": scope.role,
+        "manifest_digest": scope.manifest_digest,
+    }
+    manifest = ProgramManifest.from_mapping(
+        {
+            "program_manifest_schema_version": 1,
+            "program_id": "program_m3b-actual-service",
+            "bindings": [
+                {
+                    "project_id": service.config.project_id,
+                    "science_state_schema_version": 1,
+                    "study_contract_schema_version": science.contract.schema_version,
+                    "study_contract_digest": science.contract.digest,
+                    "generation_id": science.active_generation_id,
+                    "evaluation_scope_schema_version": 1,
+                    "evaluation_scope": scope_raw,
+                    "evaluation_scope_digest": sha256_json(
+                        {
+                            "evaluation_scope_schema_version": 1,
+                            "evaluation_scope": scope_raw,
+                        }
+                    ),
+                    "evaluation_seal_digest": science.evaluation_seal.digest,
+                    "compatibility_digest": science.evaluation_seal.compatibility_digest,
+                    "authorized_action": None,
+                }
+            ],
+            "authorized_action": None,
+        }
+    )
+    store = ProgramStore(root / "actual-program", manifest.program_id)
+    head = store.initialize(manifest, {service.config.project_id: service.event_log})
+    origin, head = store.link_origin(
+        service.event_log,
+        cast(str, seed_record["diagnosis_id"]),
+        expected_program_head=(head.sequence, head.hash),
+    )
+    seed_provider = _EpisodeProvider(
+        service.config.project_id,
+        store,
+        Proposal.from_mapping(proposal_raw),
+        seed_candidate,
+        (),
+        decision="stop",
+    )
+    seed_claim = seed_provider._claim(
+        cast(
+            Any,
+            SimpleNamespace(
+                diagnosis=seed_diagnosis.to_dict(),
+                origin_evidence=origin.to_dict(),
+                program_snapshot=store.snapshot()[0].to_dict(),
+            ),
+        )
+    )
+    store.append_claim(
+        seed_claim,
+        service.event_log,
+        expected_program_head=(head.sequence, head.hash),
+    )
+    snapshot = store.claim_snapshot()
+    query = RetrievalQuery.from_mapping(
+        {
+            "retrieval_query_schema_version": 1,
+            "query_id": "query_m3b-actual-service",
+            "program_id": snapshot.program_id,
+            "program_head": {
+                "sequence": snapshot.program_head[0],
+                "hash": snapshot.program_head[1],
+            },
+            "hypothesis_class_id": "class-a",
+            "compatibility_digest": science.evaluation_seal.compatibility_digest,
+            "evaluation_scope": scope_raw,
+            "claim_kinds": ["effect"],
+            "diagnosis_digest": None,
+            "relation_types": ["contradicts"],
+            "limit": 10,
+            "authorized_action": None,
+        }
+    )
+    candidate = {"x": 3.0, "y": 1.0}
+    proposal_raw.update(
+        {
+            "candidate_digest": sha256_json(candidate),
+            "mechanism": "The actual loop changes one typed candidate value after memory retrieval.",
+            "predicted_effect": "The sealed evaluator emits another evidence-bound terminal node.",
+            "falsifier": "The actual service cannot execute the current typed proposal.",
+        }
+    )
+    proposal = Proposal.from_mapping(proposal_raw)
+    assert proposal.candidate_digest == sha256_json(candidate)
+    provider = _EpisodeProvider(
+        service.config.project_id,
+        store,
+        proposal,
+        candidate,
+        (),
+        decision="stop",
+    )
+    loop = FiniteAutonomyLoop(
+        service,
+        store,
+        provider,
+        autonomy_root=root / "actual-autonomy",
+    )
+    state = loop.start(query, _policy())
     return Harness(loop, service, store, provider, state.episode_id)
 
 
@@ -758,18 +908,25 @@ def _budget(case: Mapping[str, Any], root: Path) -> dict[str, Any]:
 
 def _sealed(case: Mapping[str, Any], root: Path) -> dict[str, Any]:
     checkpoint = cast(str, case["checkpoint"])
+    if checkpoint == "runner":
+        harness = _actual_service_harness(root)
+        with patch.object(
+            harness.service, "run_once", wraps=harness.service.run_once
+        ) as run_once:
+            harness.loop.run(harness.episode_id)
+        assert set(vars(harness.loop)) == {"service", "program_store", "provider", "root"}
+        assert not hasattr(harness.provider, "service")
+        return {
+            "research_service_calls": run_once.call_count,
+            "adapter_direct_calls": 0,
+            "workspace_direct_calls": 0,
+            "authorized_action": None,
+        }
     harness = _harness(root, decision="stop")
     harness.loop.run(harness.episode_id)
     state = harness.state()
     summary = state.stop_summary
     assert summary is not None
-    if checkpoint == "runner":
-        return {
-            "research_service_calls": harness.service.run_once_calls,
-            "adapter_direct_calls": harness.service.adapter_direct_calls,
-            "workspace_direct_calls": harness.service.workspace_direct_calls,
-            "authorized_action": None,
-        }
     if checkpoint == "authority":
         values = [
             summary,
@@ -782,6 +939,11 @@ def _sealed(case: Mapping[str, Any], root: Path) -> dict[str, Any]:
             "deploy_merge_trade_surface": _forbidden_surface(values),
             "authorized_action": None,
         }
+    verify_autonomy_evidence(
+        state,
+        project_log=harness.service.event_log,
+        program_store=harness.store,
+    )
     refs = {
         "terminal": summary["terminal_refs"][0],
         "diagnosis": summary["diagnosis_refs"][0],
@@ -795,7 +957,13 @@ def _sealed(case: Mapping[str, Any], root: Path) -> dict[str, Any]:
         "class_state": {"class_state_id", "class_state_digest"},
     }
     assert required[checkpoint] <= set(refs[checkpoint])
-    return copy.deepcopy(case["expected"])
+    labels = {
+        "terminal": "terminal_event_id_hash_sequence",
+        "diagnosis": "diagnosis_event_id_hash_sequence_and_digest",
+        "claim": "program_claim_event_id_hash_sequence_and_digest",
+        "class_state": "class_state_id_and_digest",
+    }
+    return {"reference": labels[checkpoint], "exact": True, "authorized_action": None}
 
 
 def _event_rejection(case: Mapping[str, Any], root: Path) -> dict[str, Any]:
@@ -999,6 +1167,58 @@ def test_m3b_reducer_rejects_a_tampered_terminal_summary(tmp_path: Path) -> None
     assert caught.value.code == "AUTONOMY_STATE_INVALID"
 
 
+def test_m3b_truth_owner_reconciliation_rejects_one_tampered_ref(tmp_path: Path) -> None:
+    harness = _harness(tmp_path, decision="stop")
+    state = harness.loop.run(harness.episode_id)
+    terminal = dict(state.terminal_history[0])
+    terminal["event_hash"] = "f" * 64
+    tampered = replace(state, terminal_history=(terminal,))
+
+    with pytest.raises(AutonomyLoopError) as caught:
+        verify_autonomy_evidence(
+            tampered,
+            project_log=harness.service.event_log,
+            program_store=harness.store,
+        )
+
+    assert caught.value.code == "AUTONOMY_EVIDENCE_INVALID"
+
+
+def test_m3b_disposable_actual_research_service_executes_and_seals_evidence(
+    tmp_path: Path,
+) -> None:
+    harness = _actual_service_harness(tmp_path)
+    with patch.object(
+        harness.service, "run_once", wraps=harness.service.run_once
+    ) as run_once:
+        state = harness.loop.run(harness.episode_id)
+
+    assert type(harness.service) is ResearchService
+    assert run_once.call_count == 1
+    assert state.complete is True and state.stop_reason == "provider_complete"
+    assert verify_autonomy_evidence(
+        state,
+        project_log=harness.service.event_log,
+        program_store=harness.store,
+    ) == {
+        "terminal_refs": 1,
+        "disposition_refs": 1,
+        "diagnosis_refs": 1,
+        "origin_refs": 1,
+        "claim_refs": 1,
+        "class_state_refs": 1,
+    }
+    terminal = next(
+        event
+        for event in harness.service.event_log.read()
+        if event.event_id == state.terminal_history[0]["event_id"]
+    )
+    artifacts = cast(Mapping[str, Any], terminal.payload["result"])["artifacts"]
+    assert artifacts and all(
+        set(artifact) >= {"sha256", "size_bytes"} for artifact in artifacts
+    )
+
+
 @pytest.mark.parametrize("failure", ["diagnosis", "claim_evidence"])
 def test_m3b_post_terminal_invalid_output_stops_incomplete_without_rerun(
     tmp_path: Path, failure: str
@@ -1010,5 +1230,88 @@ def test_m3b_post_terminal_invalid_output_stops_incomplete_without_rerun(
     assert state.complete is False
     assert state.stop_summary["status"] == "incomplete"
     assert harness.service.run_once_calls == 1
+    assert len(state.terminal_history) == 1
+    assert len(state.claim_history) == 0
+
+
+@pytest.mark.parametrize(
+    ("failure", "start_phase", "policy", "stop_reason"),
+    [
+        (
+            "diagnosis",
+            "run",
+            _policy(max_invalid_packets=2, max_token_units=1_200_000),
+            "invalid_packet_budget_exhausted",
+        ),
+        (
+            "diagnosis_transport",
+            "run",
+            _policy(max_invalid_packets=2, max_token_units=1_200_000),
+            "invalid_packet_budget_exhausted",
+        ),
+        (
+            "diagnosis",
+            "run",
+            _policy(
+                max_invalid_packets=10,
+                max_provider_calls=3,
+                max_token_units=2_000_000,
+            ),
+            "provider_budget_exhausted",
+        ),
+        (
+            "diagnosis",
+            "run",
+            _policy(
+                max_invalid_packets=10,
+                max_provider_calls=10,
+                max_token_units=600_000,
+            ),
+            "token_budget_exhausted",
+        ),
+        (
+            "diagnosis",
+            "run",
+            _policy(
+                max_invalid_packets=10,
+                max_provider_calls=10,
+                max_token_units=2_000_000,
+                max_elapsed_milliseconds=1_030,
+            ),
+            "time_budget_exhausted",
+        ),
+        (
+            "claim_evidence",
+            "diagnosis",
+            _policy(max_invalid_packets=2, max_token_units=1_200_000),
+            "invalid_packet_budget_exhausted",
+        ),
+        (
+            "synthesis_transport",
+            "diagnosis",
+            _policy(max_invalid_packets=2, max_token_units=1_200_000),
+            "invalid_packet_budget_exhausted",
+        ),
+    ],
+)
+def test_m3b_post_terminal_retries_stop_without_truth_owner_or_evaluator_delta(
+    tmp_path: Path,
+    failure: str,
+    start_phase: str,
+    policy: AutonomyPolicy,
+    stop_reason: str,
+) -> None:
+    harness = _harness(tmp_path, failure=failure, policy=policy)
+    _reach(harness, start_phase)
+    project_before, program_before, _ = harness.bytes()
+    evaluator_calls = harness.service.run_once_calls
+
+    state = harness.loop.run(harness.episode_id)
+
+    assert state.complete is False and state.stop_reason == stop_reason
+    assert state.stop_summary["status"] == "incomplete"
+    assert harness.service.run_once_calls == evaluator_calls == 1
+    assert harness.service.event_log.path.read_bytes() == project_before
+    assert harness.store.log.path.read_bytes() == program_before
     assert len(state.terminal_history) == 1
     assert len(state.claim_history) == 0

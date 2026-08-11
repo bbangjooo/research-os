@@ -198,6 +198,32 @@ def _result(response: ProtocolResponse, operation: Operation) -> ResultEnvelope:
     return envelope
 
 
+def _bind_captured_result(
+    result: ResultEnvelope, records: Sequence[ArtifactRecord]
+) -> ResultEnvelope:
+    """Return the terminal envelope with OS-captured digest and size evidence."""
+
+    by_path = {record.relative_path: record for record in records}
+    if len(by_path) != len(records) or set(by_path) != {
+        reference.path for reference in result.artifacts
+    }:
+        raise IntegrityError("captured artifacts do not match the result envelope")
+    bound = []
+    for reference in result.artifacts:
+        record = by_path[reference.path]
+        if (
+            record.media_type != reference.media_type
+            or record.metadata
+            != {
+                "retention": reference.retention,
+                "sensitivity": reference.sensitivity,
+            }
+        ):
+            raise IntegrityError("captured artifact metadata changed before termination")
+        bound.append(reference.with_capture(sha256=record.digest, size_bytes=record.size))
+    return replace(result, artifacts=tuple(bound))
+
+
 def _verify_result(response: ProtocolResponse) -> VerifyResult:
     """Parse one successful adapter VERIFY response under the shared contract."""
 
@@ -3707,6 +3733,9 @@ class ResearchService:
             if failure is not None:
                 raise failure
             raise evidence_pending
+
+        if result is not None:
+            result = _bind_captured_result(result, captured_records)
 
         assert terminal is not None
         status, reason_code = terminal

@@ -1254,6 +1254,138 @@ def _program_event_ref(event: ProgramEvent) -> dict[str, Any]:
     }
 
 
+def verify_autonomy_evidence(
+    state: AutonomyEpisodeState,
+    *,
+    project_log: EventLog,
+    program_store: ProgramStore,
+) -> dict[str, int]:
+    """Reconcile copied episode refs against their canonical truth-owner logs."""
+
+    if project_log.project_id != state.project_id:
+        raise _fail("AUTONOMY_EVIDENCE_INVALID", "project evidence identity changed")
+    project_events = project_log.read()
+    program_events = program_store.log.read()
+    project_by_id = {event.event_id: event for event in project_events}
+    program_by_id = {event.event_id: event for event in program_events}
+
+    def project_event(ref: Mapping[str, Any], label: str) -> Event:
+        event = project_by_id.get(ref.get("event_id"))
+        if event is None or (
+            ref.get("event_sequence"),
+            ref.get("event_hash"),
+        ) != (event.sequence, event.hash):
+            raise _fail(
+                "AUTONOMY_EVIDENCE_INVALID", f"{label} does not match ProjectLog"
+            )
+        return event
+
+    def program_event(ref: object, label: str) -> ProgramEvent:
+        if not isinstance(ref, Mapping):
+            raise _fail("AUTONOMY_EVIDENCE_INVALID", f"{label} ProgramLog ref is missing")
+        event = program_by_id.get(ref.get("event_id"))
+        if event is None or (
+            ref.get("event_sequence"),
+            ref.get("event_hash"),
+        ) != (event.sequence, event.hash):
+            raise _fail(
+                "AUTONOMY_EVIDENCE_INVALID", f"{label} does not match ProgramLog"
+            )
+        return event
+
+    try:
+        for ref in state.terminal_history:
+            event = project_event(ref, "terminal ref")
+            if (
+                ref.get("event_type") != event.event_type
+                or ref.get("experiment_id")
+                != event.payload.get("experiment_id", event.payload.get("id"))
+            ):
+                raise _fail(
+                    "AUTONOMY_EVIDENCE_INVALID", "terminal semantic identity changed"
+                )
+        for ref in state.disposition_history:
+            event = program_event(ref.get("program_event"), "disposition ref")
+            if (
+                event.payload.get("proposal_digest") != ref.get("proposal_digest")
+                or event.payload.get("knowledge_disposition_digest")
+                != ref.get("knowledge_disposition_digest")
+                or cast(Mapping[str, Any], event.payload.get("knowledge_disposition", {})).get(
+                    "proposal_id"
+                )
+                != ref.get("proposal_id")
+            ):
+                raise _fail(
+                    "AUTONOMY_EVIDENCE_INVALID", "disposition semantic identity changed"
+                )
+        for ref in state.diagnosis_history:
+            event = project_event(ref, "Diagnosis ref")
+            diagnosis = Diagnosis.from_mapping(
+                cast(Mapping[str, Any], event.payload.get("diagnosis", {}))
+            )
+            if (
+                diagnosis.digest != ref.get("diagnosis_digest")
+                or diagnosis_id(state.project_id, diagnosis.digest)
+                != ref.get("diagnosis_id")
+            ):
+                raise _fail(
+                    "AUTONOMY_EVIDENCE_INVALID", "Diagnosis semantic identity changed"
+                )
+        for ref in state.origin_history:
+            event = program_event(ref.get("program_event"), "origin ref")
+            origin = OriginEvidenceRef.from_mapping(
+                cast(Mapping[str, Any], event.payload.get("origin_evidence", {}))
+            )
+            if (
+                origin.to_dict() != ref.get("origin_evidence")
+                or origin.digest != ref.get("origin_digest")
+            ):
+                raise _fail(
+                    "AUTONOMY_EVIDENCE_INVALID", "origin semantic identity changed"
+                )
+        for ref in state.claim_history:
+            event = program_event(ref.get("program_event"), "Claim ref")
+            claim = Claim.from_mapping(cast(Mapping[str, Any], event.payload.get("claim", {})))
+            if claim.claim_id != ref.get("claim_id") or claim.digest != ref.get("claim_digest"):
+                raise _fail("AUTONOMY_EVIDENCE_INVALID", "Claim semantic identity changed")
+        if len(state.class_state_history) != len(state.diagnosis_history):
+            raise _fail("AUTONOMY_EVIDENCE_INVALID", "ClassState/Diagnosis history diverged")
+        for diagnosis_ref, class_ref in zip(
+            state.diagnosis_history, state.class_state_history, strict=True
+        ):
+            diagnosis_event = project_event(diagnosis_ref, "ClassState Diagnosis ref")
+            science = reduce_scientific_state(
+                project_events[: diagnosis_event.sequence], project_id=state.project_id
+            )
+            class_state = next(
+                (
+                    item
+                    for item in science.class_states
+                    if item.class_state_id == class_ref.get("class_state_id")
+                ),
+                None,
+            )
+            if class_state is None or canonical_json_bytes(
+                class_state.to_dict()
+            ) != canonical_json_bytes(class_ref):
+                raise _fail(
+                    "AUTONOMY_EVIDENCE_INVALID", "ClassState does not match ProjectLog prefix"
+                )
+    except AutonomyLoopError:
+        raise
+    except Exception as exc:
+        raise _fail("AUTONOMY_EVIDENCE_INVALID", "episode evidence is malformed") from exc
+
+    return {
+        "terminal_refs": len(state.terminal_history),
+        "disposition_refs": len(state.disposition_history),
+        "diagnosis_refs": len(state.diagnosis_history),
+        "origin_refs": len(state.origin_history),
+        "claim_refs": len(state.claim_history),
+        "class_state_refs": len(state.class_state_history),
+    }
+
+
 class FiniteAutonomyLoop:
     """Drive one finite episode exclusively through canonical public stores."""
 
@@ -1372,6 +1504,11 @@ class FiniteAutonomyLoop:
     ) -> AutonomyEpisodeState:
         if state.phase == "stop":
             return state
+        verify_autonomy_evidence(
+            state,
+            project_log=self.service.event_log,
+            program_store=self.program_store,
+        )
         log.append(
             STOPPED,
             {

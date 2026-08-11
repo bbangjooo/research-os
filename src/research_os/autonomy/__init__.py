@@ -15,6 +15,7 @@ from .loop import (
     ProviderSynthesisRequest,
     canonical_token_units,
     reduce_autonomy_events,
+    verify_autonomy_evidence,
 )
 from .protocol import (
     DECISION_PACKET_SCHEMA_VERSION,
@@ -68,4 +69,5 @@ __all__ = [
     "canonical_token_units",
     "reduce_autonomy_events",
     "validate_decision_packet",
+    "verify_autonomy_evidence",
 ]
