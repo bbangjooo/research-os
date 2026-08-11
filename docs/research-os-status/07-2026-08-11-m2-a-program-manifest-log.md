@@ -1,10 +1,10 @@
 # §07 — M2-A ProgramManifest·ProgramLog (2026-08-11)
 
-> Status: **ADVANCE — corrected 4/4 and critic PASS; progress audit pending**
+> Status: **ADVANCE — 4/4 and critic PASS; first audit FAIL, documentation correction pending**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§06](06-2026-08-11-m1-e-release-close.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §4, §8~§10
-> Active milestone: `M2-A` at candidate `4/4`; critic PASS, audit pending
+> Active milestone: `M2-A` at candidate `4/4`; audit reverify pending
 
 ## 07.0 TL;DR
 
@@ -121,16 +121,17 @@ original `3065d242…b1a4`, corrected expected manifest `14a6aea9…83f9`, origi
   초과 시 acceptance를 사후 완화하지 않고 PIVOT/EXPLORATORY로 기록한다.
 - Pre-result cap correction: dedicated `program_id` canonical envelope를 제공하면서 EventLog의
   hardened descriptor/recovery mechanics만 재사용하고, exact project-prefix validator와 atomic
-  projection을 한 module에 둔 product draft가 1,596 added lines임을 LOC 측정에서 확인했다.
+  projection을 한 module에 둔 draft를 당시 working tree에서 1,596줄로 측정했다. Preserved
+  commit range `eaf1294..b10e1b4`의 재현 가능한 product additions는 1,572줄이다.
   테스트 결과를 실행하기 전에 product cap만 `1,300→1,650`으로 고쳤다. Frozen 19 cases,
   schema/digest recipe, public error, four conjunct, total cap은 바꾸지 않는다.
-- Post-result execution PIVOT: 첫 invalid full이 드러낸 historical v0.3 verifier와 상호 재귀
-  regression observer와 race evidence를 고치면서 final candidate added LOC가 product+release
-  harness `1,635`, tests+fixture `980`, docs `378`, total `2,993`이 됐다. 세 category cap은 각각
-  `1,650/1,000/450` 안이지만 total `2,750`을 107줄 초과했다. 이 사실은 direct harness
-  `11/11`과 corrected original nodes `4/4` 결과 뒤 확인했으므로 사전 고정으로 소급하지 않는다.
-  Historical harness correction과 total-cap 실행 의도는 `EXPLORATORY`로 분리하고 total cap만
-  `<=3,100`으로 PIVOT한다. Race case의 ID/operation/denominator는 유지했지만 critic 뒤 expected에
+- Post-result execution PIVOT: verifier/recursive-observer correction snapshot
+  `61adebc..0f24ef6`은 product+release `1,635`, tests+fixture `946`, docs `276`, total `2,857`로
+  old total cap `2,750`을 정확히 107줄 초과했다. Candidate-audit snapshot
+  `61adebc..c70efe9`은 `1,635+980+384=2,999`, 즉 old cap보다 249줄 많고 new cap보다 101줄
+  적다. Category cap `1,650/1,000/450`은 둘 다 충족한다. 이 결과 뒤 관측을 소급하지 않고
+  historical harness/total-cap을 `EXPLORATORY`, total cap을 `<=3,100`으로 PIVOT한다.
+  Race case의 ID/operation/denominator는 유지했지만 critic 뒤 expected에
   loser write `0/0`을 강화했으며, 각 category cap은 변경하지 않았다.
 
 ## 07.5 Verification plan
@@ -251,5 +252,5 @@ quality나 retrieval relevance는 측정하지 않는다. EventLog와 유사한 
 
 ## 07.10 Next action
 
-Saved critic Q1~Q8은 모두 PASS했다. Independent seven-pass progress audit를 수행하고 PASS할 때만
-M2-A를 CLOSE하고 M2-B pre-spec으로 이동한다.
+Saved critic Q1~Q8은 모두 PASS했다. First progress audit의 LOC/§11/stricter-assumption FAIL을
+보정하고 같은 auditor 재검증이 PASS할 때만 M2-A를 CLOSE한다.
