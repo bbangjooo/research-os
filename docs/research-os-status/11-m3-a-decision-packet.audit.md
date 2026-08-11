@@ -11,6 +11,8 @@ Severity-1 findings:
 Correction keeps M3-A `ADVANCE` and M3-B blocked, updates the cold-start action and exact LOC denominators,
 and changes no product/test/script bytes or frozen/result evidence.
 
-## Attempt 2 — pending
+## Attempt 2 — PASS
 
-Independent seven-pass re-audit required before M3-A close.
+- Severity-1/2 `0`; reproducibility `25/25`; full `757+115` commit-bound evidence retained.
+- End-state/PIVOT/MIXED/RESULT-INVALID/M3-A discipline PASS; product/test/script unchanged after `42c7557`.
+- M3-A close permitted; M3-B may activate.
