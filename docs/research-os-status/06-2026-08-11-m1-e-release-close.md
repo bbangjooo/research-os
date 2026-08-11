@@ -1,10 +1,10 @@
 # §06 — M1-E v0.3 release close (2026-08-11)
 
-> Status: **INSTALLER CORRECTION VERIFIED — independent progress re-audit pending**
+> Status: **CLOSE — independent critic and progress audit PASS**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§05](05-2026-08-11-m1-e-usable-context.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §5, §7~§10
-> Active milestone: `M1-E` at `5/5`; independent progress re-audit pending
+> Active milestone: `M1-E` at `5/5` **CLOSE**; parent M1 **CLOSE**
 
 ## 06.0 TL;DR
 
@@ -196,8 +196,8 @@ Cycle 05의 usable preview를 release로 닫기 위해 M1-E의 기존 다섯 AND
 
 기존 aggregate installer `6/6`은 계속 **RESULT-INVALID** history다. Third correction의 fresh
 single verifier가 structured six IDs를 별도 node로 실행하고 receipt에 exact IDs/`passed=6`을
-기록했으므로 현재 decision은 **ADVANCE (`5/5` verified; independent progress re-audit pending)**다.
-Re-audit PASS 전에는 M1-E/M1을 `CLOSE`하지 않는다.
+기록했고 independent critic Q1~Q8과 progress four-pass audit가 PASS했다. Final decision은
+**CLOSE (`5/5`)**이며 parent M1도 frozen conjunction을 충족해 **CLOSE**다.
 
 ### 06.6.5 End-state positioning
 
@@ -254,8 +254,8 @@ evidence로만 보존한다.
 
 ## 06.7 Next action
 
-Third-correction receipt를 durable하게 고정한 뒤 progress critic과 independent 7-pass audit를
-재실행한다. 둘 다 PASS할 때만 M1-E와 parent M1을 close하고 M2-A를 시작한다.
+M2-A ProgramManifest·ProgramLog pre-spec과 critic을 고정한다. M2-A는 closed M1의 stable
+StudyContract/generation/evaluation-scope/Diagnosis/ClassState identity를 소비해야 한다.
 
 ## 06.8 Pre-result specification correction
 
@@ -306,4 +306,4 @@ Third-correction receipt를 durable하게 고정한 뒤 progress critic과 indep
   `e120292` (`08:40:09+09:00`)에서 six literal nodes와 verifier binding을 구현했다. Clean
   implementation의 single verifier는 `609+115`, managed upgrade `6/6`, authority 0, external
   snapshots unchanged, wheel `782fd9…8b93`으로 PASS했다. Durable receipt는 이 결과로 교체했고
-  independent critic re-audit은 Q1~Q8 PASS했다. Independent progress re-audit은 pending이다.
+  independent critic re-audit은 Q1~Q8 PASS했고 independent progress audit도 final PASS했다.
