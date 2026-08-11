@@ -94,7 +94,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | M2-B Conditional Claim graph | `docs/research-os-status/08-2026-08-11-m2-b-conditional-claims.md` | complete; critic + corrected audit PASS | frozen `25`, focused `37`, full `672+115` |
 | M2-C deterministic retrieval | `docs/research-os-status/09-2026-08-11-m2-c-deterministic-retrieval.md` | complete; critic + audit PASS | `bc0b79a`; full `676+115` |
 | M2-D disposition/v0.4 | `docs/research-os-status/10-2026-08-12-m2-d-disposition-v04-release.md` | closed 5/5 | corrected receipt `f1ab646`; critic + corrected audit PASS |
-| M3-A DecisionPacket | `docs/research-os-status/11-2026-08-12-m3-a-decision-packet.md` | pre-spec; 0/4 | frozen 32 cases; critic questions pending |
+| M3-A DecisionPacket | `docs/research-os-status/11-2026-08-12-m3-a-decision-packet.md` | pre-implementation; 0/4 | frozen 32 cases + critic Q1~Q8 |
 | 방법론 pipeline core | `docs/research-os-pipeline.md` | active | M1/M2 closed; M3-A active |
 
 ### 0.5 알려진 잔여 이슈

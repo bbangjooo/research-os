@@ -1,6 +1,6 @@
 # §11 — M3-A provider-neutral DecisionPacket (2026-08-12)
 
-> Status: **PRE-SPEC — product implementation not started; 0/4**
+> Status: **PRE-IMPLEMENTATION — frozen contract + critic questions committed; 0/4**
 > Previous phase: [§10](10-2026-08-12-m2-d-disposition-v04-release.md)
 > Active milestone: `M3-A`; M3-B~D blocked
 
@@ -96,9 +96,10 @@ provider-supplied digests, omitting one retrieved Claim/reason, accepting a stal
 live service/store reference to an in-process provider. The actual M2 Context→ProgramSnapshot→retrieval→
 Proposal/disposition vertical, one-factor negative matrix, bytes-delta checks, and port parity must refute it.
 
-Initial claim mode is `CONFIRMATORY`: exact schema/cases/denominators/error classes/expected outcomes are frozen
-before product/data exposure. Absolute current fixture digests are descriptive; only pre/post equality and
-canonical recomputation are outcomes. Critic-driven additions after first result become EXPLORATORY/MIXED.
+Initial claim mode is `CONFIRMATORY`: pre-spec commit `50ee73d` freezes exact
+schema/cases/denominators/error classes/expected outcomes before product/data exposure. Absolute current fixture
+digests are descriptive; only pre/post equality and canonical recomputation are outcomes. Critic-driven
+additions after first result become EXPLORATORY/MIXED.
 
 ## 11.7 Residual issues
 
@@ -109,5 +110,5 @@ canonical recomputation are outcomes. Critic-driven additions after first result
 
 ## 11.10 Next action
 
-Commit this pre-spec and manifest, generate at most eight independent closed critic questions, and commit those
-questions before adding any `src/research_os/autonomy` product code or M3-A executable test result.
+Implement the frozen contract and answer critic Q1~Q8 with actual vertical/no-write/port-parity evidence. Do not
+change the 32 IDs/schema/error classes/threshold after first result while retaining a confirmatory claim.
