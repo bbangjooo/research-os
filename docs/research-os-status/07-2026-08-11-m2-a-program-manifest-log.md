@@ -1,18 +1,18 @@
 # §07 — M2-A ProgramManifest·ProgramLog (2026-08-11)
 
-> Status: **ADVANCE — implementation evidence 4/4; critic and progress audit pending**
+> Status: **ADVANCE — critic found same-program race evidence gap; 3/4 pending correction**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§06](06-2026-08-11-m1-e-release-close.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §4, §8~§10
-> Active milestone: `M2-A` at candidate `4/4`; `CLOSE` requires critic and audit PASS
+> Active milestone: `M2-A` at `3/4`; `CLOSE` requires corrected race, critic and audit PASS
 
 ## 07.0 TL;DR
 
 M1/v0.3의 stable scientific identities를 소비하는 별도 Program memory truth boundary를 구현했다.
 ProgramManifest는 StudyContract·generation·evaluation scope·seal을 exact bind하고, ProgramLog는
-잠긴 project prefix replay로 Diagnosis와 ClassState가 일치할 때만 origin을 append한다. Frozen
-`19/19`, focused `22/22`, fresh full `635+115`가 PASS했다. Claim·relation·retrieval은 M2-B/C에
-남으며 critic·audit 전에는 candidate `4/4`만 청구한다.
+잠긴 project prefix replay로 Diagnosis와 ClassState가 일치할 때만 origin을 append한다. Prior
+frozen `19/19`, focused `22/22`, fresh full `635+115`는 green이었지만 critic이 same-program
+race의 barrier/loser evidence를 무효화해 현재 `3/4`다. Claim·relation·retrieval은 M2-B/C에 남는다.
 
 ## 07.1 Scope, anchors, and authority
 
@@ -146,14 +146,14 @@ Fixture input은 M1-D의 `supported` canonical history이고 raw source digest �
 
 **영향 받은 M_i.j**: `M2-A`
 
-**현재 라벨**: `ADVANCE (candidate 4/4; critic/audit pending)`
+**현재 라벨**: `ADVANCE (3/4; same-program race correction pending)`
 
 | Frozen conjunct | 결과 | Reproducible evidence |
 |---|---|---|
 | Manifest binds stable M1 identities | PASS | frozen manifest cases 1~5; invalid field/version/duplicate/authority mutation `0` |
 | Exact Diagnosis/ClassState origin | PASS | cases 6~10; locked prefix replay, forged/scope/stale rejection |
 | hash-chain/head precondition | PASS | cases 11~14; distinct envelope, stale loser delta `0`, corruption fail-closed |
-| projection recovery + lock order | PASS | cases 15~19; missing/corrupt/stale rebuild and two barrier races |
+| projection recovery + lock order | FAIL | recovery/project race PASS; same-program race lacked barrier and loser projection evidence |
 
 공통 재현은 `pytest -q tests/test_m2a_program_memory.py`의 `22 passed`와 literal binding+frozen
 case command의 `20 passed`다. Product checkpoint는 `b10e1b4`와 export fix `5613591`; prerequisite
@@ -217,6 +217,16 @@ Correction 결과는 historical verifier/harness direct `11 passed`, 원 failure
 `635 passed, 115 subtests passed in 1193.85s`; prior invalid/partial 결과는 포함하지 않는다.
 `ruff check src tests scripts`, `ty check src`, `git diff --check`가 PASS했고 manifest·origin·두
 ProgramEvent·ProgramSnapshot recursive scan의 `authorized_action` 12개는 non-null `0`이다.
+
+Independent critic은 Q1/Q2/Q6/Q8을 FAIL했다. Material product-evidence defect는
+`lock-order-program-head-race`가 executor scheduling에 의존하고 loser projection delta를 직접
+관측하지 않은 점이다. Correction acceptance는 같은 operation과 19-case denominator를 유지하면서
+두 writer가 동일 expected head로 실제 `ProgramLog.append` 직전 `Barrier(3)`에 모두 도달한 뒤
+경쟁하게 한다. 실제 log write와 projection write를 thread별로 계측해 winner `1`, loser error
+`PROGRAM_HEAD_MISMATCH`, loser log writes `0`, loser projection writes `0`, final origin `1`을 exact
+expected에 추가한다. 이는 결과 뒤 기준 강화이므로 prior case 19 결과를 무효화하며 correction
+checkpoint 뒤 focused/fresh full만 새 분자다. Q1 paired-core와 Q8 annotation은 correction 결과와 함께
+동기화한다.
 
 ## 07.7 Expected north-star movement
 
