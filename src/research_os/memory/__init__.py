@@ -54,6 +54,16 @@ from .program import (
     validate_program_manifest,
     verify_program_events,
 )
+from .retrieval import (
+    MAX_RETRIEVAL_LIMIT,
+    RETRIEVAL_QUERY_SCHEMA_VERSION,
+    RETRIEVAL_RESULT_SCHEMA_VERSION,
+    RetrievalHit,
+    RetrievalQuery,
+    RetrievalResult,
+    RetrievalScope,
+    retrieve_claims,
+)
 
 __all__ = [
     "CLAIM_APPLICABILITY_SCHEMA_VERSION",
@@ -71,6 +81,9 @@ __all__ = [
     "PROGRAM_MANIFEST_SCHEMA_VERSION",
     "PROGRAM_ORIGIN_LINKED_EVENT",
     "PROGRAM_PROJECTION_SCHEMA_VERSION",
+    "MAX_RETRIEVAL_LIMIT",
+    "RETRIEVAL_QUERY_SCHEMA_VERSION",
+    "RETRIEVAL_RESULT_SCHEMA_VERSION",
     "OriginEvidenceRef",
     "PROGRAM_CLAIM_RECORDED_EVENT",
     "PROGRAM_CLAIM_RELATED_EVENT",
@@ -82,6 +95,10 @@ __all__ = [
     "ProgramProjection",
     "ProgramSnapshot",
     "ProgramStore",
+    "RetrievalHit",
+    "RetrievalQuery",
+    "RetrievalResult",
+    "RetrievalScope",
     "Claim",
     "ClaimApplicability",
     "ClaimArtifactEvidence",
@@ -99,6 +116,7 @@ __all__ = [
     "record_finding",
     "reduce_claim_records",
     "reduce_program_events",
+    "retrieve_claims",
     "relation_event_payload",
     "validate_claim_evidence",
     "validate_origin_evidence",

@@ -8,7 +8,14 @@ from pathlib import Path
 from typing import Any, Final, Mapping, Sequence
 
 from research_os.contracts import canonical_json_bytes, decode_json_object, sha256_json
-from research_os.errors import ConfigurationError, IntegrityError
+from research_os.errors import (
+    ConfigurationError,
+    IntegrityError,
+    ProgramMemoryError,
+    StaleAgentContextError,
+)
+from research_os.memory.claims import ClaimSnapshot
+from research_os.memory.retrieval import RetrievalQuery, RetrievalResult, retrieve_claims
 
 AGENT_BRIEF_RELATIVE: Final = Path(".research-os/research-brief.md")
 CANDIDATE_SCHEMA_RELATIVE: Final = Path(".research-os/candidate.schema.json")
@@ -263,6 +270,178 @@ def _bounded_value(value: Any) -> Any:
     }
 
 
+def _finalize_context_size(context: dict[str, Any]) -> dict[str, Any]:
+    context["packet_size_bytes"] = 0
+    for _ in range(4):
+        size = len(canonical_json_bytes(context))
+        if context["packet_size_bytes"] == size:
+            break
+        context["packet_size_bytes"] = size
+    size = len(canonical_json_bytes(context))
+    context["packet_size_bytes"] = size
+    if size > MAX_AGENT_CONTEXT_BYTES:
+        raise ConfigurationError(
+            "agent context exceeds the 2 MiB packet limit; reduce --limit or "
+            "shorten the research brief/schema"
+        )
+    return context
+
+
+def _attach_retrieval(
+    context: Mapping[str, Any], retrieval: RetrievalResult
+) -> dict[str, Any]:
+    if context.get("schema_version") != 3:
+        raise ValueError("retrieval can only bind to agent context schema version 3")
+    raw_snapshot = context.get("snapshot")
+    if not isinstance(raw_snapshot, Mapping):
+        raise ValueError("agent context snapshot must be an object")
+    project_snapshot = dict(raw_snapshot)
+    project_token = project_snapshot.get("context_token")
+    if not isinstance(project_token, str) or not project_token:
+        raise ValueError("project context snapshot must have a non-empty context_token")
+    memory = {
+        "memory_schema_version": 1,
+        "query": retrieval.query.to_dict(),
+        "query_digest": retrieval.query.digest,
+        "retrieval_result": retrieval.to_dict(),
+        "retrieval_result_digest": retrieval.digest,
+        "authorized_action": None,
+    }
+    bound_snapshot = {
+        "schema_version": 3,
+        "project_snapshot": project_snapshot,
+        "program": {
+            "program_id": retrieval.program_id,
+            "program_head": {
+                "sequence": retrieval.program_head[0],
+                "hash": retrieval.program_head[1],
+            },
+            "query_digest": retrieval.query.digest,
+            "retrieval_result_digest": retrieval.digest,
+        },
+        "authorized_action": None,
+    }
+    bound_snapshot["context_token"] = sha256_json(bound_snapshot)
+    attached = dict(context)
+    attached["snapshot"] = bound_snapshot
+    attached["memory"] = memory
+    return attached
+
+
+def bind_agent_context_v3_retrieval(
+    context: Mapping[str, Any], retrieval: RetrievalResult
+) -> dict[str, Any]:
+    """Attach a read-only retrieval manifest and bind it into a Context v3 token."""
+
+    if not isinstance(retrieval, RetrievalResult):
+        raise TypeError("retrieval must be a RetrievalResult")
+    return _finalize_context_size(_attach_retrieval(context, retrieval))
+
+
+def _non_null_authority(value: object) -> int:
+    if isinstance(value, Mapping):
+        return int(
+            "authorized_action" in value and value["authorized_action"] is not None
+        ) + sum(_non_null_authority(item) for item in value.values())
+    if isinstance(value, Sequence) and not isinstance(
+        value, (str, bytes, bytearray, memoryview)
+    ):
+        return sum(_non_null_authority(item) for item in value)
+    return 0
+
+
+def validate_agent_context_v3_retrieval(
+    context: Mapping[str, Any],
+    *,
+    current_project_context_token: str,
+    current_claim_snapshot: ClaimSnapshot,
+) -> RetrievalResult:
+    """Recompute the complete retrieval read set and reject any stale binding."""
+
+    if not isinstance(current_project_context_token, str) or not current_project_context_token:
+        raise TypeError("current_project_context_token must be non-empty text")
+    if not isinstance(current_claim_snapshot, ClaimSnapshot):
+        raise TypeError("current_claim_snapshot must be a ClaimSnapshot")
+    try:
+        if context.get("schema_version") != 3 or _non_null_authority(context):
+            raise ValueError("invalid Context v3 authority or schema")
+        snapshot = context.get("snapshot")
+        memory = context.get("memory")
+        if not isinstance(snapshot, Mapping) or set(snapshot) != {
+            "schema_version",
+            "project_snapshot",
+            "program",
+            "authorized_action",
+            "context_token",
+        }:
+            raise ValueError("invalid bound context snapshot")
+        snapshot_version = snapshot.get("schema_version")
+        if (
+            isinstance(snapshot_version, bool)
+            or not isinstance(snapshot_version, int)
+            or snapshot_version != 3
+            or snapshot.get("authorized_action") is not None
+        ):
+            raise ValueError("invalid bound context snapshot schema or authority")
+        project_snapshot = snapshot.get("project_snapshot")
+        program = snapshot.get("program")
+        if not isinstance(project_snapshot, Mapping) or not isinstance(program, Mapping):
+            raise ValueError("invalid bound context read set")
+        if project_snapshot.get("context_token") != current_project_context_token:
+            raise ValueError("project context token changed")
+        if not isinstance(memory, Mapping) or set(memory) != {
+            "memory_schema_version",
+            "query",
+            "query_digest",
+            "retrieval_result",
+            "retrieval_result_digest",
+            "authorized_action",
+        }:
+            raise ValueError("invalid retrieval memory manifest")
+        memory_version = memory.get("memory_schema_version")
+        if (
+            isinstance(memory_version, bool)
+            or not isinstance(memory_version, int)
+            or memory_version != 1
+            or memory.get("authorized_action") is not None
+        ):
+            raise ValueError("invalid retrieval memory schema or authority")
+        query_raw = memory.get("query")
+        result_raw = memory.get("retrieval_result")
+        if not isinstance(query_raw, Mapping) or not isinstance(result_raw, Mapping):
+            raise ValueError("invalid retrieval query or result")
+        query = RetrievalQuery.from_mapping(query_raw)
+        if memory.get("query_digest") != query.digest:
+            raise ValueError("retrieval query digest changed")
+        expected = retrieve_claims(current_claim_snapshot, query)
+        if (
+            canonical_json_bytes(result_raw) != canonical_json_bytes(expected.to_dict())
+            or memory.get("retrieval_result_digest") != expected.digest
+        ):
+            raise ValueError("retrieval result changed")
+        expected_program = {
+            "program_id": expected.program_id,
+            "program_head": {
+                "sequence": expected.program_head[0],
+                "hash": expected.program_head[1],
+            },
+            "query_digest": expected.query.digest,
+            "retrieval_result_digest": expected.digest,
+        }
+        if canonical_json_bytes(program) != canonical_json_bytes(expected_program):
+            raise ValueError("bound Program read set changed")
+        supplied_token = snapshot.get("context_token")
+        unsigned = dict(snapshot)
+        unsigned.pop("context_token", None)
+        if supplied_token != sha256_json(unsigned):
+            raise ValueError("bound context token changed")
+        return expected
+    except (ProgramMemoryError, TypeError, ValueError) as exc:
+        raise StaleAgentContextError(
+            "agent retrieval context is stale; refresh Context v3 from canonical memory"
+        ) from exc
+
+
 def _compact_experiment(row: Mapping[str, Any]) -> dict[str, Any]:
     payload = row.get("payload")
     payload = payload if isinstance(payload, Mapping) else {}
@@ -503,6 +682,7 @@ def build_agent_context_v3(
     limit: int,
     current_compatibility_digest: str | None = None,
     compatible_baseline_ready: bool | None = None,
+    retrieval: RetrievalResult | None = None,
 ) -> dict[str, Any]:
     """Add replay-derived scientific state without changing context v2."""
 
@@ -575,20 +755,9 @@ def build_agent_context_v3(
             "INSPECT_EVIDENCE",
             "STOP_AND_REPORT",
         ]
-    context["packet_size_bytes"] = 0
-    for _ in range(4):
-        size = len(canonical_json_bytes(context))
-        if context["packet_size_bytes"] == size:
-            break
-        context["packet_size_bytes"] = size
-    size = len(canonical_json_bytes(context))
-    context["packet_size_bytes"] = size
-    if size > MAX_AGENT_CONTEXT_BYTES:
-        raise ConfigurationError(
-            "agent context exceeds the 2 MiB packet limit; reduce --limit or "
-            "shorten the research brief/schema"
-        )
-    return context
+    if retrieval is not None:
+        context = _attach_retrieval(context, retrieval)
+    return _finalize_context_size(context)
 
 
 __all__ = [
@@ -597,7 +766,9 @@ __all__ = [
     "CANDIDATE_INBOX_RELATIVE",
     "CANDIDATE_SCHEMA_RELATIVE",
     "MAX_AGENT_CONTEXT_BYTES",
+    "bind_agent_context_v3_retrieval",
     "build_agent_context",
     "build_agent_context_v3",
     "load_agent_spec",
+    "validate_agent_context_v3_retrieval",
 ]
