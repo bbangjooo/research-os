@@ -180,7 +180,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 - **Active M_i.j**: `M1-E`
 - **직전 close가 가능하게 한 작업**: M1-D가 terminal evidence-bound Diagnosis, derived ClassState와 semantic/retry frontier를 canonical state로 만들고 five conjunct 5/5를 충족했다.
-- **현재 close audit**: third correction `5/5` verified; independent critic/progress re-audit pending.
+- **현재 close audit**: third correction `5/5`, independent critic Q1~Q8 PASS; progress re-audit pending.
 - **이 M.j가 닫혀야 다음에 가능해지는 작업**: ProgramManifest가 stable M1 identity를 bind하고 M2 ProgramLog가 Diagnosis/ClassState origin을 exact 검증할 수 있다.
 - **M1 parent close까지 남은 sub**: `M1-E`.
 

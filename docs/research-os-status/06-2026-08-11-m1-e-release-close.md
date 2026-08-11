@@ -253,7 +253,7 @@ evidence로만 보존한다.
 
 ## 06.7 Next action
 
-Second-correction receipt를 durable하게 고정한 뒤 progress critic과 independent 7-pass audit를
+Third-correction receipt를 durable하게 고정한 뒤 progress critic과 independent 7-pass audit를
 재실행한다. 둘 다 PASS할 때만 M1-E와 parent M1을 close하고 M2-A를 시작한다.
 
 ## 06.8 Pre-result specification correction
@@ -305,4 +305,4 @@ Second-correction receipt를 durable하게 고정한 뒤 progress critic과 inde
   `e120292` (`08:40:09+09:00`)에서 six literal nodes와 verifier binding을 구현했다. Clean
   implementation의 single verifier는 `609+115`, managed upgrade `6/6`, authority 0, external
   snapshots unchanged, wheel `782fd9…8b93`으로 PASS했다. Durable receipt는 이 결과로 교체했고
-  independent critic/progress re-audit은 pending이다.
+  independent critic re-audit은 Q1~Q8 PASS했다. Independent progress re-audit은 pending이다.
