@@ -1,8 +1,8 @@
 # §13 — M3-C crash-resume and authority closure (2026-08-12)
 
-> Status: **ADVANCE 5/5 — critic Attempt 2 PASS; audit Attempt 1 FAIL correction active**
+> Status: **CLOSED 5/5 — critic Attempt 2 PASS; corrected audit Attempt 2 PASS**
 > Previous phase: [§12](12-2026-08-12-m3-b-finite-autonomy-loop.md)
-> Active milestone: `M3-C`; M3-D blocked
+> Closed milestone: `M3-C`; M3-D active
 
 ## 13.0 TL;DR
 
@@ -12,7 +12,7 @@ provider to recreate already-used truth. Thirteen frozen cutpoints must cold-res
 with one terminal/disposition/Diagnosis/origin/Claim each, stale heads fail-closed, recursive authority null, and
 deploy/merge/trade operation surface zero. The frozen result is `31/31`; focused/adjacent evidence passes. Critic
 Attempt 1 exposed a lookup→append race witness gap; three exploratory interleavings now fail closed without controller
-writes. Critic Attempt 2 passed; audit Attempt 1 found only ledger defects, so M3-D remains blocked by re-audit.
+writes. Critic Attempt 2 and corrected audit Attempt 2 passed, so M3-C is closed and M3-D is active.
 
 ## 13.1 Scope, anchors, and exclusions
 
@@ -77,7 +77,7 @@ Fixture: `tests/fixtures/autonomy/v1/m3c-manifest.json`; raw SHA-256:
 | total | 31 | every literal ID consumed once; no extras |
 
 Observed M3-C result: `(13/13) ∧ (duplicate five = 0) ∧ (stale 4/4) ∧ (authority 6/6) ∧
-(operation surface 3/3 zero)`. All five conjuncts pass together; critic PASS is recorded and audit remains pending.
+(operation surface 3/3 zero)`. All five conjuncts, critic and corrected audit pass together.
 
 ## 13.4 Stale-head and stop semantics
 
@@ -118,7 +118,7 @@ decision. Durable output capture, exact source reconciliation and one-factor sta
 
 ### 13.6.4 Milestone progress claim
 
-**Current label: `ADVANCE`; M3-C engineering `5/5`; no `CLOSE` before critic and audit both pass.**
+**Current label: `CLOSE`; M3-C `5/5`, critic Attempt 2 PASS, corrected audit Attempt 2 PASS.**
 
 | M3-C exit conjunct | Previous | Required after phase | Evidence target |
 |---|---:|---:|---|
@@ -129,7 +129,7 @@ decision. Durable output capture, exact source reconciliation and one-factor sta
 | deploy/merge/trade surface | nominal zero | `3/3` zero PASS | AST reachable calls plus injected-method witness |
 
 - **Prerequisite gate:** M3-B closed at `08327ad`; M1/M2/M3-A are closed. No bypass.
-- M3-D remains blocked until M3-C critic and progress audit both PASS.
+- M3-D is active after M3-C critic and corrected progress audit PASS.
 
 ### 13.6.5 End-state delta
 
@@ -170,7 +170,7 @@ Critic Attempt 1 showed that the claimed Q3 counterfactual mutated before recove
 guarded append. A real interleaving also exposed a boundary exception that needed translation to
 `AUTONOMY_RECOVERY_STALE`. The product seam and three exploratory witnesses were added without changing the frozen
 31 or requirement. This is not fixture contamination (`RESULT-INVALID`) or a faulty requirement
-(`REQUIREMENT-WRONG`); re-verification and audit remain mandatory.
+(`REQUIREMENT-WRONG`); re-verification and corrected audit completed before close.
 
 ## 13.7 Residual issues
 
@@ -182,7 +182,7 @@ guarded append. A real interleaving also exposed a boundary exception that neede
 
 ## 13.10 Next action
 
-Corrected re-audit must PASS before `CLOSE` and M3-D activation. The M3-D code-freeze pre-spec must also commit a
+Start M3-D pre-spec. Its code-freeze pre-spec must commit a
 `race-confirmation-v1` generator before nonce reveal: a fresh 256-bit nonce selects 12 subprocess schedules (four
 each for experiment lookup→service, disposition lookup→append, Claim lookup→append). Confirmatory PASS requires
 `12/12` stable stale code, restarted provider/service call `0`, controller Project/Program delta `0/0`, unchanged
