@@ -20,7 +20,7 @@ M2-A를 CLOSE하려면 네 exit conjunct 각각이 독립된 재현 근거로 PA
 **Response:**
 
 DIRECT. Phase §07.6.4가 manifest, origin, log/head, projection/lock-order를 각각 PASS로 묶고
-frozen cases `5+5+4+5=19/19`와 focused `22/22`를 제시한다. 한 행이라도 critic/audit에서
+corrected cases `5+5+4+5=19/19`와 focused `22/22`를 제시한다. 한 행이라도 critic/audit에서
 무효면 현재 candidate를 CLOSE하지 않고 ADVANCE로 되돌린다.
 
 ## Q3 [proxy-vs-real]
@@ -59,9 +59,9 @@ project-log shared → program-log exclusive → projection 순서를 실제 bar
 
 **Response:**
 
-DIRECT. Cases `lock-order-project-vs-origin`과 `lock-order-program-head-race`가 barrier-controlled
-threads를 timeout 없이 종료한다. Project shared→program exclusive→projection 순서를 지키며
-stale 경쟁의 winner는 1, loser log/projection delta는 0이다.
+DIRECT. Both race cases are barrier-controlled. Corrected same-head case stages both writers at the
+real append boundary, passes `50/50`, and thread-attributed writes prove winner 1, loser log/projection
+writes `0/0`; project shared→program exclusive→projection ordering remains deadlock-free.
 
 ## Q7 [boundary]
 
@@ -78,7 +78,7 @@ DIRECT. Cases 15~17이 missing/corrupt/stale projection을 canonical log의 동�
 
 **Response:**
 
-DIRECT with LIMITATION. Core schema·19 cases·four conjunct는 pre-spec `d635c61`/cap correction
-`eaf1294`가 product `b10e1b4`보다 앞서므로 CONFIRMATORY다. Invalid full 뒤의 historical
-release/recursion harness와 total-cap PIVOT은 소급하지 않고 EXPLORATORY로 표시해 phase 전체를
-MIXED로 분류했다. Fresh full은 최종 PIVOT `9c76aa3` 뒤 실행했다.
+DIRECT. Core schema와 18 unchanged cases는 `d635c61/eaf1294→b10e1b4`라 CONFIRMATORY다.
+Historical harness/total-cap과 critic 뒤 strengthened race expected는 EXPLORATORY이며
+`704fcb8→5d02fd0→635+115` chronology를 가진다. Prior race/full을 무효화하고 phase 전체를
+MIXED로 제한했으므로 결과 뒤 기준 강화를 소급하지 않는다.

@@ -1,18 +1,18 @@
 # §07 — M2-A ProgramManifest·ProgramLog (2026-08-11)
 
-> Status: **ADVANCE — critic found same-program race evidence gap; 3/4 pending correction**
+> Status: **ADVANCE — corrected implementation 4/4; critic reverify and audit pending**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§06](06-2026-08-11-m1-e-release-close.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §4, §8~§10
-> Active milestone: `M2-A` at `3/4`; `CLOSE` requires corrected race, critic and audit PASS
+> Active milestone: `M2-A` at candidate `4/4`; `CLOSE` requires critic and audit PASS
 
 ## 07.0 TL;DR
 
 M1/v0.3의 stable scientific identities를 소비하는 별도 Program memory truth boundary를 구현했다.
 ProgramManifest는 StudyContract·generation·evaluation scope·seal을 exact bind하고, ProgramLog는
 잠긴 project prefix replay로 Diagnosis와 ClassState가 일치할 때만 origin을 append한다. Prior
-frozen `19/19`, focused `22/22`, fresh full `635+115`는 green이었지만 critic이 same-program
-race의 barrier/loser evidence를 무효화해 현재 `3/4`다. Claim·relation·retrieval은 M2-B/C에 남는다.
+frozen result의 race evidence를 critic이 무효화했지만 correction 뒤 focused `22/22`, race
+`50/50`, fresh full `635+115`가 다시 PASS해 candidate `4/4`다. Claim·retrieval은 M2-B/C에 남는다.
 
 ## 07.1 Scope, anchors, and authority
 
@@ -104,7 +104,8 @@ timeout 없이 종료하고 정확한 winner/no-write loser를 관찰해야 한�
 
 Fixture input은 M1-D의 `supported` canonical history이고 raw source digest 세 개와 M1 identity
 기댓값을 manifest에 고정한다. Frozen valid hashes는 manifest
-`3065d242…b1a4`, origin `69c5c832…0a4e`, initialized event `ff53a7dd…f399`, linked event
+original `3065d242…b1a4`, corrected expected manifest `14a6aea9…83f9`, origin
+`69c5c832…0a4e`, initialized event `ff53a7dd…f399`, linked event
 `5112d50d…0f0b`다.
 
 ## 07.4 Bounded implementation plan
@@ -124,13 +125,13 @@ Fixture input은 M1-D의 `supported` canonical history이고 raw source digest �
   테스트 결과를 실행하기 전에 product cap만 `1,300→1,650`으로 고쳤다. Frozen 19 cases,
   schema/digest recipe, public error, four conjunct, total cap은 바꾸지 않는다.
 - Post-result execution PIVOT: 첫 invalid full이 드러낸 historical v0.3 verifier와 상호 재귀
-  regression observer를 고치면서 현재 Cycle 07 added LOC가 product+release harness `1,635`,
-  tests+fixture `946`, phase+critic docs `276`, total `2,857`이 됐다. 세 category cap은 각각
+  regression observer와 race evidence를 고치면서 final candidate added LOC가 product+release
+  harness `1,635`, tests+fixture `980`, docs `378`, total `2,993`이 됐다. 세 category cap은 각각
   `1,650/1,000/450` 안이지만 total `2,750`을 107줄 초과했다. 이 사실은 direct harness
   `11/11`과 corrected original nodes `4/4` 결과 뒤 확인했으므로 사전 고정으로 소급하지 않는다.
   Historical harness correction과 total-cap 실행 의도는 `EXPLORATORY`로 분리하고 total cap만
-  `<=3,100`으로 PIVOT한다. M2-A의 frozen schema·19 cases·4 conjunct·error/digest/race 기준과 각
-  category cap은 변경하지 않으며, 이 checkpoint 뒤 fresh full만 close 분자로 사용한다.
+  `<=3,100`으로 PIVOT한다. Race case의 ID/operation/denominator는 유지했지만 critic 뒤 expected에
+  loser write `0/0`을 강화했으며, 각 category cap은 변경하지 않았다.
 
 ## 07.5 Verification plan
 
@@ -146,14 +147,14 @@ Fixture input은 M1-D의 `supported` canonical history이고 raw source digest �
 
 **영향 받은 M_i.j**: `M2-A`
 
-**현재 라벨**: `ADVANCE (3/4; same-program race correction pending)`
+**현재 라벨**: `ADVANCE (corrected candidate 4/4; critic/audit pending)`
 
 | Frozen conjunct | 결과 | Reproducible evidence |
 |---|---|---|
 | Manifest binds stable M1 identities | PASS | frozen manifest cases 1~5; invalid field/version/duplicate/authority mutation `0` |
 | Exact Diagnosis/ClassState origin | PASS | cases 6~10; locked prefix replay, forged/scope/stale rejection |
 | hash-chain/head precondition | PASS | cases 11~14; distinct envelope, stale loser delta `0`, corruption fail-closed |
-| projection recovery + lock order | FAIL | recovery/project race PASS; same-program race lacked barrier and loser projection evidence |
+| projection recovery + lock order | PASS | corrected barrier race `50/50`; loser log/projection writes `0/0` |
 
 공통 재현은 `pytest -q tests/test_m2a_program_memory.py`의 `22 passed`와 literal binding+frozen
 case command의 `20 passed`다. Product checkpoint는 `b10e1b4`와 export fix `5613591`; prerequisite
@@ -174,16 +175,15 @@ M1은 closed이며 gate bypass는 없다.
 Target label은 `PIVOT`: §07.4의 product LOC cap은 첫 test 결과 전에 `1,300→1,650`으로
 확대했고, 결과 뒤 발견한 historical harness correction을 포함하기 위해 total cap은
 `2,750→3,100`으로 별도 PIVOT했다. Frozen schema, 19 cases, four conjunct와 category cap은
-동일하다. 두 correction은 core §2 Decision chain에 동기화한다. Sample, threshold, data source,
-semantic scope가 바뀌면 별도 PIVOT entry를 추가한다.
+동일하다. Critic 뒤 race expected 강화도 별도 correction으로 기록했다. 이 변경들은 core §2
+Decision chain에 동기화하며 sample, threshold, data source, semantic scope가 바뀌면 PIVOT한다.
 
 ### 07.6.7 Claim mode target
 
-Target은 `MIXED`다. M2-A schema·identity·19-case 기능 분모는 이 문서, critic 질문,
-machine-readable manifest의 local checkpoint가 첫 product/test result-bearing commit보다 앞서므로
-`CONFIRMATORY`다. 첫 invalid full 뒤 추가한 historical release/recursion harness correction과
-post-result total-cap PIVOT은 `EXPLORATORY`다. Expected, denominator, error code, digest recipe,
-race winner rule을 결과 뒤 바꾸면 해당 기능 결과는 `RESULT-INVALID`다.
+Target은 `MIXED`다. M2-A schema·identity와 18 unchanged cases는 pre-result manifest가 product보다
+앞서므로 `CONFIRMATORY`다. Historical harness/total-cap PIVOT과 critic 뒤 강화한 same-head race
+expected는 `EXPLORATORY`; correction pre-spec `704fcb8`은 test checkpoint `5d02fd0`보다 앞선다.
+Prior race/full 결과는 무효화했고 새 fresh full만 사용한다.
 
 ### 07.6.8 Requirement-result divergence
 
@@ -213,8 +213,7 @@ environment flag로 결과를 skip하거나 합성 PASS하지 않는다. 이 cor
 fresh top-level full을 다시 실행한다.
 
 Correction 결과는 historical verifier/harness direct `11 passed`, 원 failure nodes
-`4 passed in 848.50s`다. Final close numerator는 checkpoint `9c76aa3`의 Python 3.12 fresh full
-`635 passed, 115 subtests passed in 1193.85s`; prior invalid/partial 결과는 포함하지 않는다.
+`4 passed in 848.50s`다. Pre-critic full `635+115`는 race evidence 결함 뒤 close 분자에서 제외한다.
 `ruff check src tests scripts`, `ty check src`, `git diff --check`가 PASS했고 manifest·origin·두
 ProgramEvent·ProgramSnapshot recursive scan의 `authorized_action` 12개는 non-null `0`이다.
 
@@ -227,6 +226,10 @@ Independent critic은 Q1/Q2/Q6/Q8을 FAIL했다. Material product-evidence defec
 expected에 추가한다. 이는 결과 뒤 기준 강화이므로 prior case 19 결과를 무효화하며 correction
 checkpoint 뒤 focused/fresh full만 새 분자다. Q1 paired-core와 Q8 annotation은 correction 결과와 함께
 동기화한다.
+
+Race correction checkpoint는 `5d02fd0`이다. Corrected focused `22/22`, adjacent `65+4`, exact race
+`50/50`, Python 3.12 fresh full `635 passed, 115 subtests passed in 1182.72s`, ruff/ty/diff와
+recursive authority `12/0 non-null`가 PASS했다. 이 fresh full만 현재 close numerator다.
 
 ## 07.7 Expected north-star movement
 
@@ -248,5 +251,5 @@ quality나 retrieval relevance는 측정하지 않는다. EventLog와 유사한 
 
 ## 07.10 Next action
 
-Saved critic Q1~Q8을 independent verify mode로 판정하고, PASS 뒤 status/pipeline 동기화와 seven-pass
-progress audit를 수행한다. 둘 다 PASS할 때만 M2-A를 CLOSE하고 M2-B pre-spec으로 이동한다.
+Paired status/pipeline candidate를 동기화하고 saved critic Q1~Q8을 재검증한다. PASS 뒤 seven-pass
+progress audit를 수행하며, 둘 다 PASS할 때만 M2-A를 CLOSE하고 M2-B pre-spec으로 이동한다.
