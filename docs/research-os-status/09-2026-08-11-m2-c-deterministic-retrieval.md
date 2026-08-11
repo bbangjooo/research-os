@@ -118,5 +118,7 @@ benchmark 전에는 하지 않는다.
 
 ## 09.7 Next action
 
-Frozen fixture/pre-spec checkpoint 뒤 독립 critic이 최대 8개 closed questions를 생성한다. 그 질문을
-저장·commit한 다음에만 product/test implementation을 시작한다.
+Frozen fixture/pre-spec checkpoint `e6de927` 뒤 독립 critic이 8개 closed questions를 생성했다.
+질문은 real ProgramStore vertical path, denominator receipt, relation boundary, canonical Program append
+stale, end-state/milestone positioning, chronology, divergence를 고정한다. Critic 질문 checkpoint 뒤
+product/test implementation을 시작한다.

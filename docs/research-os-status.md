@@ -48,8 +48,8 @@
     Attempt 3와 independent re-audit PASS로 5/5 CLOSE했다. Frozen `25`, focused `37`, adjacent `96`,
     full `672+115`, authority `10/0`; M2-C retrieval이 active다.
   - M2-C §09 pre-spec과 frozen `retrieval-v1.json`은 product/result 전에 exact four-query oracle,
-    ordering, Context v3 Program-head token stale contract를 고정했다. 현재 0/5이며 critic 질문 생성이
-    다음 gate다.
+    ordering, Context v3 Program-head token stale contract를 `e6de927`에 고정했다. 독립 critic의 8개
+    closed questions도 저장했고 현재 0/5에서 implementation이 다음 gate다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 
@@ -69,7 +69,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** frozen M2-C pre-spec을 독립 critic 질문으로 공격한 뒤 implementation을 시작한다.
+- [ ] **단일 최우선 행동:** M2-C frozen oracle/relation boundary/Context stale contract를 구현하고 evidence receipt를 만든다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
@@ -82,7 +82,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | M1-E release close | `docs/research-os-status/06-2026-08-11-m1-e-release-close.md` | complete; independent audit PASS | receipt `e120292`; `609+115`; installer `6/6` |
 | M2-A Program memory boundary | `docs/research-os-status/07-2026-08-11-m2-a-program-manifest-log.md` | complete; critic + audit PASS | corrected `22`, race `50/50`, full `635+115` |
 | M2-B Conditional Claim graph | `docs/research-os-status/08-2026-08-11-m2-b-conditional-claims.md` | complete; critic + corrected audit PASS | frozen `25`, focused `37`, full `672+115` |
-| M2-C deterministic retrieval | `docs/research-os-status/09-2026-08-11-m2-c-deterministic-retrieval.md` | pre-spec; 0/5 | frozen four-query exact oracle; critic pending |
+| M2-C deterministic retrieval | `docs/research-os-status/09-2026-08-11-m2-c-deterministic-retrieval.md` | pre-spec + critic; 0/5 | `e6de927`; frozen oracle + 8 closed questions |
 | 방법론 pipeline core | `docs/research-os-pipeline.md` | active | M1, M2-A/B closed; M2-C active |
 
 ### 0.5 알려진 잔여 이슈
@@ -279,7 +279,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - 마지막 유효 engineering 측정: Cycle 08 full `672+115`, focused `37`, adjacent `96`,
   ruff/ty/diff와 Claim authority `10/0 non-null` PASS. Historical v0.3 seal은 `609+115`, installer
   `6/6`, external no-write, exact product tree와 wheel/install이며 invalid runs는 제외한다.
-- 다음 1행동: M2-C frozen contract의 독립 critic 질문 생성·고정.
+- 다음 1행동: M2-C product/test implementation과 machine-readable evidence receipt.
 - 가장 큰 갭: deterministic retrieval/knowledge disposition과 autonomous loop/unseen benchmark가 남아 있다.
 
 ---
