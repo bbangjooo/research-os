@@ -26,6 +26,7 @@ from research_os.errors import ConfigurationError, IntegrityError
 from research_os.kernel.events import Event, EventLog
 from research_os.kernel.ids import new_id, stable_id, validate_namespaced_id
 from research_os.memory import (
+    PROGRAM_CLAIM_RECORDED_EVENT,
     Claim,
     OriginEvidenceRef,
     ProgramEvent,
@@ -58,6 +59,7 @@ NEXT_QUERY_PLAN_SCHEMA_VERSION = 1
 
 EPISODE_STARTED = "research_os.autonomy.episode_started.v1"
 PROVIDER_CALL_STARTED = "research_os.autonomy.provider_call_started.v1"
+PROVIDER_OUTPUT_CAPTURED = "research_os.autonomy.provider_output_captured.v1"
 PROPOSAL_RETURNED = "research_os.autonomy.proposal_returned.v1"
 PREFLIGHT_ACCEPTED = "research_os.autonomy.preflight_accepted.v1"
 EXPERIMENT_STARTED = "research_os.autonomy.experiment_started.v1"
@@ -72,6 +74,7 @@ AUTONOMY_EVENT_TYPES = frozenset(
     {
         EPISODE_STARTED,
         PROVIDER_CALL_STARTED,
+        PROVIDER_OUTPUT_CAPTURED,
         PROPOSAL_RETURNED,
         PREFLIGHT_ACCEPTED,
         EXPERIMENT_STARTED,
@@ -620,6 +623,7 @@ class AutonomyEpisodeState:
     pending_call_kind: str | None = None
     pending_call_id: str | None = None
     pending_request: FrozenJSONObject | None = None
+    pending_output: FrozenJSONObject | None = None
     provider_calls: int = 0
     invalid_packets: int = 0
     token_units_reserved: int = 0
@@ -684,6 +688,7 @@ class AutonomyEpisodeState:
                     "class_states": len(self.class_state_history),
                 },
                 "pending_call_kind": self.pending_call_kind,
+                "pending_output": None if self.pending_output is None else copy_json_object(self.pending_output),
                 "budget": self.budget_dict(),
                 "stop_reason": self.stop_reason,
                 "complete": self.complete,
@@ -897,6 +902,25 @@ def reduce_autonomy_events(
                 token_units_reserved=token_units,
                 elapsed_milliseconds_reserved=elapsed,
             )
+        elif event.event_type == PROVIDER_OUTPUT_CAPTURED:
+            value = _payload(
+                event,
+                frozenset({"call_id", "call_kind", "request_digest", "output", "output_digest"}),
+                state.episode_id,
+            )
+            kind = _text(value["call_kind"], path="$.call_kind")
+            output = _frozen_object(value["output"], field_name="captured provider output")
+            request = cast(Mapping[str, Any], state.pending_request)
+            if (
+                kind not in {"diagnosis", "synthesis"}
+                or state.pending_output is not None
+                or state.pending_call_kind != kind
+                or value["call_id"] != state.pending_call_id
+                or value["request_digest"] != sha256_json(request)
+                or value["output_digest"] != sha256_json(output)
+            ):
+                raise _fail("AUTONOMY_STATE_INVALID", "captured provider output binding changed")
+            state = replace(state, pending_output=output)
         elif event.event_type == PROPOSAL_RETURNED:
             value = _payload(
                 event,
@@ -922,6 +946,7 @@ def reduce_autonomy_events(
                 pending_call_kind=None,
                 pending_call_id=None,
                 pending_request=None,
+                pending_output=None,
             )
         elif event.event_type == PREFLIGHT_ACCEPTED:
             value = _payload(
@@ -1037,6 +1062,7 @@ def reduce_autonomy_events(
                 pending_call_kind=None,
                 pending_call_id=None,
                 pending_request=None,
+                pending_output=None,
             )
         elif event.event_type == SYNTHESIS_LINKED:
             value = _payload(
@@ -1079,6 +1105,7 @@ def reduce_autonomy_events(
                 pending_call_kind=None,
                 pending_call_id=None,
                 pending_request=None,
+                pending_output=None,
             )
         elif event.event_type == NEXT_PLANNED:
             value = _payload(
@@ -1139,6 +1166,7 @@ def reduce_autonomy_events(
                 pending_call_kind=None,
                 pending_call_id=None,
                 pending_request=None,
+                pending_output=None,
             )
         elif event.event_type == STOPPED:
             value = _payload(
@@ -1417,6 +1445,11 @@ class FiniteAutonomyLoop:
     def episode(self, episode_id: str) -> AutonomyEpisodeLog:
         return AutonomyEpisodeLog(self.root, self.service.config.project_id, episode_id)
 
+    def _checkpoint(self, name: str) -> None:
+        """Protected fault-injection seam; production execution is a no-op."""
+
+        del name
+
     @staticmethod
     def _project_token(context: Mapping[str, Any]) -> str:
         snapshot = context.get("snapshot")
@@ -1517,12 +1550,14 @@ class FiniteAutonomyLoop:
             project_log=self.service.event_log,
             program_store=self.program_store,
         )
+        summary = _episode_summary(state, reason, complete)
+        self._checkpoint("stop_summary_before_append")
         log.append(
             STOPPED,
             {
                 "stop_reason": reason,
                 "complete": complete,
-                "summary": _episode_summary(state, reason, complete),
+                "summary": summary,
             },
         )
         return log.state()
@@ -1551,7 +1586,15 @@ class FiniteAutonomyLoop:
         self, log: AutonomyEpisodeLog, state: AutonomyEpisodeState, kind: str, request: ProviderRequest
     ) -> tuple[str, Mapping[str, Any]] | None:
         request_dict = cast(Any, request).to_dict()
-        if canonical_token_units(request_dict) > state.policy.provider_token_reservation:
+        pending = state.pending_call_id is not None
+        if pending and (
+            state.pending_call_kind != kind
+            or canonical_json_bytes(state.pending_request) != canonical_json_bytes(request_dict)
+        ):
+            raise _fail("AUTONOMY_RECOVERY_EVIDENCE_INVALID", "pending provider request changed")
+        if pending and state.pending_output is not None:
+            return state.pending_call_id, state.pending_output
+        if not pending and canonical_token_units(request_dict) > state.policy.provider_token_reservation:
             self._stop(
                 log,
                 state,
@@ -1559,23 +1602,38 @@ class FiniteAutonomyLoop:
                 complete=self._is_complete(state),
             )
             return None
-        call_id = new_id("providercall")
-        log.append(
-            PROVIDER_CALL_STARTED,
-            {
-                "call_id": call_id,
-                "call_kind": kind,
-                "request": request_dict,
-                "request_digest": sha256_json(request_dict),
-                "token_reservation": state.policy.provider_token_reservation,
-                "elapsed_reservation_milliseconds": state.policy.provider_elapsed_reservation_milliseconds,
-            },
-        )
+        call_id = state.pending_call_id if pending else new_id("providercall")
+        if not pending:
+            log.append(
+                PROVIDER_CALL_STARTED,
+                {
+                    "call_id": call_id,
+                    "call_kind": kind,
+                    "request": request_dict,
+                    "request_digest": sha256_json(request_dict),
+                    "token_reservation": state.policy.provider_token_reservation,
+                    "elapsed_reservation_milliseconds": state.policy.provider_elapsed_reservation_milliseconds,
+                },
+            )
+            self._checkpoint(f"{kind}_call_started")
         try:
             raw = self.provider.invoke(request)
             normalized = normalize_json_object(raw, field_name=f"provider {kind} result")
             if canonical_token_units(normalized) > state.policy.provider_token_reservation:
                 raise ProviderPortError("PROVIDER_OUTPUT_LIMIT", "provider response exceeded reservation")
+            self._checkpoint(f"{kind}_output_before_capture")
+            if kind in {"diagnosis", "synthesis"}:
+                log.append(
+                    PROVIDER_OUTPUT_CAPTURED,
+                    {
+                        "call_id": call_id,
+                        "call_kind": kind,
+                        "request_digest": sha256_json(request_dict),
+                        "output": normalized,
+                        "output_digest": sha256_json(normalized),
+                    },
+                )
+                self._checkpoint(f"{kind}_output_captured")
             return call_id, normalized
         except ProviderPortError as exc:
             self._reject(log, call_id=call_id, kind=kind, code=exc.code, stage="transport")
@@ -1597,6 +1655,11 @@ class FiniteAutonomyLoop:
     def _proposal_step(
         self, log: AutonomyEpisodeLog, state: AutonomyEpisodeState
     ) -> AutonomyEpisodeState:
+        if state.pending_call_kind == "proposal":
+            request_snapshot = ProgramSnapshot.from_mapping(
+                state.current_proposal_request.program_snapshot
+            )
+            self._require_program_head(request_snapshot.program_head)
         invoked = self._invoke(log, state, "proposal", state.current_proposal_request)
         if invoked is None:
             return log.state()
@@ -1639,6 +1702,76 @@ class FiniteAutonomyLoop:
         )
         return log.state()
 
+    def _recover_experiment_result(
+        self, state: AutonomyEpisodeState
+    ) -> dict[str, Any] | None:
+        assert state.packet is not None
+        related = [
+            item
+            for item in self._science().registrations
+            if item.proposal_digest == state.packet.proposal.digest
+        ]
+        if len(related) > 1:
+            raise _fail("AUTONOMY_RECOVERY_EVIDENCE_INVALID", "multiple matching registrations")
+        if not related:
+            return None
+        registration = related[0]
+        if (
+            registration.proposal.to_dict() != state.packet.proposal.to_dict()
+            or registration.candidate != copy_json_object(state.packet.candidate)
+            or registration.generation_id != state.packet.proposal.generation_id
+            or registration.evaluation_scope_id != state.packet.proposal.evaluation_scope_id
+        ):
+            raise _fail(
+                "AUTONOMY_RECOVERY_EVIDENCE_INVALID",
+                "matching registration changed its proposal binding",
+            )
+        if not registration.is_terminal:
+            self.service.doctor()
+            registration = next(
+                item
+                for item in self._science().registrations
+                if item.experiment_id == registration.experiment_id
+            )
+        payload = registration.terminal_payload
+        if not registration.is_terminal or payload is None:
+            raise _fail("AUTONOMY_RECOVERY_EVIDENCE_INVALID", "matching registration is not terminal")
+        return {
+            **payload,
+            "project_id": state.project_id,
+            "event_sequence": registration.terminal_event_sequence,
+        }
+
+    def _require_program_head(self, expected: tuple[int, str | None]) -> None:
+        observed = self.program_store.snapshot()[0].program_head
+        if observed != expected:
+            raise _fail(
+                "AUTONOMY_RECOVERY_STALE",
+                "Program head changed across a recovery boundary",
+                expected_program_head=expected,
+                observed_program_head=observed,
+            )
+
+    @staticmethod
+    def _ref_head(ref: Mapping[str, Any]) -> tuple[int, str]:
+        return (
+            _integer(ref.get("event_sequence"), path="$.program_event.event_sequence", minimum=1),
+            _digest(ref.get("event_hash"), path="$.program_event.event_hash"),
+        )
+
+    def _existing_disposition(self, state: AutonomyEpisodeState) -> ProgramEvent | None:
+        assert state.packet is not None
+        matches = [
+            event
+            for event in self.program_store.log.read()
+            if event.payload.get("proposal_digest") == state.packet.proposal.digest
+            and event.payload.get("knowledge_disposition_digest")
+            == state.packet.knowledge_disposition.digest
+        ]
+        if len(matches) > 1:
+            raise _fail("AUTONOMY_RECOVERY_EVIDENCE_INVALID", "duplicate dispositions")
+        return matches[0] if matches else None
+
     def _run_step(
         self, log: AutonomyEpisodeLog, state: AutonomyEpisodeState
     ) -> AutonomyEpisodeState:
@@ -1646,27 +1779,36 @@ class FiniteAutonomyLoop:
         science = self._science()
         if science.contract is None:
             return self._stop(log, state, "study_stop", complete=True)
-        execution_id = new_id("execution")
-        log.append(
-            EXPERIMENT_STARTED,
-            {
-                "execution_id": execution_id,
-                "packet_id": state.packet.packet_id,
-                "elapsed_reservation_milliseconds": (
-                    science.contract.budget.elapsed_reservation_per_attempt_milliseconds
-                ),
-            },
-        )
-        with tempfile.TemporaryDirectory(
-            prefix="research-os-autonomy-", dir=self.service.config.resolved_runtime_dir
-        ) as directory:
-            candidate_path = Path(directory) / "candidate.json"
-            candidate_path.write_bytes(canonical_json_bytes(state.packet.candidate))
-            result = self.service.run_once(
-                candidate_path,
-                context_token=state.current_project_context_token,
-                proposal=state.packet.proposal.to_dict(),
+        execution_id = state.execution_id or new_id("execution")
+        if not state.experiment_started:
+            log.append(
+                EXPERIMENT_STARTED,
+                {
+                    "execution_id": execution_id,
+                    "packet_id": state.packet.packet_id,
+                    "elapsed_reservation_milliseconds": (
+                        science.contract.budget.elapsed_reservation_per_attempt_milliseconds
+                    ),
+                },
             )
+            self._checkpoint("experiment_started_before_service")
+        result = self._recover_experiment_result(state)
+        if result is None:
+            if science.active_generation_id != state.packet.proposal.generation_id:
+                raise _fail(
+                    "AUTONOMY_RECOVERY_STALE",
+                    "study generation changed before experiment registration",
+                )
+            with tempfile.TemporaryDirectory(
+                prefix="research-os-autonomy-", dir=self.service.config.resolved_runtime_dir
+            ) as directory:
+                candidate_path = Path(directory) / "candidate.json"
+                candidate_path.write_bytes(canonical_json_bytes(state.packet.candidate))
+                result = self.service.run_once(
+                    candidate_path,
+                    context_token=state.current_project_context_token,
+                    proposal=state.packet.proposal.to_dict(),
+                )
         experiment_id = _identifier(result.get("experiment_id"), "experiment", path="$.result.experiment_id")
         sequence = _integer(result.get("event_sequence"), path="$.result.event_sequence", minimum=1)
         terminal = next(
@@ -1680,17 +1822,21 @@ class FiniteAutonomyLoop:
         )
         if terminal is None:
             raise _fail("AUTONOMY_EXECUTION_INVALID", "ResearchService omitted its terminal event")
-        snapshot, _ = self.program_store.snapshot()
-        disposition_event = record_agent_context_v3_knowledge_disposition(
-            state.current_context,
-            current_project_context_token=state.current_project_context_token,
-            current_claim_snapshot=self.program_store.claim_snapshot(),
-            proposal=state.packet.proposal,
-            disposition=state.packet.knowledge_disposition,
-            program_store=self.program_store,
-            project_log=self.service.event_log,
-            expected_program_head=snapshot.program_head,
-        )
+        self._checkpoint("project_terminal_before_disposition")
+        disposition_event = self._existing_disposition(state)
+        if disposition_event is None:
+            expected = state.packet.program_snapshot.program_head
+            disposition_event = record_agent_context_v3_knowledge_disposition(
+                state.current_context,
+                current_project_context_token=state.current_project_context_token,
+                current_claim_snapshot=self.program_store.claim_snapshot(),
+                proposal=state.packet.proposal,
+                disposition=state.packet.knowledge_disposition,
+                program_store=self.program_store,
+                project_log=self.service.event_log,
+                expected_program_head=expected,
+            )
+        self._checkpoint("disposition_before_experiment_link")
         terminal_ref = {
             **_event_ref(terminal),
             "event_type": terminal.event_type,
@@ -1719,7 +1865,9 @@ class FiniteAutonomyLoop:
     ) -> AutonomyEpisodeState:
         assert state.packet is not None and state.terminal_ref is not None
         experiment_id = cast(str, state.terminal_ref["experiment_id"])
-        request = ProviderDiagnosisRequest.from_mapping(
+        request = ProviderDiagnosisRequest.from_mapping(state.pending_request) if (
+            state.pending_call_kind == "diagnosis" and state.pending_request is not None
+        ) else ProviderDiagnosisRequest.from_mapping(
             {
                 "provider_diagnosis_request_schema_version": 1,
                 "provider_request_id": new_id("providerrequest"),
@@ -1745,16 +1893,21 @@ class FiniteAutonomyLoop:
             ):
                 raise _fail("AUTONOMY_DIAGNOSIS_INVALID", "Diagnosis packet binding changed")
             diagnosis_result = self.service.record_diagnosis(packet.diagnosis.to_dict())
+            self._checkpoint("project_diagnosis_before_origin")
             snapshot, _ = self.program_store.snapshot()
             origin = next(
                 (item for item in snapshot.origins if item.diagnosis_id == diagnosis_result["diagnosis_id"]),
                 None,
             )
             if origin is None:
+                assert state.disposition_ref is not None
+                expected = self._ref_head(
+                    cast(Mapping[str, Any], state.disposition_ref["program_event"])
+                )
                 origin, origin_event = self.program_store.link_origin(
                     self.service.event_log,
                     cast(str, diagnosis_result["diagnosis_id"]),
-                    expected_program_head=snapshot.program_head,
+                    expected_program_head=expected,
                 )
             else:
                 origin_event = next(
@@ -1763,6 +1916,7 @@ class FiniteAutonomyLoop:
                     if cast(Mapping[str, Any], event.payload.get("origin_evidence", {})).get("origin_id")
                     == origin.origin_id
                 )
+            self._checkpoint("origin_before_diagnosis_link")
             science = self._science()
             class_state = next(
                 item
@@ -1810,7 +1964,9 @@ class FiniteAutonomyLoop:
             and state.terminal_ref is not None
         )
         snapshot, _ = self.program_store.snapshot()
-        request = ProviderSynthesisRequest.from_mapping(
+        request = ProviderSynthesisRequest.from_mapping(state.pending_request) if (
+            state.pending_call_kind == "synthesis" and state.pending_request is not None
+        ) else ProviderSynthesisRequest.from_mapping(
             {
                 "provider_synthesis_request_schema_version": 1,
                 "provider_request_id": new_id("providerrequest"),
@@ -1824,6 +1980,9 @@ class FiniteAutonomyLoop:
                 "authorized_action": None,
             }
         )
+        request_snapshot = ProgramSnapshot.from_mapping(request.program_snapshot)
+        if state.pending_call_kind == "synthesis" and state.pending_output is None:
+            self._require_program_head(request_snapshot.program_head)
         invoked = self._invoke(log, state, "synthesis", request)
         if invoked is None:
             return log.state()
@@ -1852,11 +2011,46 @@ class FiniteAutonomyLoop:
             )
             if observed != expected:
                 raise _fail("AUTONOMY_SYNTHESIS_INVALID", "synthesis evidence binding changed")
-            claim_event = self.program_store.append_claim(
-                packet.claim,
-                self.service.event_log,
-                expected_program_head=snapshot.program_head,
-            )
+            matches = [
+                event
+                for event in self.program_store.log.read()
+                if event.event_type == PROGRAM_CLAIM_RECORDED_EVENT
+                and cast(Mapping[str, Any], event.payload.get("claim", {})).get("claim_id")
+                == packet.claim.claim_id
+            ]
+            if len(matches) > 1:
+                raise _fail("AUTONOMY_RECOVERY_EVIDENCE_INVALID", "duplicate canonical Claims")
+            if matches:
+                claim_event = matches[0]
+                if (
+                    claim_event.payload.get("claim_digest") != packet.claim.digest
+                    or canonical_json_bytes(claim_event.payload.get("claim"))
+                    != canonical_json_bytes(packet.claim.to_dict())
+                ):
+                    raise _fail(
+                        "AUTONOMY_RECOVERY_EVIDENCE_INVALID",
+                        "canonical Claim body changed",
+                    )
+                if (
+                    (claim_event.sequence - 1, claim_event.prev_hash)
+                    != request_snapshot.program_head
+                    or self.program_store.snapshot()[0].program_head
+                    != (claim_event.sequence, claim_event.hash)
+                ):
+                    raise _fail(
+                        "AUTONOMY_RECOVERY_STALE",
+                        "canonical Claim is no longer the captured request successor",
+                    )
+            else:
+                self._require_program_head(request_snapshot.program_head)
+                claim_event = self.program_store.append_claim(
+                    packet.claim,
+                    self.service.event_log,
+                    expected_program_head=request_snapshot.program_head,
+                )
+            self._checkpoint("claim_before_synthesis_link")
+        except AutonomyLoopError:
+            raise
         except Exception:
             return self._reject(
                 log,
@@ -1889,6 +2083,7 @@ class FiniteAutonomyLoop:
         snapshot, _ = self.program_store.snapshot()
         query = packet.next_query_plan.bind(snapshot)
         context, token, request = self._bound_request(query, limit=state.policy.context_limit)
+        self._checkpoint("next_context_before_append")
         log.append(
             NEXT_PLANNED,
             {
@@ -1911,13 +2106,9 @@ class FiniteAutonomyLoop:
             return state
         if state.phase == "stop":
             return state
-        if state.pending_call_id is not None or state.experiment_started:
-            raise _fail(
-                "AUTONOMY_INCOMPLETE_STEP",
-                "incomplete-step recovery belongs to M3-C",
-                phase=state.phase,
-            )
         if state.phase in {"context", "next"}:
+            if state.pending_call_kind == "proposal":
+                return self._proposal_step(log, state)
             reason = self._guard(state, full_cycle=True)
             return (
                 self._stop(log, state, reason, complete=self._is_complete(state))
@@ -1929,6 +2120,8 @@ class FiniteAutonomyLoop:
         if state.phase == "preflight":
             return self._run_step(log, state)
         if state.phase == "run":
+            if state.pending_call_kind == "diagnosis":
+                return self._diagnosis_step(log, state)
             reason = self._guard(state, full_cycle=False)
             return (
                 self._stop(log, state, reason, complete=False)
@@ -1936,6 +2129,8 @@ class FiniteAutonomyLoop:
                 else self._diagnosis_step(log, state)
             )
         if state.phase == "diagnosis":
+            if state.pending_call_kind == "synthesis":
+                return self._synthesis_step(log, state)
             reason = self._guard(state, full_cycle=False)
             return (
                 self._stop(log, state, reason, complete=False)
