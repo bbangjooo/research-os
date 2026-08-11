@@ -1,10 +1,10 @@
 # §08 — M2-B Conditional Claim·evidence relations (2026-08-11)
 
-> Status: **PRE-SPEC — implementation results not observed**
+> Status: **CANDIDATE 5/5 — implementation evidence PASS; critic/audit pending**
 > Core: [`docs/research-os-status.md`](../research-os-status.md) §2
 > Previous phase: [§07](07-2026-08-11-m2-a-program-manifest-log.md)
 > Pipeline impact: [`docs/research-os-pipeline.md`](../research-os-pipeline.md) §4, §8~§10
-> Active milestone: `M2-B` at `0/5`; this document freezes the acceptance boundary
+> Active milestone: `M2-B` at candidate `5/5`; CLOSE requires critic and independent audit
 
 ## 08.0 TL;DR
 
@@ -14,6 +14,10 @@ exact bind한 immutable `active/observed` 객체로 기록한다. `contested`, `
 원본 Claim을 수정하지 않고 canonical relation event의 reducer가 파생한다. 이름만 다른 동일
 manifest scope, 다른 evaluation seal/compatibility, 같은 origin을 replication으로 포장하는 관계는
 no-write로 거절한다.
+
+Implementation checkpoint `529283c`에서 frozen `25/25`, focused+direct `33/33`, M2-A 포함
+`55/55`, adjacent `97/97`, fresh full `668 passed, 115 subtests`가 PASS했다. 이 수치는 critic/audit
+전 candidate evidence이며 M2-B CLOSE나 v0.4 release를 뜻하지 않는다.
 
 ## 08.1 Scope, end state, and authority
 
@@ -146,7 +150,7 @@ Claim-only stub. The original development Claim remains bound to the M1-D suppor
 
 **영향 받은 M_i.j**: `M2-B`
 
-**현재 라벨**: `ADVANCE — PRE-SPEC 0/5`
+**현재 라벨**: `ADVANCE — candidate 5/5; critic/audit pending`
 
 | Frozen conjunct | Pre-result acceptance |
 |---|---|
@@ -171,7 +175,40 @@ forgery/overlap이 canonical log에 0건 쓰이는 것을 보여야 한다.
 M2-B가 PASS해도 retrieval precision/recall, context stale token, knowledge use/reject disposition은
 M2-C/D에 남는다. 따라서 M2-B alone으로 Program memory를 complete 또는 v0.4로 청구하지 않는다.
 
-## 08.8 Next action
+## 08.8 Result chronology and divergence
 
-이 pre-spec과 frozen 25 cases를 checkpoint한 뒤 independent critic이 Q1~Q8을 생성한다. 질문을
-저장하고 나서만 product code를 작성한다.
+- Pre-spec/frozen denominator: `5659c67`; independent critic Q1~Q8: `cf20578`; product/test
+  implementation: `529283c`. Product code와 첫 observer result는 두 pre-result commits보다 뒤다.
+- 첫 focused 실행은 `6 failed, 26 passed`였다. Five frozen semantics나 expected를 바꾸지 않았다.
+  다섯 relation no-write path가 prospective `ProgramMemoryError`를 committed-log corruption용
+  `IntegrityError`로 포장한 writer boundary와, canonical replication history helper의 필수
+  `retry_of` 인자 누락이 원인이었다.
+- Correction은 existing committed stream semantic failure는 `IntegrityError`, prospective append
+  rejection은 stable Claim error/no-write로 구분하고 helper에 `retry_of=None`을 명시했다.
+- Corrected frozen+direct는 `33 passed in 0.98s`, M2-A combined는 `55 passed`, adjacent M1-C/M1-D/
+  storage는 `97 passed`, ruff/ty/diff는 PASS했다.
+- Q4 pre-spec의 strict ClaimSnapshot replay boundary를 완성한 뒤 final focused denominator는
+  그대로 25이며 direct strict-snapshot test만 추가됐다. Frozen case/operation/expected 변경은 0이다.
+- Fresh full은 Python 3.12에서 `668 passed, 115 subtests passed in 1216.61s (0:20:16)`다.
+  Claim graph recursive authority는 `10` values / non-null `0`; 세 외부 control-tree snapshot은
+  v0.3 receipt와 `3/3` exact 동일하다.
+
+## 08.9 Candidate conjunct evidence
+
+| Frozen conjunct | Candidate result | Reproducible evidence |
+|---|---|---|
+| Claim applicability/status/maturity | PASS | cases 1~5; strict ID/digest and Snapshot parser |
+| exact origin/event/artifact/seal | PASS | cases 6~12; omission/addition/reorder/substitution direct no-write |
+| four relation reducers | PASS | cases 13~18; mixed precedence direct replay |
+| immutable supersession | PASS | cases 15, 19~21; original bytes/digest unchanged |
+| scope fail-closed | PASS | cases 16, 22~25; canonical replication history + one-factor rejects |
+
+Measured code volume from `cf20578` is product additions `1,463`, tests+fixture `976`, docs through
+critic `249`, total `2,688`; all pre-result category and total caps pass. Claim mode remains
+`CONFIRMATORY`: schema, 25 denominator, error codes, scope rules and strict snapshot requirement were
+precommitted. The failed first run and its implementation corrections are preserved rather than counted.
+
+## 08.10 Next action
+
+Independent critic answers Q1~Q8 against `529283c` and the fresh evidence. PASS 뒤 candidate status와
+pipeline을 동기화하고, separate progress auditor가 PASS해야만 M2-B를 CLOSE한다.
