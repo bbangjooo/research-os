@@ -82,3 +82,8 @@ DIRECT. Core schema와 18 unchanged cases는 `d635c61/eaf1294→b10e1b4`라 CONF
 Historical harness/total-cap과 critic 뒤 strengthened race expected는 EXPLORATORY이며
 `704fcb8→5d02fd0→635+115` chronology를 가진다. Prior race/full을 무효화하고 phase 전체를
 MIXED로 제한했으므로 결과 뒤 기준 강화를 소급하지 않는다.
+
+## Verify verdict
+
+`abe68dc` 기준 Q1~Q8 모두 PASS. Independent reproduction: focused `22`, race `50/50`,
+ruff/ty/diff PASS, authority `12/0 non-null`, external snapshots `3/3 unchanged`.

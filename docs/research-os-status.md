@@ -42,8 +42,8 @@
     M1-E와 parent M1/v0.3을 `CLOSE`했고 M2-A를 활성화했다.
   - M2-A는 separate ProgramManifest/ProgramLog, exact M1 origin replay와 rebuildable projection을
     구현했다. First critic의 same-head race FAIL을 barrier+thread-attributed loser writes `0/0`으로
-    보정했고 corrected `22/22`, race `50/50`, fresh full `635+115`가 PASS했다. Critic reverify와
-    progress audit 전이므로 candidate `4/4`다.
+    보정했고 corrected `22/22`, race `50/50`, fresh full `635+115`와 critic이 PASS했다.
+    Progress audit 전이므로 candidate `4/4`다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 
@@ -63,7 +63,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** M2-A corrected evidence의 critic reverify와 progress audit를 통과한다.
+- [ ] **단일 최우선 행동:** M2-A independent progress audit를 통과한다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
@@ -74,7 +74,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | 진행 상태 core | `docs/research-os-status.md` | active | M1/v0.3 closed; M2-A active |
 | M1-E vertical slice | `docs/research-os-status/05-2026-08-11-m1-e-usable-context.md` | complete; independent audit PASS | opt-in Context v3 + Diagnosis template + disposable example PASS |
 | M1-E release close | `docs/research-os-status/06-2026-08-11-m1-e-release-close.md` | complete; independent audit PASS | receipt `e120292`; `609+115`; installer `6/6` |
-| M2-A Program memory boundary | `docs/research-os-status/07-2026-08-11-m2-a-program-manifest-log.md` | candidate 4/4; re-audit pending | corrected `22`, race `50/50`, full `635+115` |
+| M2-A Program memory boundary | `docs/research-os-status/07-2026-08-11-m2-a-program-manifest-log.md` | candidate 4/4; audit pending | corrected `22`, race `50/50`, full `635+115` |
 | 방법론 pipeline core | `docs/research-os-pipeline.md` | active | M1 closed; M2-A active |
 
 ### 0.5 알려진 잔여 이슈
@@ -194,7 +194,7 @@ EXPLORATORY의 `MIXED`다.
 - **직전 close가 가능하게 한 작업**: M1-E가 Context v3, legacy compatibility, managed
   upgrade와 v0.3 release를 5/5로 닫고 parent M1의 stable identity를 확정했다.
 - **현재 close audit**: M2-A first critic FAIL(Q1/Q2/Q6/Q8) 뒤 race correction PASS;
-  paired-core candidate sync 완료, critic reverify와 progress audit pending.
+  paired-core candidate sync와 critic Q1~Q8 PASS, progress audit pending.
 - **이 M.j가 닫혀야 다음에 가능해지는 작업**: M2-B Claim이 append-only ProgramLog와 exact
   M1 Diagnosis/ClassState origin을 안전하게 참조할 수 있다.
 - **M1 parent close까지 남은 sub**: 없음.
@@ -208,7 +208,7 @@ EXPLORATORY의 `MIXED`다.
 | M1-C | Typed Proposal과 replication identity | 4/4 ✅ | closed | 03 | phase §03.4~§03.6.4; manifest `20/20`; critic + auditor PASS |
 | M1-D | Diagnosis·ClassState·semantic frontier | 5/5 ✅ | closed | 04 | phase §04.5~§04.6.4; transition `26/23/54/37/7`; negative `460/460`; critic + auditor PASS |
 | M1-E | Context v3·legacy compatibility·v0.3 release | 5/5 ✅ | closed | 06 | `e120292`; `609+115`; installer `6/6`; critic + auditor PASS |
-| M2-A | ProgramManifest·ProgramLog | 4/4 ✅ | candidate | — | phase 07; corrected critic/audit pending |
+| M2-A | ProgramManifest·ProgramLog | 4/4 ✅ | candidate | — | phase 07; critic PASS, audit pending |
 | M2-B | Conditional Claim과 evidence 관계 | 0/5 ✅ | open | — | pipeline §9.4 |
 | M2-C | Deterministic retrieval·Context integration | 0/5 ✅ | open | — | pipeline §9.4 |
 | M2-D | Knowledge disposition·legacy import·v0.4 release | 0/5 ✅ | open | — | pipeline §9.4 |
@@ -228,7 +228,7 @@ EXPLORATORY의 `MIXED`다.
 | 04 | 2026-08-10~11 | M1-D | 5/5 | close | final corrected manifest/transition, direct `67`, bounded `56`, compatibility `20/20`, single floor PASS; auditor PASS |
 | 05 | 2026-08-11 | M1-E | 1/5 | advance | opt-in v3 + template + disposable E2E PASS; M1-E close는 아님 |
 | 06 | 2026-08-11 | M1-E | 5/5 | close | third correction `609+115`; installer `6/6`; critic + auditor PASS; parent M1 closed |
-| 07 | 2026-08-11 | M2-A | 4/4 | advance | race correction `50/50`; fresh `635+115`; critic reverify/audit pending |
+| 07 | 2026-08-11 | M2-A | 4/4 | advance | race `50/50`; fresh `635+115`; critic PASS, audit pending |
 
 #### 2.3.5 Gate-bypass 기록
 
@@ -253,7 +253,7 @@ EXPLORATORY의 `MIXED`다.
 | 04 | 2026-08-10~11 / M1-D | [`research-os-status/04-2026-08-10-m1-d-diagnosis-class-frontier.md`](research-os-status/04-2026-08-10-m1-d-diagnosis-class-frontier.md) | Diagnosis·ClassState·frontier 5/5 closed; corrected oracle + critic + auditor PASS |
 | 05 | 2026-08-11 / M1-E vertical slice | [`research-os-status/05-2026-08-11-m1-e-usable-context.md`](research-os-status/05-2026-08-11-m1-e-usable-context.md) | Context v3 + Diagnosis template + disposable E2E; independent audit PASS |
 | 06 | 2026-08-11 / M1-E release close | [`research-os-status/06-2026-08-11-m1-e-release-close.md`](research-os-status/06-2026-08-11-m1-e-release-close.md) | M1-E 5/5 + parent M1 closed; critic + progress audit PASS |
-| 07 | 2026-08-11 / M2-A | [`research-os-status/07-2026-08-11-m2-a-program-manifest-log.md`](research-os-status/07-2026-08-11-m2-a-program-manifest-log.md) | ProgramManifest/Log candidate 4/4; critic reverify/audit pending |
+| 07 | 2026-08-11 / M2-A | [`research-os-status/07-2026-08-11-m2-a-program-manifest-log.md`](research-os-status/07-2026-08-11-m2-a-program-manifest-log.md) | ProgramManifest/Log candidate 4/4; critic PASS, audit pending |
 
 ---
 
@@ -264,7 +264,7 @@ EXPLORATORY의 `MIXED`다.
 - 마지막 유효 측정: single verifier `609+115`, tokenless `7/7`, installer structured `6/6`,
   ruff/ty/diff, external no-write, exact product tree와 wheel/temp install PASS. Prior aggregate
   installer `6/6`과 initial invalid runs는 RESULT-INVALID/history로 제외했다.
-- 다음 1행동: M2-A critic reverify와 independent progress audit.
+- 다음 1행동: M2-A independent progress audit.
 - 가장 큰 갭: program Claim/retrieval과 autonomous loop/unseen benchmark가 M2/M3에 남아 있다.
 
 ---
@@ -370,4 +370,5 @@ EXPLORATORY의 `MIXED`다.
 - [x] Cycle 06 independent progress auditor final verdict — **PASS** (`research-os-status/06-m1-e-release-close.audit.md`)
 - [x] Cycle 07 paired core에 M2-A candidate 4/4와 Program Memory `✗→△` 동기화
 - [x] Cycle 07 first critic FAIL의 same-head race를 barrier·loser writes `0/0`으로 correction
-- [ ] Cycle 07 critic reverify와 independent progress audit
+- [x] Cycle 07 critic Q1~Q8 corrected reverify — **PASS**
+- [ ] Cycle 07 independent progress audit
