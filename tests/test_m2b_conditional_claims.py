@@ -646,6 +646,18 @@ def _replicates(root: Path) -> dict[str, Any]:
     }
 
 
+def _relation_no_write(
+    store: ProgramStore, relation: ClaimRelation, head: ProgramEvent
+) -> dict[str, Any]:
+    before_log = store.log.path.read_bytes()
+    before_relations = len(store.claim_snapshot().relations)
+    with pytest.raises(ProgramMemoryError) as caught:
+        store.append_relation(relation, expected_program_head=(head.sequence, head.hash))
+    assert store.log.path.read_bytes() == before_log
+    return {"error_code": caught.value.code,
+            "relation_delta": len(store.claim_snapshot().relations) - before_relations}
+
+
 def _duplicate_relation(root: Path) -> dict[str, Any]:
     _, store, target, source, head = _two_same_scope_claims(root)
     first = ClaimRelation.from_mapping(_relation_raw("supports", source.claim_id, target.claim_id))
@@ -655,10 +667,7 @@ def _duplicate_relation(root: Path) -> dict[str, Any]:
             "supports", source.claim_id, target.claim_id, rationale="A different duplicate rationale."
         )
     )
-    before = len(store.claim_snapshot().relations)
-    with pytest.raises(ProgramMemoryError) as caught:
-        store.append_relation(duplicate, expected_program_head=(head.sequence, head.hash))
-    return {"error_code": caught.value.code, "relation_delta": len(store.claim_snapshot().relations) - before}
+    return _relation_no_write(store, duplicate, head)
 
 
 def _unknown_relation(root: Path) -> dict[str, Any]:
@@ -666,9 +675,7 @@ def _unknown_relation(root: Path) -> dict[str, Any]:
     claim, head = _append_claim(store, project_log, head, _claim_raw(), "known")
     unknown = "claim_00000000000000000000000000000000"
     relation = ClaimRelation.from_mapping(_relation_raw("supports", claim.claim_id, unknown))
-    with pytest.raises(ProgramMemoryError) as caught:
-        store.append_relation(relation, expected_program_head=(head.sequence, head.hash))
-    return {"error_code": caught.value.code, "relation_delta": 0}
+    return _relation_no_write(store, relation, head)
 
 
 def _immutable(root: Path) -> dict[str, Any]:
@@ -706,9 +713,7 @@ def _second_successor(root: Path) -> dict[str, Any]:
     first = ClaimRelation.from_mapping(_relation_raw("supersedes", claims[1].claim_id, claims[0].claim_id))
     head = store.append_relation(first, expected_program_head=(head.sequence, head.hash))
     second = ClaimRelation.from_mapping(_relation_raw("supersedes", claims[2].claim_id, claims[0].claim_id))
-    with pytest.raises(ProgramMemoryError) as caught:
-        store.append_relation(second, expected_program_head=(head.sequence, head.hash))
-    return {"error_code": caught.value.code, "relation_delta": 0}
+    return _relation_no_write(store, second, head)
 
 
 def _cycle(root: Path) -> dict[str, Any]:
@@ -716,9 +721,7 @@ def _cycle(root: Path) -> dict[str, Any]:
     forward = ClaimRelation.from_mapping(_relation_raw("supersedes", source.claim_id, target.claim_id))
     head = store.append_relation(forward, expected_program_head=(head.sequence, head.hash))
     reverse = ClaimRelation.from_mapping(_relation_raw("supersedes", target.claim_id, source.claim_id))
-    with pytest.raises(ProgramMemoryError) as caught:
-        store.append_relation(reverse, expected_program_head=(head.sequence, head.hash))
-    return {"error_code": caught.value.code, "relation_delta": 0}
+    return _relation_no_write(store, reverse, head)
 
 
 def _synthetic_binding(
@@ -904,9 +907,7 @@ def _same_origin_replication(root: Path) -> dict[str, Any]:
     relation = ClaimRelation.from_mapping(
         _relation_raw("replicates", source.claim_id, target.claim_id)
     )
-    with pytest.raises(ProgramMemoryError) as caught:
-        store.append_relation(relation, expected_program_head=(head.sequence, head.hash))
-    return {"error_code": caught.value.code, "relation_delta": 0}
+    return _relation_no_write(store, relation, head)
 
 
 Operation = Callable[[Path], dict[str, Any]]
