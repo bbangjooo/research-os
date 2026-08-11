@@ -160,3 +160,74 @@ re-verification and audit.
 
 M3-C remains open. Do not start M3-D until a corrected closed-set re-verification returns `PASS` and the independent
 audit also passes.
+
+## Verify Attempt 2 — 2026-08-12
+
+**VERDICT: PASS**
+
+### Closed-question verification
+
+- **Q1 [proxy-vs-real] — DIRECT verified.** The annotation is now a single permitted value. The four
+  diagnosis/synthesis × pre/post-capture nondeterministic rows passed inside the focused suite: pre-capture recovery
+  invokes the restarted provider once under the existing reservation, post-capture recovery invokes it zero times,
+  and canonical truth counts remain one. §13.7 still excludes external billing exactly-once.
+- **Q2 [measurement-gap] — DIRECT verified.** The frozen 13 cutpoints still cold-open new service, ProgramStore,
+  provider, and loop instances over the same logs. The actual-`ResearchService` registration-without-terminal witness
+  is present and passed in the focused suite.
+- **Q3 [counterfactual] — DIRECT verified.** The correction adds three real interleavings in
+  `test_m3c_lookup_to_append_race_fails_closed_without_controller_write`: Project generation advances after
+  experiment recovery lookup and before service invocation; Program head advances after disposition lookup and
+  before append; Program head advances after captured-Claim lookup and before append. All three return
+  `AUTONOMY_RECOVERY_STALE`, make zero restarted provider/service calls, perform no controller Project/Program write
+  after the competing writer, and leave the boundary's existing terminal/disposition/Diagnosis/origin/Claim counts
+  unchanged. The targeted parametrized test independently reproduced `3/3`.
+- **Q4 [boundary] — LIMITATION accepted.** The annotation is now a single permitted value and links materially to
+  §13.7. Frozen recursive-authority, parser/capture rejection, AST/public-export, and injected
+  `deploy/merge/trade` evidence remain green, while hostile in-process Python provider capability isolation is
+  explicitly not claimed. The prior two critic cycles do not carry the same row+category LIMITATION, so the 3-cycle
+  escalation rule does not fire.
+- **Q5 [end-state-positioning] — DIRECT verified.** §13.6.5 is present, and pipeline §8.5 now contains a Cycle 13
+  `구체화·검증 (MIXED correction, ADVANCE)` row. It moves only crash-safe Autonomy, preserves Context/Program and
+  NS6/NS7 ratings, and retains external billing, hostile-provider sandbox, distributed consensus, and learning
+  quality gaps. Paired status records the same `ADVANCE` state and blocks M3-D.
+- **Q6 [milestone-positioning] — DIRECT verified.** §13.6.4 and paired status use the valid `ADVANCE` label with
+  engineering evidence `5/5`; pipeline contains M3-C; M3-B prerequisite `08327ad` is closed; critic/audit are not
+  falsely reported as complete; no M3-D data or gate bypass is present.
+- **Q7 [claim-mode-discipline] — DIRECT verified.** Pre-spec `22190bf` at `06:14:30+09:00` and critic `5291945` at
+  `06:16:37+09:00` precede first product/data `7394246` at `06:37:22+09:00`. Frozen manifest SHA remains
+  `c3752c811e44cebd7c542a3653ee19c8c5d2b2b7c1daf11a9a11b23565e27c7b`. Corrected product churn is
+  `294+59=353/900`; tests+fixture are `778+51=829/1,400`; phase+critic+receipt current LOC plus paired-core churn is
+  `462`, making inclusive pre-audit scope `1,644/2,800`. §13.6.7 keeps frozen/cap evidence CONFIRMATORY and the
+  critic-driven witnesses EXPLORATORY under `MIXED`.
+- **Q8 [divergence-diagnosis] — DIRECT verified.** §13.6.8 now classifies the lookup→append witness gap and boundary
+  error translation as `GENUINE-FINDING` / EXPLORATORY, leaves the frozen denominator and requirement unchanged, and
+  keeps re-verification/audit mandatory. The MIXED table labels the affected race evidence EXPLORATORY, so there is no
+  confirmatory-on-genuine-finding conflict.
+
+### Independent reproduction
+
+- `.venv/bin/pytest -q tests/test_m3c_crash_resume.py::test_m3c_lookup_to_append_race_fails_closed_without_controller_write`
+  → `3 passed in 3.28s`.
+- `.venv/bin/pytest -q tests/test_m3c_crash_resume.py` → `41 passed in 71.61s`.
+- `.venv/bin/pytest -q tests/test_m3b_finite_autonomy.py tests/test_m3c_crash_resume.py` →
+  `101 passed in 158.74s`.
+- `.venv/bin/pytest -q tests/test_m3a_decision_packet.py` → `41 passed in 4.50s`; together with the independently
+  rerun M3-B/C set this reproduces the adjacent denominator `142` without rerunning duplicate tests in one process.
+- `git diff --exit-code 22190bf..fec4e61 -- tests/fixtures/autonomy/v1/m3c-manifest.json` → exit `0`.
+- `git diff --numstat 22190bf..fec4e61 -- src/research_os/autonomy/loop.py` → `294 59`.
+- `wc -l tests/fixtures/autonomy/v1/m3c-manifest.json tests/test_m3c_crash_resume.py` → `51 + 778 = 829`.
+
+### Gate audit trail
+
+- Questions: `8` | DIRECT verified: `7` | LIMITATION accepted: `1` | failed: `0`.
+- 3-cycle LIMITATION escalation: none.
+- End-state: §13.6.5 present `Y` | pipeline §8.5 Cycle 13 present `Y` | vision-stagnation `0` |
+  vision-loosening trigger `N/A`.
+- Claim mode: `MIXED` | pre-spec timestamp < first-data timestamp `Y` | frozen manifest unchanged `Y` |
+  exploratory-language conflict `N`.
+- Divergence: `GENUINE-FINDING` | affected row EXPLORATORY within MIXED `Y`.
+- Milestone: M3-C exists `Y` | M3-B prerequisite closed `Y` | current label `ADVANCE` `Y` |
+  M3-D bypass `N`.
+
+The substantive critic gate passes. M3-C remains `ADVANCE`, not `CLOSE`, until the independent seven-pass audit also
+passes; M3-D remains blocked in the meantime.
