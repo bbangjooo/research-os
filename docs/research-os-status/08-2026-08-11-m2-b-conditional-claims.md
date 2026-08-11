@@ -255,3 +255,12 @@ EXPLORATORY인 MIXED mode를 유지한다.
 Correction checkpoint fresh full은 Python 3.12에서 `672 passed, 115 subtests passed in 1163.13s
 (0:19:23)`로 PASS했고, 외부 세 control-tree snapshot은 v0.3 receipt와 `3/3` exact 동일하다. 이제
 Q1~Q8 critic Attempt 2를 실행한다. Attempt 2가 PASS하기 전에는 progress audit을 시작하지 않는다.
+
+## 08.12 Critic Attempt 2 FAIL and documentation compaction pre-spec
+
+Attempt 2는 Q1~Q7 PASS, Q8 FAIL이다. `c1a1851..dc21ecf` gross additions가 product `1,463`,
+tests+fixture `1,241`, docs `426`, total `3,130/3,100`임을 독립 critic이 확인했다. Correction은
+product/test/fixture/frozen 25/acceptance/full evidence를 바꾸지 않고 phase/critic의 중복 설명만
+압축한다. Q1~Q8, 두 FAIL chronology, MIXED claim mode, cap PIVOT, external/no-authority 경계는 모두
+보존한다. 최종 acceptance는 docs gross `<=396`, total `<=3,100`; focused/hash/diff를 재확인하고
+Attempt 3가 PASS하기 전 audit을 시작하지 않는다. Documentation-only라 full suite는 재실행하지 않는다.
