@@ -240,5 +240,18 @@ EXPLORATORY다.
 
 ## 08.11 Next action
 
-Correction pre-spec checkpoint 뒤 test-only witnesses를 구현하고 focused/adjacent를 재실행한다. Q1~Q8
-critic Attempt 2가 PASS하기 전에는 progress audit을 시작하지 않는다.
+Correction pre-spec checkpoint 뒤 test-only witness checkpoint `dbd7caa`를 만들었다. Frozen case
+ID/operation/expected와 product code 변경은 0이다. Cases 22~24는 actual canonical
+`ProgramStore.append_relation`을 호출해 log bytes와 relation count unchanged를 측정한다. Real
+two-artifact replication Diagnosis에서 네 artifact mutation을 `append_claim` no-write로 재현했고,
+wrong-role/same-scope-different-origin/same-origin-different-scope/class mismatch도 각각 actual writer
+반례로 분리했다.
+
+Correction focused는 `37 passed`, M2-A+B는 `59 passed`, adjacent M2-A/M1-D/storage는 `96 passed`,
+ruff/ty/diff는 PASS했다. Tests+fixture는 `1,241/1,250`; product `1,463/1,500`; 현재 docs 포함 total은
+`3,100` 이하라 correction cap을 통과한다. Original 25는 CONFIRMATORY, critic-driven 8 direct cases는
+EXPLORATORY인 MIXED mode를 유지한다.
+
+Correction checkpoint fresh full은 Python 3.12에서 `672 passed, 115 subtests passed in 1163.13s
+(0:19:23)`로 PASS했고, 외부 세 control-tree snapshot은 v0.3 receipt와 `3/3` exact 동일하다. 이제
+Q1~Q8 critic Attempt 2를 실행한다. Attempt 2가 PASS하기 전에는 progress audit을 시작하지 않는다.

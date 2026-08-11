@@ -89,11 +89,13 @@ fail-closed하는가?
 
 **Response:**
 
-DIRECT with LIMITATION. Case 16은 frozen M1 contract에 실제 replication baseline/registration/terminal/
+DIRECT. Case 16은 frozen M1 contract에 실제 replication baseline/registration/terminal/
 Diagnosis를 append하고 두 exact origins를 ProgramStore로 link한다. Same statement/class/seal/compatibility,
-source role replication, distinct scope identity/manifest/origin일 때만 PASS한다. Cases 22~25와 direct
-class/statement/parser checks가 one-factor failures를 차단한다. 서로 다른 manifest digest 내부의
-row-level 중복은 이 layer가 판별하지 못하고 upstream manifest disjointness에 의존한다.
+source role replication, distinct scope identity/manifest/origin일 때만 PASS한다. Correction checkpoint
+`dbd7caa`는 wrong-role, same-scope/different-origin, same-origin/different-scope Claim admission, class
+mismatch를 각각 actual ProgramStore writer no-write로 분리했다. Cases 22~25도 유지된다. 서로 다른
+manifest digest 내부의 row-level 중복 판별은 upstream manifest disjointness에 의존한다는 limitation은
+남지만, 이 답의 근거 유형은 단일 label `DIRECT`다.
 
 ## Q8 [claim-mode-discipline]
 
@@ -104,11 +106,13 @@ IDs/operations/expected를 고정했다는 chronology와, 실제 25/25 literal o
 
 **Response:**
 
-DIRECT. Chronology는 `5659c67` pre-spec/25 cases → `cf20578` saved critic → `529283c` product/test다.
+DIRECT. Chronology는 `5659c67` pre-spec/25 cases → `cf20578` saved critic → `529283c` product/test →
+`0418269` critic-correction pre-spec → `dbd7caa` exploratory witness correction이다.
 First result `6 failed, 26 passed`는 폐기하고 기준 변경 없이 writer error boundary/helper를 고쳤다.
-Final literal `25/25`, focused+direct `33`, full `668+115`, skip/fallback 0이며 frozen manifest bytes와
-25 case ID/operation/expected의 post-result 변경은 0이다. 이 chronology가 깨지면 CONFIRMATORY를
-철회한다.
+Correction focused는 literal `25/25`를 포함해 `37/37`, M2-A+B `59/59`, adjacent `96/96`,
+skip/fallback 0이며 frozen manifest bytes와 25 case ID/operation/expected의 post-result 변경은 0이다.
+Correction checkpoint fresh full도 `672 passed, 115 subtests passed`다. Chronology가 깨지면 original
+25의 CONFIRMATORY 청구를 철회한다.
 
 ## Verify Attempt 1 — FAIL
 
