@@ -131,3 +131,32 @@ Correction checkpoint fresh full도 `672 passed, 115 subtests passed`다. Chrono
 two-artifact omission/addition/substitution/reorder, wrong-role/same-scope-different-origin/
 same-origin-different-scope/class one-factor replication witnesses다. Attempt 1은 삭제하거나 PASS로
 덮어쓰지 않는다.
+
+## Verify Attempt 2 — FAIL
+
+Exact cutoff: `dc21ecf` (correction pre-spec `0418269` → test-only witness `dbd7caa` →
+candidate evidence `dc21ecf`). Attempt 1 FAIL은 위에 그대로 보존한다.
+
+| Q | Verdict | Independent evidence |
+|---|---|---|
+| Q1 | PASS | canonical Claim/six typed edges/four reducers를 유지하고 NS4는 `0/4`로 유지 |
+| Q2 | PASS | frozen five-conjunct mapping과 `ADVANCE`; 기존 acceptance 약화 없음 |
+| Q3 | PASS | cases 22~24가 actual `ProgramStore.append_relation`을 호출하고 log bytes/relation count unchanged를 측정; focused `37/37` |
+| Q4 | PASS | strict Claim/Snapshot replay와 recursive `authorized_action=null` 경계 유지 |
+| Q5 | PASS | real locked M1 replication Diagnosis의 two-artifact set으로 omission/addition/substitution/literal reverse를 모두 `append_claim` no-write로 재현 |
+| Q6 | PASS | immutable supersession, mixed precedence, prospective stable Claim error/committed corruption `IntegrityError` 경계 유지 |
+| Q7 | PASS | case 16 positive control + wrong-role/same-scope-different-origin/same-origin-different-scope admission/class mismatch one-factor writer witnesses; response label은 단일 `DIRECT` |
+| Q8 | FAIL | chronology, frozen 25 diff 0, MIXED mode, `672+115` evidence, external snapshot `3/3` unchanged는 일치하지만 unchanged total LOC cap은 불일치 |
+
+Reproduction: focused `37 passed`; M2-A+B `59 passed`; collection `672`; frozen manifest
+`5659c67..dc21ecf` diff 0; correction pre-spec 이후 product diff 0; 외부 snapshot은 v0.3
+receipt와 exact 일치; cutoff worktree는 검증 전 clean이었다. Full `672+115` receipt은
+`dbd7caa` 이후 product/test 변경 0과 current collection `672`로 chronology/plausibility를 확인했다.
+
+Blocking defect: `c1a1851..dc21ecf` gross additions은 product `1,463`, tests+fixture
+`1,241`, docs `426`(phase `257` + critic `133` + status core `24` + pipeline `12`), total
+`3,130`이다. Category caps `1,500/1,250/500`은 통과하지만 correction pre-spec이 유지한
+total cap `3,100`을 30줄 초과한다. Core docs를 제외한 `3,094`는 cap의 `docs`를
+임의로 축소한 계산이므로 PASS 근거가 아니다.
+
+**VERDICT: FAIL.** Q8/total-cap defect를 해소하고 동일 closed Q1~Q8로 재검증해야 한다.
