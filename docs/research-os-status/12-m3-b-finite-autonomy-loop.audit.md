@@ -3,7 +3,6 @@
 ## Attempt 1 — FAIL
 
 Severity-1 findings:
-
 1. Status §1.1 Python LOC `64,344` is stale; the documented command returns `67,674`.
 2. The `3,729` inclusive estimate is internally inconsistent; the complete audited cycle is `3,848/3,900`.
 3. Phase §12.6.4/§12.10 still says critic pending although critic Attempt 2 is PASS.

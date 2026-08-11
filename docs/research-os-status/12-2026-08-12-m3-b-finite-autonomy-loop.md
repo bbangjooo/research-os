@@ -1,6 +1,6 @@
 # §12 — M3-B finite autonomous state machine (2026-08-12)
 
-> Status: **AUDIT ATTEMPT 2 FAIL — claim-schema correction active; M3-C blocked**
+> Status: **AUDIT ATTEMPT 2 FAIL PRESERVED — corrected; re-audit pending; M3-C blocked**
 > Previous phase: [§11](11-2026-08-12-m3-a-decision-packet.md)
 > Active milestone: `M3-B`; M3-C/D blocked
 
@@ -162,13 +162,14 @@ three-log refs and sealed-service requirements; they do not change the frozen 43
 
 ### 12.6.7 Claim mode
 
-**Actual label: `MIXED`.** Frozen 43 cases, six conjuncts, schemas, stop precedence, and expected outcomes are
-`CONFIRMATORY`: pre-spec `9069cbd` at `2026-08-12T04:05:38+09:00` precedes first product/data `ede020c` at
-`2026-08-12T04:51:09+09:00`, and the manifest SHA is unchanged. The critic's explicit next-packet witness was
-added after first data in `64d7249`, so that additional witness is `EXPLORATORY`. Attempt 1 corrections at
-`f53e37c`—source reconciliation, actual-service vertical, repeated post-terminal bounds, and the terminal artifact
-capture binding and audit type-contract correction—are also `EXPLORATORY`. Product footprint (`2,035 + 8 = 2,043 churn`
-versus target `1,600`) is a separate `GENUINE-FINDING`/EXPLORATORY row. None reinterprets literal `43/43`.
+**Actual label: `MIXED`.** Every measurement claim is separated below; none reinterprets literal `43/43`.
+
+| Claim/evidence row | Mode | Commit/timing evidence | Next confirmatory action |
+|---|---|---|---|
+| frozen 43, six conjuncts, schemas, stop precedence, expected outcomes | `CONFIRMATORY` | pre-spec `9069cbd` `2026-08-12T04:05:38+09:00` < first data `ede020c` `2026-08-12T04:51:09+09:00`; SHA unchanged | — |
+| next-packet current-head witness | `EXPLORATORY` | post-data `64d7249` | M3-C pre-spec cold-restart witness |
+| source reconciliation, actual service, retry bounds, artifact binding | `EXPLORATORY` | critic correction `f53e37c` | M3-C pre-fixed crash/duplicate matrix |
+| type contract; footprint `2,043 > 1,600` GENUINE-FINDING | `EXPLORATORY` | audit correction `e60b5dd` | §12.10 retain/trim/rebaseline measurement |
 
 ### 12.6.8 Requirement-result divergence
 
@@ -193,6 +194,6 @@ trim, or rebaseline it without weakening behavior. No `RESULT-INVALID` or `REQUI
 
 ## 12.10 Next action
 
-Critic Attempt 2 is PASS; correct audit Attempt 1 and run the independent re-audit before M3-C. M3-C pre-spec
-must freeze a retain/trim/rebaseline decision for `2,043 > 1,600`, without behavior weakening, and carry its
-measured outcome into the next claim-mode/divergence review.
+Critic Attempt 2 is PASS; correct audit Attempts 1/2 and re-audit before M3-C. M3-C pre-spec must freeze a
+current-head next-packet cold restart, three-log/service duplicate-free crash witnesses, and a retain/trim/rebaseline
+decision for `2,043 > 1,600` without behavior weakening; carry all outcomes into the next claim-mode review.

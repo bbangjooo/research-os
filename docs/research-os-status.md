@@ -67,7 +67,7 @@
   - M3-B finite episode는 frozen `43/43`, corrected focused `60`, adjacent `125`를 PASS했다.
     Critic Attempt 1의 copied-ref/proxy/boundary FAIL을 `f53e37c`에서 canonical three-log reconciliation,
     actual ResearchService E2E, post-terminal retry matrix로 교정했고 Attempt 2 Q1~Q8이 PASS했다.
-    Six conjunct `6/6`이지만 audit Attempt 2의 claim-schema FAIL을 교정 중이다.
+    Six conjunct `6/6`; audit Attempt 2 FAIL을 보존하고 claim schema를 교정해 re-audit 대기 중이다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 
@@ -147,7 +147,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 1.1 현재 운용 상태
 
-- 저장소: `/Users/bbangjo/research-os`, 제품 버전 `0.4.0`, M3-B correction checkpoint `7cd7c4f`;
+- 저장소: `/Users/bbangjo/research-os`, 제품 버전 `0.4.0`, M3-B correction checkpoint `e60b5dd`;
   v0.4 release receipt checkpoint `f1ab646`.
 - 구현 크기: `rg --files src tests -g '*.py' | sort | xargs wc -l`의 Python 합계
   67,688 LOC (Cycle 12 audit correction).
