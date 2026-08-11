@@ -84,3 +84,73 @@ defects discovered before `7394246` were corrected without fixture or requiremen
 contamination requires `RESULT-INVALID` withdrawal and rerun; a faulty recovery requirement requires a new frozen
 `REQUIREMENT-WRONG` correction phase; a valid nondeterministic/race/footprint surprise becomes
 `GENUINE-FINDING`/EXPLORATORY and blocks close. No category is silently rebaselined.
+
+## Verify Attempt 1 — 2026-08-12
+
+**VERDICT: FAIL**
+
+### Unaddressed questions (each blocks PASS)
+
+- **Q1 [proxy-vs-real] — invalid response annotation.** `DIRECT + LIMITATION` is not one of the three permitted
+  annotations (`DIRECT`, `LIMITATION`, `OUT-OF-SCOPE`). The executable evidence itself matched: the focused suite
+  passed `38/38`, and `test_m3c_nondeterministic_provider_capture_boundary` covers all four diagnosis/synthesis ×
+  pre/post-capture rows. Required fix: use one valid annotation. If the local exactly-once claim is retained and the
+  external-billing boundary remains explicitly residual, `DIRECT` is the supported annotation.
+- **Q3 [counterfactual] — DIRECT evidence does not reproduce the question's demanded interleaving.** The four frozen
+  stale cases mutate Program generation/head after the crash but before the new loop starts recovery
+  (`tests/test_m3c_crash_resume.py:413-435`). None injects a competing write *between recovery lookup and guarded
+  append*. The expected-head production guard is relevant code, but it is not the claimed executable one-factor race
+  witness. Required fix: add a deterministic lookup→append interleaving witness with the requested stable error,
+  zero additional provider/service calls, `0/0` post-mutation Project/Program writes, and unchanged semantic truth
+  counts; alternatively answer `LIMITATION` and link an exact §13.7 residual.
+- **Q4 [boundary] — invalid response annotation and incomplete DIRECT surface.** `DIRECT + LIMITATION` is not a
+  permitted single annotation. The tests verify recursive authority rejection, AST/public-export absence for the
+  three named operations, and injected `deploy/merge/trade` counters `0/0/0`; they do not establish zero reachable
+  `service/store/log/path/callable` capability across a hostile provider. In fact the test provider retains
+  `self.store` (`tests/test_m3b_finite_autonomy.py:265-278`), consistent with §13.7's cooperative-provider
+  limitation. Required fix: answer `LIMITATION` with the existing residual (or supply the broader executable
+  capability-isolation evidence before answering `DIRECT`).
+- **Q5 [end-state-positioning] — pipeline Cycle 13 row is absent.** §13.6.5 is present and preserves the named
+  exclusions, but `docs/research-os-pipeline.md` §8.5 ends at Cycle 12. The response promises a future sync; verify
+  mode requires the current cycle row now. Required fix: append the Cycle 13 §8.5 row and make its delta, three
+  truth-owner boundary, unchanged Context/Program/NS6/NS7 ratings, and residual gaps agree with §13.6.5.
+- **Q6 [milestone-positioning] — invalid milestone label.** §13.6.4 says `CLOSE CANDIDATE`, while verify mode accepts
+  only `ADVANCE` or `CLOSE`. The same section and receipt say critic/audit are pending, so `CLOSE` is premature even
+  though frozen engineering evidence is `5/5`; M3-B prerequisite `08327ad` and M3-D blocking are correctly recorded.
+  Required fix: label the current claim `ADVANCE` until both independent gates pass, while retaining the five-conjunct
+  evidence and M3-D block.
+
+### Verified responses
+
+- **Q2:** matched. The 13 literal frozen cutpoints use cold service/store/provider/loop reopening, and the separate
+  actual-`ResearchService` registration-without-terminal witness is present and passed.
+- **Q7:** matched. `22190bf` (`2026-08-12T06:14:30+09:00`) and `5291945`
+  (`06:16:37+09:00`) precede `7394246` (`06:37:22+09:00`); manifest SHA is
+  `c3752c811e44cebd7c542a3653ee19c8c5d2b2b7c1daf11a9a11b23565e27c7b` and is unchanged. Product churn is
+  `254+59=313`; tests+fixture are `657+51=708`; the reported inclusive pre-receipt total is `1,283`.
+- **Q8:** matched. §13.6.8 exists, says final divergence is `해당 없음`, and specifies the required automatic action
+  for each future divergence branch without using an invalid result to advance a claim.
+
+### Independent reproduction
+
+- `.venv/bin/pytest -q tests/test_m3c_crash_resume.py` → `38 passed in 67.87s`.
+- `.venv/bin/pytest -q tests/test_m3b_finite_autonomy.py tests/test_m3c_crash_resume.py` →
+  `98 passed in 155.59s`.
+- `shasum -a 256 tests/fixtures/autonomy/v1/m3c-manifest.json` → exact frozen SHA above.
+- `git diff --exit-code 22190bf..9398129 -- tests/fixtures/autonomy/v1/m3c-manifest.json` → exit `0`.
+- `git diff --numstat 22190bf..7394246 -- src/research_os/autonomy/loop.py` → `254 59`.
+- `wc -l tests/fixtures/autonomy/v1/m3c-manifest.json tests/test_m3c_crash_resume.py` → `51 + 657 = 708`.
+
+### Gate audit trail
+
+- Questions: `8` | verified: `Q2,Q7,Q8` | failed: `Q1,Q3,Q4,Q5,Q6`.
+- 3-cycle LIMITATION escalation: none; the two compound annotations are invalid annotations, not accepted
+  `LIMITATION` responses.
+- End-state: §13.6.5 present `Y` | pipeline §8.5 Cycle 13 present `N` | vision-loosening trigger `N/A`.
+- Claim mode: `MIXED` | pre-spec timestamp < first-data timestamp `Y` | frozen manifest unchanged `Y`.
+- Divergence: `해당 없음` | branch-action mapping present `Y`.
+- Milestone: M3-C exists `Y` | M3-B prerequisite closed `Y` | valid `ADVANCE/CLOSE` label `N` |
+  M3-D bypass `N`.
+
+M3-C remains open. Do not start M3-D until a corrected closed-set re-verification returns `PASS` and the independent
+audit also passes.
