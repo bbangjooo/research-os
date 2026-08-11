@@ -1,6 +1,6 @@
 # §12 — M3-B finite autonomous state machine (2026-08-12)
 
-> Status: **AUDIT ATTEMPT 3 FAIL — final sync correction active; M3-C blocked**
+> Status: **AUDIT ATTEMPT 3 FAIL PRESERVED — corrected; Attempt 4 pending; M3-C blocked**
 > Previous phase: [§11](11-2026-08-12-m3-a-decision-packet.md)
 > Active milestone: `M3-B`; M3-C/D blocked
 
@@ -132,7 +132,7 @@ reservation, actual M2/M3-A vertical, and exact three-log refs must refute it.
 
 ### 12.6.4 Milestone progress claim
 
-**Candidate label: `CLOSE`; engineering `6/6`; critic Attempt 2 PASS; audit correction/re-audit pending.**
+**Candidate label: `CLOSE`; engineering `6/6`; critic PASS; audit corrections complete, Attempt 4 pending.**
 
 | M3-B exit conjunct | 이전 | actual | receipt/test evidence |
 |---|---:|---:|---|
@@ -176,7 +176,7 @@ three-log refs and sealed-service requirements; they do not change the frozen 43
 Functional expected and actual results match exactly: `43/43`, six conjuncts `6/6`, forbidden direct calls `0`,
 closed-class registrations `0`, and M3-A SHA unchanged. The product subtarget missed: `2,035 additions + 8
 deletions = 2,043 churn > 1,600`; the former `1,861` was pre-correction churn, not “gross added.” Tests+fixture
-(`1,384 <= 1,700`) and corrected inclusive cycle (`3,890 <= 3,900`) remain bounded. This engineering-footprint
+(`1,384 <= 1,700`) and exact inclusive cycle (`3,900 <= 3,900`) remain bounded. This engineering-footprint
 surprise is `GENUINE-FINDING`/EXPLORATORY, not functional release evidence; M3-C pre-spec must explicitly retain,
 trim, or rebaseline it without weakening behavior. No `RESULT-INVALID` or `REQUIREMENT-WRONG` condition occurred.
 
@@ -194,6 +194,6 @@ trim, or rebaseline it without weakening behavior. No `RESULT-INVALID` or `REQUI
 
 ## 12.10 Next action
 
-Critic Attempt 2 is PASS; correct audit Attempts 1/2 and re-audit before M3-C. M3-C pre-spec must freeze a
+Critic and audit corrections are complete; run independent Attempt 4 before M3-C. M3-C pre-spec must freeze a
 current-head next-packet cold restart, three-log/service duplicate-free crash witnesses, and a retain/trim/rebaseline
 decision for `2,043 > 1,600` without behavior weakening; carry all outcomes into the next claim-mode review.

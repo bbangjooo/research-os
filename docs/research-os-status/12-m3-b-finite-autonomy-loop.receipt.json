@@ -10,6 +10,7 @@
   "audit_attempt_1": "FAIL (evidence-doc consistency; engineering evidence reproduced)",
   "audit_attempt_2": "FAIL (checkpoint attribution and MIXED per-row schema)",
   "audit_attempt_3": "FAIL (final LOC and sole-next-action synchronization)",
+  "audit_attempt_4": "PENDING",
   "frozen_manifest": {
     "path": "tests/fixtures/autonomy/v1/m3b-manifest.json",
     "sha256": "29684ed79c0dcf224a3959753f324f6f55f261e696b5c366218b48ef2dc99bc1",
@@ -71,7 +72,7 @@
     "product_target": 1600,
     "tests_and_fixture": 1384,
     "tests_and_fixture_target": 1700,
-    "inclusive_exact_with_audit_slots": 3890,
+    "inclusive_exact_with_audit_slots": 3900,
     "inclusive_target": 3900,
     "product_subtarget_met": false,
     "inclusive_target_met": true
