@@ -190,6 +190,17 @@ HEAD가 sealed commit과 다르면 새 receipt를 재발행하지 못하고 fail
 receipt bytes, M2-A 19-case denominator, four conjunct는 변경하지 않는다. 먼저 direct static test와
 네 실패 node를 재현하고, 그 뒤 fresh full만 close 분자로 사용한다.
 
+네 실패 node 재현은 첫 `m1c-regression-floor`가 PASS한 뒤에도 M1-C와 M1-D regression observer가
+서로를 경유해 동일 full suite를 최대 네 단계로 중첩했고, `1 passed in 1226.29s` 시점에 다음
+중복 실행 전에 중단했다. 이 partial 결과도 **RESULT-INVALID / HARNESS**이며 close 분자가 아니다.
+속도 correction의 fresh-result 전 acceptance는 다음과 같다. 두 observer가 child pytest를 실행할
+때 `test_m1c_manifest_oracle.py`와 `test_m1d_manifest_oracle.py`를 모두 exact 한 번씩 제외하고,
+top-level full suite에서는 두 파일을 그대로 실행한다. 따라서 child는 자기참조 meta-oracle만
+제외하고 제품·일반 회귀 전체를 실행하며, 각 observer의 floor count·ruff·ty·diff 및 fail-closed
+판정은 유지한다. 두 direct harness test가 child command/environment의 양쪽 ignore를 증명해야 하며,
+environment flag로 결과를 skip하거나 합성 PASS하지 않는다. 이 correction 뒤 네 원 failure node와
+fresh top-level full을 다시 실행한다.
+
 ## 07.7 Expected north-star movement
 
 - NS1: 새 program surface가 기존 EventLog/M1 compatibility와 authority를 약화하지 않을 때 유지.
