@@ -13,8 +13,17 @@ from research_os.errors import ProgramMemoryError
 from research_os.kernel._canonical import canonical_bytes
 from research_os.kernel.events import Event, EventLog
 from research_os.kernel.ids import new_experiment_id, stable_id
-from research_os.memory.claims import Claim, ClaimRelation, ClaimSnapshot, reduce_claim_records
+from research_os.memory.claims import (
+    Claim,
+    ClaimRelation,
+    ClaimSnapshot,
+    claim_event_payload,
+    reduce_claim_records,
+)
 from research_os.memory.program import (
+    PROGRAM_CLAIM_RECORDED_EVENT,
+    PROGRAM_INITIALIZED_EVENT,
+    PROGRAM_ORIGIN_LINKED_EVENT,
     OriginEvidenceRef,
     ProgramBinding,
     ProgramEvent,
@@ -420,6 +429,41 @@ def _append_replication_history(project_log: EventLog) -> str:
         event_id="evt_m2b_replication_registered",
         occurred_at="2026-08-11T03:10:01.000000Z",
     )
+    artifact_metadata = {"retention": "run", "sensitivity": "internal"}
+    artifacts = tuple(
+        (
+            stable_id(
+                "artifact", project_log.project_id, experiment_id, relative_path,
+                digest, None, "application/json", artifact_metadata,
+            ),
+            digest, relative_path, size,
+        )
+        for digest, relative_path, size in (
+            ("1" * 64, "replication-a.json", 101),
+            ("2" * 64, "replication-b.json", 102),
+        )
+    )
+    for index, (artifact_id, digest, relative_path, size) in enumerate(artifacts, 1):
+        project_log.append(
+            "ARTIFACT_RECORDED",
+            {
+                "artifact_id": artifact_id,
+                "project_id": project_log.project_id,
+                "experiment_id": experiment_id,
+                "digest": digest,
+                "algorithm": "sha256",
+                "size": size,
+                "relative_path": relative_path,
+                "storage_path": f"blobs/sha256/{digest[:2]}/{digest}",
+                "role": None,
+                "media_type": "application/json",
+                "metadata": artifact_metadata,
+                "captured_at": f"2026-08-11T03:10:0{index + 1}.000000Z",
+                "authorized_action": None,
+            },
+            event_id=f"evt_m2b_replication_artifact_{index}",
+            occurred_at=f"2026-08-11T03:10:0{index + 1}.000000Z",
+        )
     project_log.append(
         "EXPERIMENT_TERMINATED",
         {
@@ -442,10 +486,28 @@ def _append_replication_history(project_log: EventLog) -> str:
                 "gate_evaluations": [],
                 "authorized_action": None,
             },
+            "result": {
+                "metrics": {"score": 109.0},
+                "constraints": [],
+                "resource_usage": {},
+                "artifacts": [
+                    {
+                        "path": path,
+                        "media_type": "application/json",
+                        "retention": "run",
+                        "sensitivity": "internal",
+                        "sha256": digest,
+                        "size_bytes": size,
+                    }
+                    for _, digest, path, size in artifacts
+                ],
+                "provenance": {},
+                "diagnostics": [],
+            },
             "authorized_action": None,
         },
         event_id="evt_m2b_replication_terminal",
-        occurred_at="2026-08-11T03:10:02.000000Z",
+        occurred_at="2026-08-11T03:10:04.000000Z",
     )
     events = project_log.read()
     state = reduce_scientific_state(events, project_id=project_log.project_id)
@@ -463,7 +525,7 @@ def _append_replication_history(project_log: EventLog) -> str:
         DIAGNOSIS_EVENT_TYPE,
         plan.payload,
         event_id="evt_m2b_replication_diagnosis",
-        occurred_at="2026-08-11T03:10:03.000000Z",
+        occurred_at="2026-08-11T03:10:05.000000Z",
     )
     return plan.diagnosis_id
 
@@ -526,7 +588,9 @@ def _claim_from_origin(
     return Claim.from_mapping(raw)
 
 
-def _replicates(root: Path) -> dict[str, Any]:
+def _replication_claims(
+    root: Path, *, append_source: bool = True
+) -> tuple[EventLog, ProgramStore, Claim, Claim, ProgramEvent]:
     project_log = _project_log(root)
     replication_diagnosis_id = _append_replication_history(project_log)
     manifest = ProgramManifest.from_mapping(
@@ -560,7 +624,13 @@ def _replicates(root: Path) -> dict[str, Any]:
         statement=statement,
     )
     target, head = _append_claim(store, project_log, head, target.to_dict(), "rep_target")
-    source, head = _append_claim(store, project_log, head, source.to_dict(), "rep_source")
+    if append_source:
+        source, head = _append_claim(store, project_log, head, source.to_dict(), "rep_source")
+    return project_log, store, target, source, head
+
+
+def _replicates(root: Path) -> dict[str, Any]:
+    _, store, target, source, head = _replication_claims(root)
     relation = ClaimRelation.from_mapping(
         _relation_raw("replicates", source.claim_id, target.claim_id)
     )
@@ -651,42 +721,182 @@ def _cycle(root: Path) -> dict[str, Any]:
     return {"error_code": caught.value.code, "relation_delta": 0}
 
 
-def _scope_rejection(mutation: str) -> dict[str, Any]:
-    target_raw = _claim_raw()
-    source_raw = _claim_raw()
-    source_raw["limitations"] = ["Scope-relation mutation source."]
-    source_raw["evidence"]["origin_id"] = "origin_00000000000000000000000000000000"
-    source_raw["evidence"]["origin_digest"] = "0" * 64
+def _synthetic_binding(
+    label: str, *, role: str, manifest_digest: str, seal_digest: str | None = None,
+    compatibility_digest: str | None = None,
+) -> dict[str, Any]:
+    target = M2A["fixtures"]["binding"]
+    project_id = f"fixture-m2b-{label}"
+    scope = {"id": f"{role}-{label}", "role": role, "manifest_digest": manifest_digest}
+    return {
+        "project_id": project_id,
+        "science_state_schema_version": 1,
+        "study_contract_schema_version": 2,
+        "study_contract_digest": sha256_json({"contract": label}),
+        "generation_id": stable_id("generation", project_id),
+        "evaluation_scope_schema_version": 1,
+        "evaluation_scope": scope,
+        "evaluation_scope_digest": sha256_json({
+            "evaluation_scope_schema_version": 1, "evaluation_scope": scope
+        }),
+        "evaluation_seal_digest": seal_digest or target["evaluation_seal_digest"],
+        "compatibility_digest": compatibility_digest or target["compatibility_digest"],
+        "authorized_action": None,
+    }
+
+
+def _synthetic_origin(
+    binding: ProgramBinding, label: str, *, hypothesis_class_id: str = "class-a"
+) -> OriginEvidenceRef:
+    project_head = {"sequence": 3, "hash": sha256_json({"head": label})}
+    diagnosis_id = stable_id("diagnosis", label)
+    diagnosis_digest = sha256_json({"diagnosis": label})
+    class_state_id = stable_id("classstate", binding.project_id, binding.generation_id,
+                               hypothesis_class_id)
+    class_state_digest = sha256_json({"class-state": label})
+    raw = {
+        "origin_evidence_schema_version": 1,
+        "origin_id": "origin_placeholder",
+        "project_id": binding.project_id,
+        "project_head": project_head,
+        "generation_id": binding.generation_id,
+        "evaluation_scope_id": binding.evaluation_scope_id,
+        "diagnosis_event": {"sequence": 2, "event_id": stable_id("event", "diagnosis", label),
+                            "event_hash": sha256_json({"diagnosis-event": label})},
+        "diagnosis_id": diagnosis_id,
+        "diagnosis_digest": diagnosis_digest,
+        "class_state_id": class_state_id,
+        "class_state_digest": class_state_digest,
+        "authorized_action": None,
+    }
+    raw["origin_id"] = stable_id(
+        "origin", binding.project_id, project_head, binding.generation_id,
+        binding.evaluation_scope_id, diagnosis_id, diagnosis_digest,
+        class_state_id, class_state_digest,
+    )
+    return OriginEvidenceRef.from_mapping(raw)
+
+
+def _synthetic_claim(
+    binding: ProgramBinding, origin: OriginEvidenceRef, label: str, *,
+    hypothesis_class_id: str = "class-a",
+) -> Claim:
+    raw = _claim_raw()
+    raw["applicability"].update(
+        {
+            "project_id": binding.project_id,
+            "generation_id": binding.generation_id,
+            "hypothesis_class_id": hypothesis_class_id,
+            "evaluation_scope": {"id": binding.evaluation_scope_id,
+                                 "role": binding.evaluation_scope_role,
+                                 "manifest_digest": binding.evaluation_scope_manifest_digest},
+            "evaluation_scope_digest": binding.evaluation_scope_digest,
+            "evaluation_seal_digest": binding.evaluation_seal_digest,
+            "compatibility_digest": binding.compatibility_digest,
+        }
+    )
+    raw["evidence"].update(
+        {
+            "origin_id": origin.origin_id,
+            "origin_digest": origin.digest,
+            "diagnosis_event": {"sequence": origin.diagnosis_event_sequence,
+                                "event_id": origin.diagnosis_event_id,
+                                "event_hash": origin.diagnosis_event_hash},
+            "diagnosis_id": origin.diagnosis_id,
+            "diagnosis_digest": origin.diagnosis_digest,
+            "evaluation_seal_digest": binding.evaluation_seal_digest,
+            "compatibility_digest": binding.compatibility_digest,
+        }
+    )
+    raw["limitations"] = [f"Synthetic no-write witness: {label}."]
+    _rebind_claim(raw)
+    return Claim.from_mapping(raw)
+
+
+def _direct_program(
+    root: Path, bindings: list[ProgramBinding], origins: list[OriginEvidenceRef],
+    claims: list[Claim],
+) -> tuple[ProgramStore, ProgramEvent]:
+    manifest = ProgramManifest.from_mapping(
+        _manifest_raw(*(item.to_dict() for item in sorted(bindings, key=lambda item: item.key)))
+    )
+    store = ProgramStore(root / "direct-program", manifest.program_id)
+    head = store.log.append(
+        PROGRAM_INITIALIZED_EVENT,
+        {"program_manifest": manifest.to_dict(), "program_manifest_digest": manifest.digest,
+         "authorized_action": None},
+        expected_head=(0, None),
+    )
+    for origin in origins:
+        head = store.log.append(
+            PROGRAM_ORIGIN_LINKED_EVENT,
+            {"origin_evidence": origin.to_dict(), "origin_evidence_digest": origin.digest,
+             "authorized_action": None},
+            expected_head=(head.sequence, head.hash),
+        )
+    for claim in claims:
+        head = store.log.append(
+            PROGRAM_CLAIM_RECORDED_EVENT,
+            claim_event_payload(claim),
+            expected_head=(head.sequence, head.hash),
+        )
+    return store, head
+
+
+def _relation_rejection(root: Path, mutation: str) -> dict[str, Any]:
+    target_binding = ProgramBinding.from_mapping(M2A["fixtures"]["binding"])
+    target_origin = OriginEvidenceRef.from_mapping(M2A["fixtures"]["origin"])
+    target = Claim.from_mapping(_claim_raw())
     relation_type = "supports"
-    if mutation == "seal":
-        source_raw["applicability"]["evaluation_seal_digest"] = "a" * 64
-        source_raw["evidence"]["evaluation_seal_digest"] = "a" * 64
-    elif mutation == "compatibility":
-        source_raw["applicability"]["compatibility_digest"] = "a" * 64
-        source_raw["evidence"]["compatibility_digest"] = "a" * 64
-    elif mutation == "overlap":
-        source_raw["applicability"]["evaluation_scope"].update(
-            {"id": "replication-1", "role": "replication"}
+    hypothesis_class_id = "class-a"
+    if mutation == "same_scope_different_origin":
+        binding_raw = _synthetic_binding(mutation, role="replication", manifest_digest="c" * 64)
+        target_binding = ProgramBinding.from_mapping(binding_raw)
+        source_binding = target_binding
+        target_origin = _synthetic_origin(target_binding, f"{mutation}-target")
+        target = _synthetic_claim(target_binding, target_origin, f"{mutation}-target")
+        relation_type = "replicates"
+    else:
+        role = "diagnostic" if mutation == "wrong_role" else "replication"
+        manifest_digest = (target_binding.evaluation_scope_manifest_digest
+                           if mutation == "overlap"
+                           else sha256_json({"scope-manifest": mutation}))
+        source_binding = ProgramBinding.from_mapping(
+            _synthetic_binding(
+                mutation,
+                role=role,
+                manifest_digest=manifest_digest,
+                seal_digest="a" * 64 if mutation == "seal" else None,
+                compatibility_digest="a" * 64 if mutation == "compatibility" else None,
+            )
         )
-        scope = source_raw["applicability"]["evaluation_scope"]
-        source_raw["applicability"]["evaluation_scope_digest"] = sha256_json(
-            {"evaluation_scope_schema_version": 1, "evaluation_scope": scope}
-        )
-    else:  # pragma: no cover
-        raise AssertionError(mutation)
-    _rebind_claim(source_raw)
-    target = Claim.from_mapping(target_raw)
-    source = Claim.from_mapping(source_raw)
+        if mutation in {"wrong_role", "class"}:
+            relation_type = "replicates"
+        if mutation == "class":
+            hypothesis_class_id = "class-b"
+    source_origin = _synthetic_origin(
+        source_binding, f"{mutation}-source", hypothesis_class_id=hypothesis_class_id
+    )
+    source = _synthetic_claim(source_binding, source_origin, f"{mutation}-source",
+                              hypothesis_class_id=hypothesis_class_id)
+    store, head = _direct_program(
+        root,
+        list({item.key: item for item in (target_binding, source_binding)}.values()),
+        [target_origin, source_origin],
+        [target, source],
+    )
     relation = ClaimRelation.from_mapping(
         _relation_raw(relation_type, source.claim_id, target.claim_id)
     )
+    before_log = store.log.path.read_bytes()
+    before_relations = len(store.claim_snapshot().relations)
     with pytest.raises(ProgramMemoryError) as caught:
-        reduce_claim_records(
-            [target, source, relation],
-            program_id=M2A["fixtures"]["program_id"],
-            program_head=(5, "f" * 64),
-        )
-    return {"error_code": caught.value.code, "relation_delta": 0}
+        store.append_relation(relation, expected_program_head=(head.sequence, head.hash))
+    assert store.log.path.read_bytes() == before_log
+    return {
+        "error_code": caught.value.code,
+        "relation_delta": len(store.claim_snapshot().relations) - before_relations,
+    }
 
 
 def _same_origin_replication(root: Path) -> dict[str, Any]:
@@ -722,9 +932,11 @@ OPERATIONS: dict[str, Operation] = {
     "verify_immutable_supersession": _immutable,
     "reject_second_successor": _second_successor,
     "reject_supersession_cycle": _cycle,
-    "reject_relation_incompatible_seal": lambda _root: _scope_rejection("seal"),
-    "reject_relation_incompatible_compatibility": lambda _root: _scope_rejection("compatibility"),
-    "reject_relation_overlapping_manifest": lambda _root: _scope_rejection("overlap"),
+    "reject_relation_incompatible_seal": lambda root: _relation_rejection(root, "seal"),
+    "reject_relation_incompatible_compatibility": lambda root: _relation_rejection(
+        root, "compatibility"
+    ),
+    "reject_relation_overlapping_manifest": lambda root: _relation_rejection(root, "overlap"),
     "reject_same_origin_replication": _same_origin_replication,
 }
 
@@ -749,32 +961,85 @@ def test_m2b_frozen_case(case_id: str, tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("mutation", ["omission", "addition", "substitution", "reorder"])
 def test_complete_artifact_set_mutations_are_no_write(mutation: str, tmp_path: Path) -> None:
-    raw = _claim_raw()
+    project_log, store, _, source, head = _replication_claims(
+        tmp_path, append_source=False
+    )
+    raw = source.to_dict()
     artifacts = raw["evidence"]["artifact_evidence"]
+    assert len(artifacts) == 2
     fake = copy.deepcopy(artifacts[0])
     fake.update(
         {
-            "artifact_id": "art_00000000000000000000000000000000",
+            "artifact_id": stable_id("artifact", "m2b-addition"),
             "artifact_digest": "1" * 64,
-            "event_id": "evt_00000000000000000000000000000000",
+            "event_id": stable_id("event", "m2b-addition"),
             "event_hash": "2" * 64,
         }
     )
     if mutation == "omission":
-        artifacts.clear()
+        artifacts.pop()
     elif mutation == "addition":
-        artifacts.insert(0, fake)
-    elif mutation == "substitution":
-        artifacts[0] = fake
-    else:
         artifacts.append(fake)
-    _rebind_claim(raw)
-    if mutation == "reorder":
-        result = _reject_claim_parse(raw)
+        artifacts.sort(key=lambda item: item["artifact_id"])
+    elif mutation == "substitution":
+        artifacts[0]["artifact_digest"] = "3" * 64
     else:
-        result = _reject_claim_append(tmp_path, raw)
-    assert result["program_event_delta"] == 0
-    assert result["error_code"] in {"CLAIM_INVALID", "CLAIM_EVIDENCE_MISMATCH"}
+        artifacts.reverse()
+    _rebind_claim(raw)
+    before_log = store.log.path.read_bytes()
+    before_claims = len(store.claim_snapshot().claims)
+    before_projection = store.projection.path.read_bytes()
+    with pytest.raises(ProgramMemoryError) as caught:
+        store.append_claim(
+            raw,
+            project_log,
+            expected_program_head=(head.sequence, head.hash),
+        )
+    assert caught.value.code == (
+        "CLAIM_INVALID" if mutation == "reorder" else "CLAIM_EVIDENCE_MISMATCH"
+    )
+    assert store.log.path.read_bytes() == before_log
+    assert len(store.claim_snapshot().claims) == before_claims
+    assert store.projection.path.read_bytes() == before_projection
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_code"),
+    [("wrong_role", "CLAIM_REPLICATION_NOT_INDEPENDENT"),
+     ("same_scope_different_origin", "CLAIM_REPLICATION_NOT_INDEPENDENT"),
+     ("class", "CLAIM_SCOPE_INCOMPATIBLE")],
+)
+def test_replication_counterfactuals_are_writer_no_write(
+    mutation: str, expected_code: str, tmp_path: Path
+) -> None:
+    assert _relation_rejection(tmp_path, mutation) == {
+        "error_code": expected_code,
+        "relation_delta": 0,
+    }
+
+
+def test_same_origin_different_scope_claim_is_writer_no_write(tmp_path: Path) -> None:
+    target_binding = ProgramBinding.from_mapping(M2A["fixtures"]["binding"])
+    target_origin = OriginEvidenceRef.from_mapping(M2A["fixtures"]["origin"])
+    other_raw = copy.deepcopy(M2A["fixtures"]["binding"])
+    other_raw["evaluation_scope"] = {
+        "id": "replication-1", "role": "replication", "manifest_digest": "c" * 64
+    }
+    other_raw["evaluation_scope_digest"] = sha256_json(
+        {"evaluation_scope_schema_version": 1, "evaluation_scope": other_raw["evaluation_scope"]}
+    )
+    other_binding = ProgramBinding.from_mapping(other_raw)
+    target = Claim.from_mapping(_claim_raw())
+    store, head = _direct_program(tmp_path, [target_binding, other_binding], [target_origin], [target])
+    invalid = _synthetic_claim(other_binding, target_origin, "same-origin-different-scope")
+    project_log = _project_log(tmp_path)
+    before_log = store.log.path.read_bytes()
+    before_claims = len(store.claim_snapshot().claims)
+    with pytest.raises(ProgramMemoryError) as caught:
+        store.append_claim(invalid, project_log, expected_program_head=(head.sequence, head.hash))
+    assert caught.value.code == "CLAIM_EVIDENCE_MISMATCH"
+    assert store.log.path.read_bytes() == before_log
+    assert len(store.claim_snapshot().claims) == before_claims
 
 
 def test_mixed_relation_precedence_is_deterministic_and_claims_are_immutable() -> None:
