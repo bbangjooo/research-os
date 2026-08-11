@@ -32,3 +32,13 @@
   external `3/3`, ruff/ty/diff. Full `672+115` remains bound by zero product/test diff.
 - Checks `18`: matched `17`, mismatched `0`, unrunnable `1`; LOC `1,463+1,241+378=3,082`.
 - Inspected phase/critic/cores/product/tests/fixture/receipt; range `c1a1851..5c62499`, clean cutoff.
+
+## Attempt 2 — `d0e2de2`
+
+**VERDICT: PASS**
+
+- Seven passes PASS: schema/truth, M2-B five-conjunct positioning, reproducibility, MIXED chronology/LOC, paired-core drift, exclusions/authority, and linguistic strength.
+- All six blockers are corrected: cores show critic Attempt 3 PASS/re-audit pending and `37/672+115`; Cycle 08 mapping/LOC/sync is current; Claim is candidate while retrieval/disposition remain absent; `PIVOT/MIXED` has a decision trigger; cases 17/18/20/21/25 measure exact log bytes/count; adjacent command reproduces `96`.
+- Reproduced focused `37`, M2-A+B `59`, adjacent `96`, collection `672`, frozen five `5/5`, manifest diff `0`, authority `10/0`, external `3/3`, ruff/ty/diff PASS.
+- Full `672+115` remains bound: `5c62499..d0e2de2` has no `src/` change and collection is unchanged; changed tests are covered above. No external/live/multi-agent/version surface changed.
+- Post-append gross LOC: product `1,463`, tests+fixture `1,242`, docs `373`, total `3,078/3,100`; M2-B remains candidate until this PASS is committed and cores are closed separately.
