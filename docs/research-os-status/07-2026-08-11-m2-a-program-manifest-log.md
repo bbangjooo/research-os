@@ -176,8 +176,19 @@ EXPLORATORY다.
 
 ### 07.6.8 Requirement-result divergence
 
-아직 측정 전이다. 예상은 frozen 19/19와 M2-A 4/4다. 첫 측정이 다르면 결과를 숨기지 않고
-`REQUIREMENT-WRONG`, `RESULT-INVALID`, `GENUINE-FINDING` 중 하나로 분류한 뒤 core score를 갱신한다.
+첫 full은 `4 failed, 627 passed, 115 subtests passed in 2507.69s`였다. 네 failure는
+`test_release_verifier`의 product-tree check 한 건과 이를 재귀 실행한 M1-C/M1-D 세 건이다.
+M2-A focused `22/22`, adjacent `78+4`, ruff/ty는 green이고 traceback의 root cause는 v0.3
+historical verifier가 현재 tree를 release commit `e120292`의 37-file seal과 비교한 것이다.
+분류는 **RESULT-INVALID / HARNESS**다. v0.3 manifest/tree digest를 현재 M2 tree로 덮어쓰지 않는다.
+
+Fresh-result 전 correction acceptance를 다음과 같이 고정한다. v0.3 static gate는 durable receipt의
+schema/kind/release/result, full implementation commit, manifest와 receipt의 exact tree equality,
+`git` object 존재, 그 commit에서 재계산한 Python tree의 `37 / 52cbf8…277d` equality를 모두 요구한다.
+현재 tree가 달라도 historical static check는 sealed commit으로 PASS하지만, full v0.3 `verify()`는
+HEAD가 sealed commit과 다르면 새 receipt를 재발행하지 못하고 fail-closed한다. Manifest와 existing
+receipt bytes, M2-A 19-case denominator, four conjunct는 변경하지 않는다. 먼저 direct static test와
+네 실패 node를 재현하고, 그 뒤 fresh full만 close 분자로 사용한다.
 
 ## 07.7 Expected north-star movement
 
