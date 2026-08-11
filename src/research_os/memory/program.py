@@ -26,6 +26,18 @@ from research_os.kernel._canonical import (
 )
 from research_os.kernel.events import EventLog
 from research_os.kernel.ids import new_id, stable_id, validate_namespaced_id
+from research_os.memory.claims import (
+    PROGRAM_CLAIM_RECORDED_EVENT,
+    PROGRAM_CLAIM_RELATED_EVENT,
+    Claim,
+    ClaimRelation,
+    ClaimSnapshot,
+    claim_event_payload,
+    claim_from_event_payload,
+    reduce_claim_records,
+    relation_event_payload,
+    relation_from_event_payload,
+)
 from research_os.science.state import ScientificState, reduce_scientific_state
 
 PROGRAM_EVENT_VERSION = 1
@@ -38,7 +50,12 @@ PROGRAM_ORIGIN_LINKED_EVENT = "research.program.origin_linked.v1"
 _HASH_LENGTH = 64
 _SCOPE_ROLES = frozenset({"development", "diagnostic", "replication", "holdout"})
 _PROGRAM_EVENT_TYPES = frozenset(
-    {PROGRAM_INITIALIZED_EVENT, PROGRAM_ORIGIN_LINKED_EVENT}
+    {
+        PROGRAM_INITIALIZED_EVENT,
+        PROGRAM_ORIGIN_LINKED_EVENT,
+        PROGRAM_CLAIM_RECORDED_EVENT,
+        PROGRAM_CLAIM_RELATED_EVENT,
+    }
 )
 _UNSAFE_WRITE_BITS = stat.S_IWGRP | stat.S_IWOTH
 ProgramHead = tuple[int, str | None]
@@ -764,12 +781,90 @@ def _origin_payload(payload: Mapping[str, Any]) -> OriginEvidenceRef:
     return origin
 
 
+def _validate_claim_program_binding(
+    claim: Claim,
+    manifest: ProgramManifest,
+    origins: Sequence[OriginEvidenceRef],
+) -> OriginEvidenceRef:
+    evidence = claim.evidence
+    applicability = claim.applicability
+    origin = next((item for item in origins if item.origin_id == evidence.origin_id), None)
+    exact_origin = (
+        origin is not None
+        and origin.digest == evidence.origin_digest
+        and origin.diagnosis_event_sequence == evidence.diagnosis_event_sequence
+        and origin.diagnosis_event_id == evidence.diagnosis_event_id
+        and origin.diagnosis_event_hash == evidence.diagnosis_event_hash
+        and origin.diagnosis_id == evidence.diagnosis_id
+        and origin.diagnosis_digest == evidence.diagnosis_digest
+    )
+    if not exact_origin or origin is None:
+        raise _error(
+            "CLAIM_EVIDENCE_MISMATCH",
+            "Claim evidence does not match a prior linked origin",
+            claim_id=claim.claim_id,
+        )
+    binding = manifest.binding(
+        applicability.project_id,
+        applicability.generation_id,
+        applicability.evaluation_scope_id,
+    )
+    if binding is None:
+        raise _error(
+            "CLAIM_EVIDENCE_MISMATCH",
+            "Claim applicability is not admitted by the ProgramManifest",
+            claim_id=claim.claim_id,
+        )
+    exact_applicability = (
+        origin.project_id == applicability.project_id
+        and origin.generation_id == applicability.generation_id
+        and origin.evaluation_scope_id == applicability.evaluation_scope_id
+        and origin.class_state_id
+        == stable_id(
+            "classstate",
+            applicability.project_id,
+            applicability.generation_id,
+            applicability.hypothesis_class_id,
+        )
+        and binding.evaluation_scope_role == applicability.evaluation_scope_role
+        and binding.evaluation_scope_manifest_digest
+        == applicability.evaluation_scope_manifest_digest
+        and binding.evaluation_scope_digest == applicability.evaluation_scope_digest
+    )
+    if not exact_applicability:
+        raise _error(
+            "CLAIM_EVIDENCE_MISMATCH",
+            "Claim applicability does not match its origin and manifest binding",
+            claim_id=claim.claim_id,
+        )
+    exact_seal = (
+        binding.evaluation_seal_digest == applicability.evaluation_seal_digest
+        == evidence.evaluation_seal_digest
+        and binding.compatibility_digest == applicability.compatibility_digest
+        == evidence.compatibility_digest
+    )
+    if not exact_seal:
+        raise _error(
+            "CLAIM_SCOPE_INCOMPATIBLE",
+            "Claim seal or compatibility does not match the bound evaluation scope",
+            claim_id=claim.claim_id,
+        )
+    return origin
+
+
 def _program_stream_parts(
-    events: Sequence[ProgramEvent], *, program_id: str
-) -> tuple[ProgramManifest | None, tuple[OriginEvidenceRef, ...]]:
+    events: Sequence[ProgramEvent],
+    *,
+    program_id: str,
+    semantic_errors_as_integrity: bool = True,
+) -> tuple[
+    ProgramManifest | None,
+    tuple[OriginEvidenceRef, ...],
+    ClaimSnapshot | None,
+]:
     verify_program_events(events, program_id=program_id)
     if not events:
-        return None, ()
+        return None, (), None
     try:
         first = events[0]
         if first.event_type != PROGRAM_INITIALIZED_EVENT:
@@ -785,29 +880,50 @@ def _program_stream_parts(
             )
         origins: list[OriginEvidenceRef] = []
         seen: set[str] = set()
+        claim_records: list[Claim | ClaimRelation] = []
         for event in events[1:]:
-            if event.event_type != PROGRAM_ORIGIN_LINKED_EVENT:
+            if event.event_type == PROGRAM_ORIGIN_LINKED_EVENT:
+                origin = _origin_payload(event.payload)
+                if manifest.binding(
+                    origin.project_id, origin.generation_id, origin.evaluation_scope_id
+                ) is None:
+                    raise _error(
+                        "PROGRAM_LOG_INVALID",
+                        "origin evidence is not admitted by the program manifest",
+                    )
+                if origin.origin_id in seen:
+                    raise _error(
+                        "PROGRAM_LOG_INVALID", "duplicate origin evidence in ProgramLog"
+                    )
+                seen.add(origin.origin_id)
+                origins.append(origin)
+                continue
+            if event.event_type == PROGRAM_CLAIM_RECORDED_EVENT:
+                claim = claim_from_event_payload(event.payload)
+                _validate_claim_program_binding(claim, manifest, origins)
+                claim_records.append(claim)
+                continue
+            if event.event_type == PROGRAM_CLAIM_RELATED_EVENT:
+                claim_records.append(relation_from_event_payload(event.payload))
+                continue
+            else:
                 raise _error(
                     "PROGRAM_LOG_INVALID",
                     f"unsupported program event type: {event.event_type}",
                 )
-            origin = _origin_payload(event.payload)
-            if manifest.binding(
-                origin.project_id, origin.generation_id, origin.evaluation_scope_id
-            ) is None:
-                raise _error(
-                    "PROGRAM_LOG_INVALID",
-                    "origin evidence is not admitted by the program manifest",
-                )
-            if origin.origin_id in seen:
-                raise _error(
-                    "PROGRAM_LOG_INVALID", "duplicate origin evidence in ProgramLog"
-                )
-            seen.add(origin.origin_id)
-            origins.append(origin)
-        return manifest, tuple(origins)
+        head = events[-1]
+        claim_snapshot = reduce_claim_records(
+            claim_records,
+            program_id=program_id,
+            program_head=(head.sequence, head.hash),
+        )
+        return manifest, tuple(origins), claim_snapshot
     except ProgramMemoryError as exc:
-        raise IntegrityError(f"invalid ProgramLog semantics ({exc.code}): {exc}") from exc
+        if semantic_errors_as_integrity:
+            raise IntegrityError(
+                f"invalid ProgramLog semantics ({exc.code}): {exc}"
+            ) from exc
+        raise
 
 
 class _ProgramStorage(EventLog):
@@ -913,7 +1029,11 @@ class ProgramLog:
             }
             digest = sha256_hex(canonical_bytes(unsigned))
             event = ProgramEvent.from_mapping({**unsigned, "hash": digest})
-            _program_stream_parts([*events, event], program_id=self.program_id)
+            _program_stream_parts(
+                [*events, event],
+                program_id=self.program_id,
+                semantic_errors_as_integrity=False,
+            )
             encoded = canonical_bytes(event.to_dict())
             provisional_bytes = prefix_bytes + encoded
             committed_bytes = provisional_bytes + b"\n"
@@ -1043,7 +1163,7 @@ class ProgramSnapshot:
 
 
 def reduce_program_events(events: Sequence[ProgramEvent], *, program_id: str) -> ProgramSnapshot:
-    manifest, origins = _program_stream_parts(events, program_id=program_id)
+    manifest, origins, _ = _program_stream_parts(events, program_id=program_id)
     if manifest is None or not events:
         raise _error("PROGRAM_NOT_INITIALIZED", "ProgramLog is not initialized")
     head = events[-1]
@@ -1355,6 +1475,77 @@ def validate_origin_evidence(
         )
 
 
+def validate_claim_evidence(
+    claim: Claim,
+    events: Sequence[Any],
+    manifest: ProgramManifest,
+    origins: Sequence[OriginEvidenceRef],
+) -> None:
+    """Replay and compare the complete external evidence referenced by one Claim."""
+
+    origin = _validate_claim_program_binding(claim, manifest, origins)
+    if not events or getattr(events[0], "project_id", None) != origin.project_id:
+        raise _error(
+            "CLAIM_EVIDENCE_MISMATCH",
+            "Claim project evidence resolver does not match the origin project",
+        )
+    validate_origin_evidence(origin, events, manifest, require_current_head=False)
+    prefix = events[: origin.project_head_sequence]
+    state = reduce_scientific_state(prefix, project_id=origin.project_id)
+    diagnosis = next(
+        (item for item in state.diagnoses if item.diagnosis_id == origin.diagnosis_id),
+        None,
+    )
+    if diagnosis is None:
+        raise _error(
+            "CLAIM_EVIDENCE_MISMATCH",
+            "Claim Diagnosis is absent from the referenced project prefix",
+        )
+    evidence = claim.evidence
+    applicability = claim.applicability
+    exact_diagnosis = (
+        diagnosis.event_sequence == evidence.diagnosis_event_sequence
+        and diagnosis.diagnosis_event_id == evidence.diagnosis_event_id
+        and diagnosis.diagnosis_event_hash == evidence.diagnosis_event_hash
+        and diagnosis.diagnosis_id == evidence.diagnosis_id
+        and diagnosis.diagnosis_digest == evidence.diagnosis_digest
+        and diagnosis.diagnosis.generation_id == applicability.generation_id
+        and diagnosis.diagnosis.hypothesis_class_id
+        == applicability.hypothesis_class_id
+        and diagnosis.diagnosis.evaluation_scope_id
+        == applicability.evaluation_scope_id
+    )
+    exact_terminal = (
+        evidence.terminal_evidence.to_dict()
+        == diagnosis.diagnosis.terminal_evidence.to_dict()
+    )
+    exact_artifacts = [item.to_dict() for item in evidence.artifact_evidence] == [
+        item.to_dict() for item in diagnosis.diagnosis.artifact_evidence
+    ]
+    exact_seal = (
+        state.evaluation_seal_digest == evidence.evaluation_seal_digest
+        == applicability.evaluation_seal_digest
+        and state.evaluation_seal is not None
+        and state.evaluation_seal.compatibility_digest
+        == evidence.compatibility_digest
+        == applicability.compatibility_digest
+        == diagnosis.diagnosis.compatibility_digest
+    )
+    if not exact_diagnosis or not exact_terminal or not exact_artifacts:
+        raise _error(
+            "CLAIM_EVIDENCE_MISMATCH",
+            "Claim does not match the complete Diagnosis, terminal, and artifact evidence",
+            exact_diagnosis=exact_diagnosis,
+            exact_terminal=exact_terminal,
+            exact_artifacts=exact_artifacts,
+        )
+    if not exact_seal:
+        raise _error(
+            "CLAIM_SCOPE_INCOMPATIBLE",
+            "Claim evidence seal or compatibility does not match project replay",
+        )
+
+
 class ProgramStore:
     """Coordinates project evidence locks, ProgramLog appends, and projection repair."""
 
@@ -1415,7 +1606,7 @@ class ProgramStore:
 
     def _manifest(self) -> ProgramManifest:
         events = self.log.read()
-        manifest, _ = _program_stream_parts(events, program_id=self.program_id)
+        manifest, _, _ = _program_stream_parts(events, program_id=self.program_id)
         if manifest is None:
             raise _error("PROGRAM_NOT_INITIALIZED", "ProgramStore is not initialized")
         return manifest
@@ -1487,6 +1678,66 @@ class ProgramStore:
     def snapshot(self) -> tuple[ProgramSnapshot, bool]:
         return self.projection.load_or_rebuild(self.log)
 
+    def append_claim(
+        self,
+        claim: Claim | Mapping[str, Any],
+        project_log: EventLog,
+        *,
+        expected_program_head: ProgramHead,
+        event_id: str | None = None,
+        occurred_at: str | None = None,
+    ) -> ProgramEvent:
+        if not isinstance(claim, Claim):
+            claim = Claim.from_mapping(claim)
+        if project_log.project_id != claim.applicability.project_id:
+            raise _error(
+                "CLAIM_EVIDENCE_MISMATCH",
+                "Claim project ID does not match the project log",
+            )
+        manifest = self._manifest()
+        with project_log.locked_read() as project_events:
+            _, origins, _ = _program_stream_parts(
+                self.log.read(), program_id=self.program_id
+            )
+            validate_claim_evidence(claim, project_events, manifest, origins)
+            event = self.log.append(
+                PROGRAM_CLAIM_RECORDED_EVENT,
+                claim_event_payload(claim),
+                expected_head=expected_program_head,
+                event_id=event_id,
+                occurred_at=occurred_at,
+            )
+        self.projection.load_or_rebuild(self.log)
+        return event
+
+    def append_relation(
+        self,
+        relation: ClaimRelation | Mapping[str, Any],
+        *,
+        expected_program_head: ProgramHead,
+        event_id: str | None = None,
+        occurred_at: str | None = None,
+    ) -> ProgramEvent:
+        if not isinstance(relation, ClaimRelation):
+            relation = ClaimRelation.from_mapping(relation)
+        event = self.log.append(
+            PROGRAM_CLAIM_RELATED_EVENT,
+            relation_event_payload(relation),
+            expected_head=expected_program_head,
+            event_id=event_id,
+            occurred_at=occurred_at,
+        )
+        self.projection.load_or_rebuild(self.log)
+        return event
+
+    def claim_snapshot(self) -> ClaimSnapshot:
+        _, _, snapshot = _program_stream_parts(
+            self.log.read(), program_id=self.program_id
+        )
+        if snapshot is None:
+            raise _error("PROGRAM_NOT_INITIALIZED", "ProgramStore is not initialized")
+        return snapshot
+
     def audit_origins(self, project_logs: Mapping[str, EventLog]) -> int:
         snapshot, _ = self.snapshot()
         expected_projects = {origin.project_id for origin in snapshot.origins}
@@ -1507,6 +1758,34 @@ class ProgramStore:
                     event_sets[origin.project_id],
                     snapshot.program_manifest,
                     require_current_head=False,
+                )
+                validated += 1
+        return validated
+
+    def audit_claims(self, project_logs: Mapping[str, EventLog]) -> int:
+        snapshot = self.claim_snapshot()
+        program_snapshot, _ = self.snapshot()
+        expected_projects = {
+            view.claim.applicability.project_id for view in snapshot.claims
+        }
+        if set(project_logs) != expected_projects:
+            raise _error(
+                "CLAIM_EVIDENCE_MISMATCH",
+                "project logs must exactly cover stored Claim projects",
+            )
+        validated = 0
+        with ExitStack() as stack:
+            event_sets = {
+                project_id: stack.enter_context(project_logs[project_id].locked_read())
+                for project_id in sorted(project_logs)
+            }
+            for view in snapshot.claims:
+                claim = view.claim
+                validate_claim_evidence(
+                    claim,
+                    event_sets[claim.applicability.project_id],
+                    program_snapshot.program_manifest,
+                    program_snapshot.origins,
                 )
                 validated += 1
         return validated
