@@ -282,3 +282,44 @@ This review did not invoke `scripts.m3d_custodian`, `scripts/prepare_m3d_accepta
 `scripts/run_m3d_acceptance.py`, a real nonce source, or any external write. External Attempt 1 custody was read only.
 No current suite, race suite, custody transcript, prearm seal, final receipt, new custody directory, or nonce was
 created. Acceptance Attempt 1 and critic Attempts 1–3 remain preserved unchanged.
+
+## Verify Attempt 5 — 2026-08-12
+
+**VERDICT: PASS**
+
+Clean checkpoint inspected: `846d18b3dea8ee0deaddb91feedb77a5a06e4dca`.
+
+### Closed-question resolution
+
+| Q | Attempt 5 result | Independent evidence |
+|---:|---|---|
+| Q1 | **DIRECT preserved.** | Attempt 1 failure-review, archived suite/race/prearm/custody, and all frozen external/result-binding executable bytes are identical over `5a3a302..846d18b`. The read-only external result still hashes to `9b67285b…af80`, so Attempt 4's digest, reservation, one-draw, same-draw-rerun-false, and authority/capability consistency evidence remains exact. |
+| Q2 | **DIRECT preserved.** | The archived failure review/result and the original `a0ea755` test object are byte-identical. The root remains the post-draw working-tree glob, classification remains `RESULT-INVALID`, M3-D remains `0/8`, and no quality PASS/FAIL is inferred. |
+| Q3 | **DIRECT.** | The current canonical test still enforces suite/race pair atomicity. Its present-body branch calls the helper with `artifact_paths=ACCEPTANCE_PATHS` and `sealed_paths=ACCEPTANCE_PATHS`, so both existence and `git cat-file` proof use the same canonical pair. Its absent-body branch still requires current prearm absence. |
+| Q4 | **DIRECT — Attempt 4 blocker closed.** | The helper now separates `artifact_paths` from `sealed_paths`, requires equal cardinality, and asserts every artifact path is an actual file before reading the prearm. The archived test supplies the two present renamed `failed-attempt-1-*` artifacts but sets `ATTEMPT1_SEALED_PATHS = ACCEPTANCE_PATHS`, so its two Git object queries are exactly historical `acceptance-suite.json` and `acceptance-race-suite.json` at prearm `code_commit=a0ea755`. Direct execution accepts `a0ea755` as body-absent. With only `json.loads` mocked to substitute `code_commit=604e1d0`, the unchanged helper rejects with `AssertionError` because both historical canonical bodies exist there; the Attempt 4 false-pass witness is closed. |
+| Q5 | **DIRECT preserved.** | Current canonical artifacts remain absent `0/5`, and the external custody root still contains only the immutable Attempt 1 `a0ea755…` directory. No new custody path or artifact exists. |
+| Q6 | **DIRECT preserved.** | Blob comparison over `5a3a302..846d18b` is identical for product, generator/public renderer/oracle/selector/metric/threshold, historical-v0.2 binding, custodian, prepare, runner, verifier, protocol/external/release tests, and all Attempt 1 JSON evidence. The only executable correction is `tests/test_m3d_meta_evaluation.py`; the release manifest changes only its bound SHA. |
+| Q7 | **DIRECT.** | Current test SHA-256 is `40a641ac…cf92`, exactly the release-manifest value, and the full pre-nonce binding node passes. Targeted chronology/binding `3/3`, focused M3-D `64/64`, collection `922`, Ruff, offline `ty`, and `git diff --check` all pass. Full suite was deliberately not rerun; the prior clean `921+115` evidence remains attached to unchanged product/runner/verifier bytes. |
+| Q8 | **DIRECT preserved.** | Checkpoint `846d18b` has no custody directory or current acceptance artifacts. A distinct external custody path, one new nonce, one new arm run, and later receipt/audit are still required; Attempt 1 cannot be rerun. `product_multi_agent=false`, `live_migration=false`, and `authorized_action=null` remain unchanged. |
+
+All eight closed questions are DIRECT. This PASS closes the pre-draw chronology-correction critic gate only. It does
+not convert Acceptance Attempt 1 into evidence, advance M3-D above `0/8`, authorize a same-draw rerun, or claim v0.5.
+Any later acceptance must use the distinct clean checkpoint/custody path/new nonce sequence already specified.
+
+### Reproduction evidence
+
+- Archived chronology + current canonical chronology + release binding: `3 passed in 0.14s`.
+- Counterexample injection: `a0ea755` historical canonical pair accepted as absent; `604e1d0` canonical-present pair
+  rejected; archived artifact paths and sealed lookup paths confirmed distinct.
+- Complete M3-D focused suite: `64 passed in 18.58s`.
+- Full collection: `922 tests collected in 0.26s`.
+- Ruff, offline `ty`, and `git diff --check`: PASS.
+- Frozen executable and Attempt 1 evidence comparison `5a3a302..846d18b`: identical outside the one chronology test;
+  release manifest binds its exact replacement hash.
+- Attempt 5 audit count: questions `8`; DIRECT verified `8`; LIMITATION `0`; failed `0`.
+
+### Custody confirmation
+
+This review did not invoke a full suite, `scripts.m3d_custodian`, preparation, acceptance runner, nonce source, or any
+external write. Attempt 1 external custody was read only. No suite, race suite, custody transcript, prearm seal, final
+receipt, custody directory, or nonce was created. Attempts 1–4 remain preserved unchanged.
