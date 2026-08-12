@@ -224,6 +224,34 @@ def _bind_captured_result(
     return replace(result, artifacts=tuple(bound))
 
 
+def _legacy_public_run_summary(summary: Mapping[str, Any]) -> dict[str, Any]:
+    """Keep run_once's v0.1-v0.4 shape while canonical terminals retain capture evidence."""
+
+    raw_result = summary.get("result")
+    if not isinstance(raw_result, Mapping):
+        return dict(summary)
+    raw_artifacts = raw_result.get("artifacts")
+    if not isinstance(raw_artifacts, Sequence) or isinstance(
+        raw_artifacts, (str, bytes, bytearray)
+    ):
+        return dict(summary)
+    artifacts = []
+    for raw in raw_artifacts:
+        if not isinstance(raw, Mapping):
+            return dict(summary)
+        artifacts.append(
+            {
+                key: value
+                for key, value in raw.items()
+                if key not in {"sha256", "size_bytes"}
+            }
+        )
+    return {
+        **summary,
+        "result": {**raw_result, "artifacts": artifacts},
+    }
+
+
 def _verify_result(response: ProtocolResponse) -> VerifyResult:
     """Parse one successful adapter VERIFY response under the shared contract."""
 
@@ -3781,7 +3809,7 @@ class ResearchService:
             if interrupt_error is not None:
                 raise interrupt_error
             raise KeyboardInterrupt  # pragma: no cover - defensive invariant
-        return summary
+        return _legacy_public_run_summary(summary)
 
     def _agent_context_snapshot(
         self,

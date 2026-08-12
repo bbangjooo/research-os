@@ -5,11 +5,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import platform
-import secrets
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -46,7 +45,19 @@ def prepare() -> dict[str, Any]:
             raise RuntimeError(f"acceptance artifact already exists: {path}")
     code_commit = _git("rev-parse", "HEAD")
     manifest = load_generator_manifest(GENERATOR_PATH)
-    nonce = secrets.token_hex(32)
+    completed = subprocess.run(
+        [sys.executable, "-m", "scripts.m3d_custodian"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError("independent custodian refused the draw: " + completed.stderr.strip())
+    custodian = json.loads(completed.stdout)
+    if custodian.get("code_commit") != code_commit or custodian.get("nonce_call_count") != 1:
+        raise RuntimeError("independent custodian transcript is invalid")
+    nonce = custodian["acceptance_nonce"]
     suite = generate_suite(manifest, nonce)
     race = generate_race_suite(manifest, nonce)
     arm_order = ("v0.2", "v0.5") if int(nonce[:2], 16) % 2 == 0 else ("v0.5", "v0.2")
@@ -69,14 +80,22 @@ def prepare() -> dict[str, Any]:
         arm_order=arm_order,
         environment=environment,
     )
-    custody = Path(tempfile.mkdtemp(prefix="research-os-m3d-custody-"))
+    custody = Path(custodian["custody_directory"])
     if ROOT == custody or ROOT in custody.parents or custody in ROOT.parents:
         raise RuntimeError("custody directory must be outside the repository")
     bundle = {"nonce": nonce, "suite": suite, "race": race, "prearm": prearm}
     bundle_bytes = json.dumps(bundle, sort_keys=True, separators=(",", ":")).encode() + b"\n"
     bundle_path = custody / "acceptance-bundle.json"
-    bundle_path.write_bytes(bundle_bytes)
-    bundle_path.chmod(0o600)
+    descriptor = os.open(
+        bundle_path,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_CLOEXEC", 0),
+        0o600,
+    )
+    try:
+        os.write(descriptor, bundle_bytes)
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
     transcript = {
         "custody_transcript_schema_version": 1,
         "nonce_source": "secrets.token_hex(32)",
@@ -86,6 +105,8 @@ def prepare() -> dict[str, Any]:
         "repository_external_directory": str(custody),
         "bundle_path": str(bundle_path),
         "bundle_sha256": _sha256(bundle_bytes),
+        "custodian_transcript_path": str(custody / "nonce-transcript.json"),
+        "draw_reservation_path": custodian["reservation_path"],
         "arms_started": False,
         "authorized_action": None,
     }

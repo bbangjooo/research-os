@@ -10,6 +10,7 @@ import pytest
 
 from research_os import agent_install
 from research_os.errors import ConfigurationError
+from scripts import m3d_custodian
 from scripts.verify_v05_release import V05_UPGRADE_CASES
 from tests.test_agent_install_upgrade import (
     _TARGETS,
@@ -141,8 +142,8 @@ def test_v05_release_manifest_binds_every_pre_nonce_byte() -> None:
         assert hashlib.sha256((ROOT / row["path"]).read_bytes()).hexdigest() == row["sha256"]
 
 
-def test_acceptance_custody_source_calls_secrets_token_hex_exactly_once() -> None:
-    source = (ROOT / "scripts/prepare_m3d_acceptance.py").read_text(encoding="utf-8")
+def test_acceptance_custodian_calls_secrets_after_atomic_reservation_exactly_once() -> None:
+    source = (ROOT / "scripts/m3d_custodian.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
     calls = [
         node
@@ -156,3 +157,49 @@ def test_acceptance_custody_source_calls_secrets_token_hex_exactly_once() -> Non
     assert len(calls) == 1
     assert len(calls[0].args) == 1
     assert isinstance(calls[0].args[0], ast.Constant) and calls[0].args[0].value == 32
+    reservation = source.index('"state": "reserved-before-nonce"')
+    nonce_call = source.index("secrets.token_hex(32)")
+    assert reservation < nonce_call
+    prepare_source = (ROOT / "scripts/prepare_m3d_acceptance.py").read_text(
+        encoding="utf-8"
+    )
+    prepare_tree = ast.parse(prepare_source)
+    assert not any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "secrets"
+        and node.func.attr == "token_hex"
+        for node in ast.walk(prepare_tree)
+    )
+    assert '[sys.executable, "-m", "scripts.m3d_custodian"]' in prepare_source
+    run_source = (ROOT / "scripts/run_m3d_acceptance.py").read_text(encoding="utf-8")
+    assert '"state": "reserved-before-arms"' in run_source
+    assert "arm-run-reservation.json" in run_source
+    assert "acceptance-result.json" in run_source
+    assert run_source.index("_exclusive_json(arm_reservation_path") < run_source.index(
+        "reproduce_benchmark("
+    )
+
+
+def test_custodian_reservation_is_durable_and_blocks_a_second_draw(tmp_path: Path) -> None:
+    parent = tmp_path / "external-custody"
+    commit = "a" * 40
+    calls = 0
+
+    def one_draw(_: int) -> str:
+        nonlocal calls
+        calls += 1
+        reservation = parent / commit / "draw-reservation.json"
+        assert json.loads(reservation.read_text(encoding="utf-8"))["state"] == (
+            "reserved-before-nonce"
+        )
+        return "ab" * 32
+
+    with mock.patch.object(m3d_custodian.secrets, "token_hex", side_effect=one_draw):
+        transcript = m3d_custodian.reserve_draw(commit, custody_parent=parent)
+        with pytest.raises(RuntimeError, match="already has a durable"):
+            m3d_custodian.reserve_draw(commit, custody_parent=parent)
+    assert calls == 1
+    assert transcript["acceptance_nonce"] == "ab" * 32
+    assert (parent / commit / "nonce-transcript.json").is_file()

@@ -1,6 +1,6 @@
 # §14 — M3-D unseen benchmark and v0.5 release (2026-08-12)
 
-> Status: **PRE-SPEC — 0/8; no acceptance nonce/body exists**
+> Status: **CORRECTED PRE-UNSEEN CANDIDATE — 0/8; critic Attempt 2 pending; no acceptance nonce/body exists**
 > Previous phase: [§13](13-2026-08-12-m3-c-crash-resume.md) (`CLOSED 5/5` at `7b00e0b`)
 > Active milestone: `M3-D`; product multi-agent and live migration remain blocked
 
@@ -8,8 +8,9 @@
 
 M3-D is the sole remaining v0.5 milestone. It must compare a byte-fixed v0.2 arm with the frozen v0.5 single-agent
 system on 36 post-freeze unseen synthetic episodes, pass protocol/evidence/choice/terminal/waste gates, confirm three
-external projects read-only, and ship one 0.5.0 release gate. This commit freezes the generator/oracle/metric contract
-only. It intentionally creates no nonce, episode body, result, version change or release claim.
+external projects read-only, and ship one 0.5.0 release gate. The initial pre-spec froze the generator/oracle/metric;
+the current candidate implements the corrected pre-unseen harness. It intentionally creates no acceptance nonce,
+episode body, result or release claim.
 
 ## 14.1 Intent, scope, and prerequisites
 
@@ -27,7 +28,8 @@ only. It intentionally creates no nonce, episode body, result, version change or
 ## 14.2 Precommitted generator and arm contract
 
 Frozen spec path: `tests/fixtures/meta_evaluation/v1/generator-manifest.json`; raw SHA-256
-`3f7e010a79106140fb311578300af4cda5b43e87fa8a5e813e9bc1c6959ff46c`. It fixes six families × six episodes,
+initial `3f7e010a79106140fb311578300af4cda5b43e87fa8a5e813e9bc1c6959ff46c`, corrected operative
+`dd767fcb787aa44cdf1c5aaad851f5556205bbd5143ccde169cbf469066e04a3`. It fixes six families × six episodes,
 candidate language, same selector/budget rule, v0.2 commit
 `6f36a1b97cf8bc3c5925a3b35f0b189d82f6bcb6`, v0.5 visible surface, hidden-field prohibitions, transition/oracle
 rules, metric formulas, receipt custody and `race-confirmation-v1` before any acceptance body exists. Critic-driven
@@ -44,11 +46,11 @@ class/memory/recovery field enters v0.2 and no hidden/oracle field enters either
 | # | exit conjunct | pre-result state |
 |---:|---|---|
 | 1 | precommitted generator + post-freeze 256-bit nonce + pre-arm receipt seal + exact 36 bodies | `0/1` |
-| 2 | frozen protocol attack manifest whole-universe block rate | `0/1`; pipeline path is currently absent |
+| 2 | frozen protocol attack manifest whole-universe block rate | development `24/24`; sealed acceptance `0/1` |
 | 3 | v0.5 evidence-bound conclusion | `0/36`, required `36/36` |
 | 4 | v0.5 closed-class retry | unmeasured, required `0` |
-| 5 | next-choice accuracy | unmeasured, required `v0.5 ≥ min(90%, v0.2+20%p)` |
-| 6 | terminal accuracy | unmeasured, required `v0.5 ≥ min(90%, v0.2+20%p)` |
+| 5 | next-choice accuracy | unmeasured, required `v0.5 ≥ max(v0.2, min(90%, v0.2+20%p))` |
+| 6 | terminal accuracy | unmeasured, required `v0.5 ≥ max(v0.2, min(90%, v0.2+20%p))` |
 | 7 | positive-waste aggregate | unmeasured, required `≤70%`; each v0.2-zero episode requires v0.5 zero |
 | 8 | NS7 actual read-only `3/3` + opaque `3/3` + writer delta zero + 0.5.0 docs/version/upgrades/wheel/full | `0/1` |
 
@@ -63,8 +65,9 @@ called v0.5 while a threshold is unmet.
    public-boundary E2E without generating the 36 acceptance bodies.
 4. Independent critic verifies proxy-vs-real, arm symmetry, hidden-field isolation, metric arithmetic and custody.
 5. Freeze all product/policy/generator/oracle/metric bytes in one code checkpoint.
-6. In a repo-external temporary directory create `secrets.token_hex(32)`, generate 36 bodies and 12 race schedules,
-   then seal code/generator/v0.2/nonce commitment/suite digests before either arm runs.
+6. In the repo-external fixed path `~/.research-os-custody/m3d-v05/<code-commit>`, atomically persist
+   `reserved-before-nonce`, call `secrets.token_hex(32)` once, generate 36 bodies and 12 race schedules, then seal
+   code/generator/v0.2/nonce commitment/suite digests before either arm runs.
 7. Run both arms once, actual external read-only checks, release/upgrades/full suite; append one immutable receipt.
 8. Any post-result relevant byte change invalidates—not edits—the receipt and requires a new pre-spec/nonce cycle.
 
@@ -78,9 +81,9 @@ published after the pre-arm seal so an independent auditor can reproduce the bod
   head must change the selected action or fail the gate in the applicable family.
 - Representative E2E uses actual public ResearchService/ProgramStore/autonomy boundaries where the family permits;
   a pure function calling itself is not sufficient.
-- The missing `tests/fixtures/protocol_attacks/v1/manifest.json` is a pre-result
-  **GENUINE-FINDING** in the planned evidence surface. M3-D must create/freeze executable literal rows before nonce;
-  it may not retroactively pretend M3-A's rejection count was that manifest.
+- The initially missing `tests/fixtures/protocol_attacks/v1/manifest.json` was a pre-result
+  **GENUINE-FINDING** in the planned evidence surface. M3-D now owns and freezes executable literal rows before nonce;
+  it does not retroactively treat M3-A's rejection count as that manifest.
 - External checks snapshot bytes, modes and symlink targets before and after. They never open SQLite writable, invoke
   adapters, install skills into those projects, or infer typed meaning from opaque text.
 
@@ -112,7 +115,8 @@ unseen worlds and install 0.5.0 without mutating prior projects. No other stage 
 
 - **Intent (§14.1; NS1/NS6/NS7):** source = approved unseen-release gate and pipeline §7/§9.4; sample = 36 unseen,
   protocol attack universe, six public-boundary E2E, three external snapshots; measurement = the eight AND gates.
-- **Execution:** no result yet; only the generator/oracle/metric/custody specification is frozen.
+- **Execution:** the corrected generator/comparator/public-boundary/protocol/custody implementation exists and has
+  development evidence; no unseen result exists.
 
 **Label: `MATCH` for pre-spec scope only.** Result matching is deliberately unclaimed.
 
@@ -128,6 +132,11 @@ No result exists. Future fixture/runner corruption is `RESULT-INVALID`; a defect
 `REQUIREMENT-WRONG`; a valid quality/cap/compatibility miss is `GENUINE-FINDING` and blocks release. Results are never
 silently regenerated or relabeled.
 
+The corrected pre-unseen implementation already has one engineering divergence: benchmark/generator/release-script
+churn is `2,341/1,800`, while tests+fixtures are `1,677/2,400`, phase+critic evidence is below `800`, and inclusive
+M3-D churn is `4,555/6,000`. This is a `GENUINE-FINDING`/EXPLORATORY subtarget miss, not permission to weaken an
+eight-gate threshold or the inclusive cap. The exact inclusive count is frozen in status §13 at the checkpoint.
+
 ## 14.7 Residual limitations
 
 - Synthetic worlds test deterministic learning-state use, not open-domain scientific creativity or model quality.
@@ -136,8 +145,8 @@ silently regenerated or relabeled.
 
 ## 14.10 Next action
 
-Commit this manifest/phase, record SHA/timestamps, then obtain independent M3-D critic questions. Do not implement the
-generator or create a nonce/body before that critic artifact is committed.
+Commit the corrected pre-unseen checkpoint, then obtain independent critic Attempt 2 over the closed Q1–Q8 set. Do
+not create a nonce/body until that critic returns PASS and its evidence is committed on a clean checkpoint.
 
 ## 14.11 Pre-unseen critic Attempt 1 FAIL and correction contract
 
@@ -165,5 +174,30 @@ The correction is pre-result and must replace, not relabel, the defective eviden
    full-suite legacy-v1 `run_once` shape regression without changing the frozen historical oracle.
 
 All changed generator/oracle/metric/attack/release bytes require a new clean pre-nonce checkpoint and a second
-independent critic PASS. Thresholds and the eight release conjuncts are unchanged. Product multi-agent, live
+independent critic PASS. The defective `min(90%, baseline+20%p)` formula was tightened pre-nonce with the intended
+non-regression conjunct; no gate was weakened and the eight release conjuncts are unchanged. Product multi-agent, live
 migration, and acceptance preparation remain prohibited until that PASS.
+
+## 14.12 Corrected pre-unseen implementation candidate
+
+The Attempt 1 correction contract is now implemented but not yet independently accepted:
+
+- hidden decision state, public observation rendering, and oracle derivation are separate; oracle-only mutation leaves
+  selector bytes unchanged. Candidate arrays/IDs and reversed action priority do not change exact v0.5 choices.
+- v0.5 public evidence is produced by actual `ClassState.to_dict()`, `retrieve_claims(ClaimSnapshot, query)`,
+  `ProposalKnowledgeDisposition.to_dict()`, and `AutonomyEpisodeState.to_dict()` boundaries. Generated family E2E is
+  literal `6/6`; removal, class-ID permutation, and contradiction attacks are material `6/6` per family/mutation.
+- v0.2 executes the exact archived `6f36a1b` Context builder in an isolated subprocess and binds the byte-fixed skill
+  digest into the common selector policy. Current `build_agent_context` is not the historical execution path.
+- M3-D owns its literal 24-row attack handler table; actual Project/Program/AutonomyLog no-write is `24/24`.
+- custody has durable draw and arm-run reservations plus an immutable external result path. None has been invoked for
+  the acceptance checkpoint.
+- the legacy `run_once` return surface again matches the frozen v1/M1-B observer, while canonical terminal events keep
+  captured artifact digest/size evidence.
+
+Current executable evidence: M3-D focused `63/63`, adjacent M3-A/B/C `142/142`, full `921+115` in `1195.61s`,
+targeted legacy parity `1/1`, actual ResearchService/autonomy evidence `1/1`, Ruff, ty, and `git diff --check` PASS.
+This is engineering evidence only: the
+post-freeze nonce, 36 unseen bodies, one-shot arms, full-suite release receipt, critic Attempt 2, and independent
+progress audit do not yet exist. Therefore M3-D remains `ADVANCE 0/8`, product multi-agent/live migration stay blocked,
+and acceptance preparation is still prohibited.

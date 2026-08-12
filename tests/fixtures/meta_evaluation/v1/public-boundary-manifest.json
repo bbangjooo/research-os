@@ -5,39 +5,39 @@
   "cases": [
     {
       "family": "mechanism-replication",
-      "nodeid": "tests/test_m1d_manifest_oracle.py::test_each_frozen_operation_has_an_executable_outer_comparison[replication-parent-gate-matrix]",
-      "boundary": "ScientificState registration preflight and reducer",
-      "expected": "replication parent/scope gate exact"
+      "nodeid": "tests/test_m3d_meta_evaluation.py::test_generated_family_uses_real_public_serializers_and_external_oracle[mechanism-replication]",
+      "boundary": "ClassState.to_dict plus retrieve_claims to Context v3",
+      "expected": "generated trajectory, replicated terminal, evidence ref, and isolated oracle exact"
     },
     {
       "family": "falsification-closure",
-      "nodeid": "tests/test_m1d_manifest_oracle.py::test_each_frozen_operation_has_an_executable_outer_comparison[class-state-partitions-and-support]",
-      "boundary": "ScientificState Diagnosis to ClassState reducer",
-      "expected": "class lifecycle/support partitions exact"
+      "nodeid": "tests/test_m3d_meta_evaluation.py::test_generated_family_uses_real_public_serializers_and_external_oracle[falsification-closure]",
+      "boundary": "ClaimSnapshot contradiction through retrieve_claims plus ClassState.to_dict",
+      "expected": "generated contradiction choice, closed terminal, evidence ref, and isolated oracle exact"
     },
     {
       "family": "gate-conflict",
-      "nodeid": "tests/test_m3a_decision_packet.py::test_closed_class_uses_existing_registration_preflight_without_log_mutation",
-      "boundary": "DecisionPacket to canonical registration preflight",
-      "expected": "closed hard class gate rejects before write"
+      "nodeid": "tests/test_m3d_meta_evaluation.py::test_generated_family_uses_real_public_serializers_and_external_oracle[gate-conflict]",
+      "boundary": "ClassState closure evidence through public Context v3",
+      "expected": "generated hard-gate repair, terminal, evidence ref, and isolated oracle exact"
     },
     {
       "family": "invalid-retry-budget",
-      "nodeid": "tests/test_m1d_manifest_oracle.py::test_each_frozen_operation_has_an_executable_outer_comparison[retry-frontier]",
-      "boundary": "ScientificState retry frontier and budget",
-      "expected": "retry eligibility frontier exact"
+      "nodeid": "tests/test_m3d_meta_evaluation.py::test_generated_family_uses_real_public_serializers_and_external_oracle[invalid-retry-budget]",
+      "boundary": "AutonomyEpisodeState.to_dict invalid-packet budget through Context v3",
+      "expected": "generated retry repair, terminal, evidence ref, and isolated oracle exact"
     },
     {
       "family": "memory-relation-contamination",
-      "nodeid": "tests/test_m2c_deterministic_retrieval.py::test_real_program_vertical_context_and_canonical_head_stale_no_write",
-      "boundary": "ProgramStore retrieval to public Context v3",
-      "expected": "active relation/reason exact and stale no-write"
+      "nodeid": "tests/test_m3d_meta_evaluation.py::test_generated_family_uses_real_public_serializers_and_external_oracle[memory-relation-contamination]",
+      "boundary": "ClaimSnapshot and retrieve_claims relation/status through Context v3",
+      "expected": "generated memory choice, terminal, evidence ref, and isolated oracle exact"
     },
     {
       "family": "crash-drift-exhaustion",
-      "nodeid": "tests/test_m3c_crash_resume.py::test_m3c_lookup_to_append_race_fails_closed_without_controller_write",
-      "boundary": "FiniteAutonomyLoop recovery lookup to public service/store append",
-      "expected": "three competing-writer schedules stale and no controller write"
+      "nodeid": "tests/test_m3d_meta_evaluation.py::test_generated_family_uses_real_public_serializers_and_external_oracle[crash-drift-exhaustion]",
+      "boundary": "AutonomyEpisodeState.to_dict stored head versus RetrievalResult current head",
+      "expected": "generated recovery choice, terminal, evidence ref, and isolated oracle exact"
     }
   ],
   "authorized_action": null

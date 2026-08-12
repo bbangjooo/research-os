@@ -223,10 +223,18 @@ def collect_runtime_evidence(
     boundary_manifest = strict_json(ROOT / manifest["public_boundary_manifest"])
     nodes = [item["nodeid"] for item in boundary_manifest["cases"]]
     boundaries = _passed_count(_run([sys.executable, "-m", "pytest", "-q", *nodes]))
-    _require(boundaries == 8, "six-family public boundary gate did not pass exact 8 nodes")
+    _require(boundaries == 6, "six-family public boundary gate did not pass exact 6 nodes")
     external = _passed_count(_run([sys.executable, "-m", "pytest", "-q", "tests/test_m3d_external_compatibility.py"]))
     _require(external == 4, "external read-only gate did not pass 3/3 projects")
-    upgrades = _passed_count(_run([sys.executable, "-m", "pytest", "-q", "tests/test_m3d_release_gate.py"]))
+    upgrade_nodes = [
+        "tests/test_m3d_release_gate.py::test_v05_managed_upgrade_and_rollback["
+        + case["id"]
+        + "]"
+        for case in V05_UPGRADE_CASES
+    ]
+    upgrades = _passed_count(
+        _run([sys.executable, "-m", "pytest", "-q", *upgrade_nodes])
+    )
     _require(upgrades == 7, "managed upgrade/rollback gate did not pass 7/7")
     race_rows = race.get("schedules")
     _require(isinstance(race_rows, list) and len(race_rows) == 12, "race suite must have 12 rows")
@@ -296,6 +304,17 @@ def verify() -> dict[str, Any]:
     prearm = strict_json(PREARM_PATH)
     _require(manifest.get("release") == receipt.get("release") == "0.5.0", "release version drifted")
     _require(receipt.get("result") == "PASS", "acceptance receipt is not passing")
+    custody = receipt.get("custody")
+    _require(isinstance(custody, Mapping), "acceptance custody result binding missing")
+    arm_reservation = strict_json(Path(custody["arm_run_reservation_path"]))
+    external_result = strict_json(Path(custody["external_result_path"]))
+    _require(
+        arm_reservation.get("state") == "reserved-before-arms"
+        and arm_reservation.get("prearm_seal_sha256")
+        == receipt.get("prearm_seal_sha256"),
+        "external arm-run reservation mismatch",
+    )
+    _require(external_result == receipt, "repository receipt differs from immutable custody result")
     nonce = receipt.get("acceptance_nonce")
     _require(isinstance(nonce, str), "published acceptance nonce missing")
     validate_prearm(manifest, suite, race, prearm, nonce)
