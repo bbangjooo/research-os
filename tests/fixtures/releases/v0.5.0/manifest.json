@@ -26,7 +26,7 @@
     {"path":"scripts/prepare_m3d_acceptance.py","sha256":"3618a9a48bace3ca4a24d6023ad3297cc6a4fa0c5c1e078073215753e4018713"},
     {"path":"scripts/run_m3d_acceptance.py","sha256":"ee642d00f248b9a7a926660711f490f22496c8dbf25bbfceac7e7b993d13e977"},
     {"path":"scripts/verify_v05_release.py","sha256":"cdbe72fb587ef6538ec228c4407bb37c651d3dae262e4242f623f0bb776d279b"},
-    {"path":"tests/test_m3d_meta_evaluation.py","sha256":"46fe8bfca158817ba9618704813309eb57244e447393e6dfbb462a41ce6cd5ae"},
+    {"path":"tests/test_m3d_meta_evaluation.py","sha256":"26be2ecb62f9c1345e9cbd777df9b80fc33236891df820e11c746e7f979dc207"},
     {"path":"tests/test_m3d_protocol_attacks.py","sha256":"f2fca9b35172d7c66f03df3a69c2caa3edd273fabb88a73170aa82c00fd19ec3"},
     {"path":"tests/test_m3d_external_compatibility.py","sha256":"9dbf187517dce6d5e316ef73f95d61f875b50a07ce0bdf00117e94a1022d9d33"},
     {"path":"tests/test_m3d_release_gate.py","sha256":"51718e9428478faef10d87be8767fd7f3fd41fa467cabbcb21b6dde84c30ad58"},

@@ -1,6 +1,6 @@
 # §14 — M3-D unseen benchmark and v0.5 release (2026-08-12)
 
-> Status: **CORRECTED PRE-UNSEEN CANDIDATE — 0/8; critic Attempt 3 PASS; no acceptance nonce/body exists**
+> Status: **ACCEPTANCE ATTEMPT 1 RESULT-INVALID — 0/8; immutable failed draw preserved; correction candidate pending critic Attempt 4**
 > Previous phase: [§13](13-2026-08-12-m3-c-crash-resume.md) (`CLOSED 5/5` at `7b00e0b`)
 > Active milestone: `M3-D`; product multi-agent and live migration remain blocked
 
@@ -9,8 +9,9 @@
 M3-D is the sole remaining v0.5 milestone. It must compare a byte-fixed v0.2 arm with the frozen v0.5 single-agent
 system on 36 post-freeze unseen synthetic episodes, pass protocol/evidence/choice/terminal/waste gates, confirm three
 external projects read-only, and ship one 0.5.0 release gate. The initial pre-spec froze the generator/oracle/metric;
-the current candidate implements the corrected pre-unseen harness. It intentionally creates no acceptance nonce,
-episode body, result or release claim.
+the corrected harness received critic Attempt 3 PASS and drew one externally custodied suite. The run was
+`RESULT-INVALID` because a chronology test inspected the post-draw working tree instead of the sealed code commit.
+That draw is immutable, archived, and prohibited from rerun; it makes no quality or release claim.
 
 ## 14.1 Intent, scope, and prerequisites
 
@@ -102,7 +103,8 @@ refute all five routes.
 
 ### 14.6.4 Milestone progress claim
 
-**Current label: `ADVANCE 0/8`.** M3-D exists and M3-C is closed, but no engineering or release conjunct is claimed.
+**Current label: `ADVANCE 0/8`.** M3-D exists and M3-C is closed, but Attempt 1 was `RESULT-INVALID`; no engineering
+or release conjunct is claimed.
 Product multi-agent remains prohibited until NS6 passes; live pilot/migration remains post-v0.5.
 
 ### 14.6.5 End-state delta
@@ -116,19 +118,19 @@ unseen worlds and install 0.5.0 without mutating prior projects. No other stage 
 - **Intent (§14.1; NS1/NS6/NS7):** source = approved unseen-release gate and pipeline §7/§9.4; sample = 36 unseen,
   protocol attack universe, six public-boundary E2E, three external snapshots; measurement = the eight AND gates.
 - **Execution:** the corrected generator/comparator/public-boundary/protocol/custody implementation exists and has
-  development evidence; no unseen result exists.
+  development evidence. One unseen draw exists only as immutable invalid-attempt evidence; no valid unseen result exists.
 
 **Label: `MATCH` for pre-spec scope only.** Result matching is deliberately unclaimed.
 
 ### 14.6.7 Claim mode
 
-**Planned `MIXED`.** Generator/world/oracle/metric precede implementation and nonce, so frozen rows and future body
-results remain CONFIRMATORY if custody holds. The critic-driven no-leak, full-v0.2, anti-vacuity and non-empty external
-selection corrections are EXPLORATORY and cannot be relabeled.
+**`MIXED`.** Generator/world/oracle/metric preceded Attempt 1, but its body result is unusable because the release
+conjunction did not complete. The chronology correction is EXPLORATORY. A future new-nonce result may remain
+CONFIRMATORY only against a newly sealed clean code checkpoint; Attempt 1 is never relabeled.
 
 ### 14.6.8 Requirement-result divergence
 
-No result exists. Future fixture/runner corruption is `RESULT-INVALID`; a defective oracle/metric is
+No valid result exists. Attempt 1 fixture/runner chronology failure is `RESULT-INVALID`; a defective oracle/metric is
 `REQUIREMENT-WRONG`; a valid quality/cap/compatibility miss is `GENUINE-FINDING` and blocks release. Results are never
 silently regenerated or relabeled.
 
@@ -145,8 +147,9 @@ eight-gate threshold or the inclusive cap. The exact inclusive count is frozen i
 
 ## 14.10 Next action
 
-Commit the critic PASS and paired status/pipeline sync, confirm a clean checkpoint, then invoke acceptance preparation
-exactly once. Do not run either arm until the generated suite/race/prearm/custody objects are checked in and committed.
+Validate the chronology correction, commit the archived Attempt 1 evidence and paired status/pipeline sync at a clean
+checkpoint, then obtain independent critic Attempt 4. Only after PASS may a new external custody path draw a new nonce
+exactly once. Never rerun or reconstruct Attempt 1.
 
 ## 14.11 Pre-unseen critic Attempt 1 FAIL and correction contract
 
@@ -190,18 +193,18 @@ The Attempt 1 correction contract is now implemented but not yet independently a
 - v0.2 executes the exact archived `6f36a1b` Context builder in an isolated subprocess and binds the byte-fixed skill
   digest into the common selector policy. Current `build_agent_context` is not the historical execution path.
 - M3-D owns its literal 24-row attack handler table; actual Project/Program/AutonomyLog no-write is `24/24`.
-- custody has durable draw and arm-run reservations plus an immutable external result path. None has been invoked for
-  the acceptance checkpoint.
+- custody has durable draw and arm-run reservations plus an immutable external result path. At the Attempt 3 critic
+  checkpoint none had been invoked; the later single invocation is preserved as Attempt 1 in §14.15.
 - the legacy `run_once` return surface again matches the frozen v1/M1-B observer, while canonical terminal events keep
   captured artifact digest/size evidence.
 
 Current executable evidence before the Q4-only correction: M3-D focused `63/63`, adjacent M3-A/B/C `142/142`, full
 `921+115` in `1195.61s`, targeted legacy parity `1/1`, actual ResearchService/autonomy evidence `1/1`, Ruff, ty, and
-`git diff --check` PASS. The Q4 correction's targeted durability tests pass `2/2`; corrected focused recheck is pending.
-This is engineering evidence only: the
-post-freeze nonce, 36 unseen bodies, one-shot arms, full-suite release receipt, and independent
-progress audit do not yet exist. Therefore M3-D remains `ADVANCE 0/8`, product multi-agent/live migration stay blocked,
-and arm execution remains prohibited until the one-time preparation artifacts are checked in on a clean prearm commit.
+`git diff --check` PASS. The Q4 correction's targeted durability tests pass `2/2`. After the Attempt 1 chronology
+correction, current focused is `64/64`, collection is `922`, and Ruff/ty/diff PASS. This remains engineering evidence:
+Attempt 1 has no valid paired result or release receipt, and the independent final progress audit does not exist.
+Therefore M3-D remains `ADVANCE 0/8`, product multi-agent/live migration stay blocked, and a new arm execution is
+prohibited until a new clean checkpoint receives critic Attempt 4 PASS and distinct custody preparation is committed.
 
 ## 14.13 Critic Attempt 2 FAIL — Q4 crash durability correction
 
@@ -219,3 +222,31 @@ reservation→file fsync→checkpoint-directory fsync→custody-parent fsync→s
 byte-identical or hash-only manifest updates from their Attempt 2 DIRECT evidence. Targeted Q4+manifest `3/3`, complete
 release-gate `10/10`, Ruff/ty/diff PASS, and checked-in acceptance artifacts `0/5` were independently confirmed. This
 authorizes the one-draw acceptance chronology only; it does not claim any M3-D release conjunct or live authority.
+
+## 14.15 Acceptance Attempt 1 `RESULT-INVALID`
+
+The clean code checkpoint `a0ea755476880a0b337678af4e5e7a6b6cc999d2` was prepared exactly once under the
+repository-external custody path
+`/Users/bbangjo/.research-os-custody/m3d-v05/a0ea755476880a0b337678af4e5e7a6b6cc999d2`. Its pre-arm seal was
+`86d60c8d2cf8b1143b59b891798619b00bf7aa6693b6c260aeca385a055314c4`; the four generated canonical
+objects were committed at `604e1d01cef5e74383ecad11d6784340fdd7118d` before the arms ran.
+
+The one-shot command completed with outer full-suite evidence `917 passed, 4 failed, 115 subtests`. All four failures
+descended from `test_generator_manifest_is_precommitted_and_has_no_acceptance_body`: that test used a glob against the
+post-draw working tree, so the valid presence of the checked-in suite/race body made its own chronology assertion fail.
+The immutable external failure result has SHA-256
+`9b67285b816648e3225f14b80d186367ca764cbcfe1233cd3318fcb7d92aaf80`. It records
+`authorized_action=null`, `product_multi_agent=false`, and `live_migration=false`.
+
+This is **not** a benchmark quality failure or pass. The benchmark had begun, but acceptance metrics were not persisted
+through a complete release conjunction, so no accuracy, terminal, waste, compatibility, or release conjunct is inferred.
+The same draw is never rerun. Its exact suite, race suite, prearm seal, and custody transcript are preserved under the
+`failed-attempt-1-*` / `14-m3-d-attempt-1-*` names, with digests recorded in
+`14-m3-d-attempt-1-failure-review.json`; the external reservation/result remains untouched.
+
+The pre-data correction replaces current-working-tree absence with a direct Git proof: each generated body must be
+absent at the prearm document's sealed `code_commit`. A dedicated archive test applies that proof to Attempt 1, so the
+post-draw chronology is immediately executable instead of relying on a body-absence test that becomes false by design.
+No generator, oracle, selector, metric threshold, v0.2 arm, or product policy changed. The correction requires focused
+and static PASS, a new clean checkpoint, independent critic Attempt 4, and a distinct code-commit custody path/new nonce
+before one new one-shot execution. M3-D remains `0/8`; product multi-agent and live migration remain blocked.

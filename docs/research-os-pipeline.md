@@ -48,7 +48,7 @@
 6. **유한 자율 루프** (§6): provider의 출력은 비신뢰 packet이며 kernel preflight 뒤에만 실행된다.
 7. **비교 가능한 효과 측정** (§7): 동일 후보 언어·실험 budget에서 정확도와 낭비를 비교한다.
 
-현재 상태 (Cycle 14 M3-D corrected pre-unseen candidate; critic Attempt 3 PASS; unseen pending):
+현재 상태 (Cycle 14 M3-D; critic Attempt 3 PASS 뒤 Acceptance Attempt 1 `RESULT-INVALID`; correction pending):
 
 - 1번 ✅/○ — directional delta, constitution-owned typed gate/slack, baseline/candidate verify 대칭과 nested/flat certification lifecycle이 구현·검증됐다.
 - 2번 ○ — checkpoint `df2c900`에서 canonical StudyContract·evaluation-sealed generation·replayable cumulative reservation ledger·locked overrun gate가 구현됐다. executable manifest `29/29`, focused `81+37`; 단, generation별 non-refundable reservation이지 actual usage telemetry나 study lifetime cap은 아니며 successor 반복 증액을 막지 않는다.
@@ -62,7 +62,9 @@
   five-conjunct `31/31`이 구현됐다. Critic Attempt 1의 lookup→append race gap은 exploratory `3/3`으로
   교정했고 critic Attempt 2와 corrected audit Attempt 2가 PASS해 M3-C를 닫았다.
 - 7번 △ — actual public serializer와 archived v0.2 comparator를 쓰는 corrected harness가 focused `63`,
-  adjacent `142`, full `921+115`를 PASS했다. Post-freeze nonce와 unseen one-shot result는 아직 없다.
+  adjacent `142`, full `921+115`를 PASS했다. 첫 post-freeze draw는 body chronology test가 sealed commit이
+  아니라 post-draw tree를 검사해 outer `917/4+115`로 `RESULT-INVALID`; 동일 draw는 재실행하지 않고
+  보존했다. 새 checkpoint/critic/new-nonce one-shot이 남는다.
 
 ---
 
@@ -329,7 +331,7 @@ Canonical truth boundaries:
 | Program memory | conditional Claim graph가 exact origin evidence를 참조 | Claim graph/retrieval 위에 registered Proposal-bound disposition과 digest-only legacy opaque event가 canonical ProgramLog에 저장·replay됨; M2 closed | Cycle 10 frozen `23/23`; corrected actual three-way `1/1`; full `713+115`; critic + audit PASS |
 | Context | v3가 budget/class/pending diagnosis/relevant claim/reason을 제공 | exact retrieval/disposition read set을 finite loop의 next Context/DecisionPacket이 current Program head에서 재소비 | Cycle 12 next-packet witness; focused `60`; critic + audit PASS |
 | Autonomy | provider-neutral finite state machine이 stop/resume | three verified logs에서 cold crash-resume `13/13`; duplicate/stale/authority/forbidden `31/31`; lookup→append race `3/3`; independent gates PASS | Cycle 13 `CLOSE`; critic + corrected audit PASS |
-| Meta-evaluation | post-freeze unseen 36 episodes와 choice oracle로 v0.2/v0.5 paired comparison | actual typed public serializers + archived v0.2 corrected harness focused `63`; Q4 durability corrected; unseen은 미실행 | Cycle 14 critic Attempt 3 PASS; unseen pending |
+| Meta-evaluation | post-freeze unseen 36 episodes와 choice oracle로 v0.2/v0.5 paired comparison | actual typed public serializers + archived v0.2 harness focused `64`; Attempt 1은 chronology test 때문에 `RESULT-INVALID`로 보존 | Cycle 14 sealed-commit correction PASS; critic Attempt 4/new nonce pending |
 | Compatibility/authority | v1 logs 무변환, legacy 격리, authority null 유지 | 0.5.0 candidate, actual replay/opaque/no-write `3/3` DIRECT, product multi-agent false | Cycle 14 Q7 DIRECT; release receipt pending |
 
 ### 8.5 비전 변경 이력 ★
@@ -350,7 +352,7 @@ Canonical truth boundaries:
 | 11 | 2026-08-12 | 구체화·검증 (PIVOT correction) | 비신뢰 provider output을 current Program/Context/retrieval/Proposal에 검증하는 DecisionPacket seam을 추가; historical v0.4 HEAD-bound verifier Attempt 1은 철회·checkpoint-bound correction; FSM/NS5는 유지 | `50ee73d→eb289c4→42c7557`; frozen `32/32`, full `757+115`; critic + corrected audit PASS; M3-A close, M3-B active |
 | 12 | 2026-08-12 | 구체화·검증 (`MIXED` correction) | single-provider finite episode와 three-log truth-owner 경계를 구현했다. Critic/audit 결함은 source reconciliation·actual service·type/schema sync로 보정했다. Crash resume·unseen quality는 유지한다 | frozen `43/43`, focused/adjacent `60/125`; critic + audit Attempt 4 PASS; M3-B close, M3-C active |
 | 13 | 2026-08-12 | 구체화·검증 (`MIXED` correction, `CLOSE`) | AutonomyLog orchestration·ProjectLog scientific truth·ProgramLog memory truth에서 crash cold-resume를 구현했다. Context/Program rating과 NS6/NS7은 유지하며 외부 billing exactly-once·hostile-provider sandbox·distributed consensus·learning quality는 미청구다 | frozen `31/31`; lookup→append `3/3`; critic + corrected audit PASS; M3-C close, M3-D active |
-| 14 | 2026-08-12 | PIVOT correction (`MIXED`, pre-unseen) | first M3-D harness의 answer-shaped proxy, current-code historical arm, repeatable/non-crash-durable custody, metric regression, reused attack handler를 실제 public serializers·archived builder·pre-draw directory-durable custody·M3-D literal boundary와 exact public evidence binding으로 교체했다 | focused `63`, adjacent `142`, full `921+115`, Q4/release `10/10`, external `3/3`; critic Attempt 3 PASS, unseen pending |
+| 14 | 2026-08-12 | PIVOT correction (`MIXED`, unseen Attempt 1 `RESULT-INVALID`) | first M3-D harness를 actual public serializers·archived builder·pre-draw directory-durable custody·literal boundary로 교체하고 critic Attempt 3 PASS 뒤 unseen draw를 1회 실행했다. Post-draw tree body-absence chronology defect는 sealed-code-commit proof로 교정 중이며 동일 draw는 폐기·보존했다 | pre-unseen focused `63`, adjacent `142`, full `921+115`; invalid outer `917/4+115`; new checkpoint/critic/new nonce pending |
 
 ---
 
@@ -441,8 +443,9 @@ managed upgrade와 structured six-case release evidence가 `5/5`로 독립 감�
 닫았다. M2-A `4/4`, M2-B Claim/relation `5/5`, M2-C retrieval `5/5`는 closed했고,
 M2-D disposition/legacy/v0.4 evidence도 corrected 5/5, critic, audit PASS로 닫혀 parent M2가
 closed다. M3-A DecisionPacket과 M3-B finite loop도 independent gates를 통과해 closed다.
-M3-C crash-resume `5/5`는 critic과 corrected audit PASS로 닫혔다. M3-D corrected pre-unseen candidate가
-focused/adjacent gate를 통과했다. Critic Attempt 2 Q4-only FAIL을 교정해 Attempt 3 PASS했고 unseen one-shot이 남았다.
+M3-C crash-resume `5/5`는 critic과 corrected audit PASS로 닫혔다. M3-D pre-unseen candidate는 critic
+Attempt 3 PASS 뒤 unseen one-shot을 실행했지만 chronology root test 때문에 `RESULT-INVALID`였다. 동일 draw는
+재실행하지 않고 보존했으며 sealed-code-commit correction, critic Attempt 4, distinct new-nonce one-shot이 남았다.
 
 ### 10.1 단계별 평가
 
@@ -454,7 +457,7 @@ focused/adjacent gate를 통과했다. Critic Attempt 2 Q4-only FAIL을 교정�
 | 4. Program memory | ○ | `memory/{program,claims,retrieval,knowledge}.py`; Claim graph/retrieval 4/4 + registered Proposal disposition + legacy opaque cold replay; M3 consumer는 open | phases §09~§10; corrected `713+115`, durable `1/1`, critic PASS |
 | 5. Relevant context v3 | ○ | exact Claim/reason/manifest/Program-head/disposition을 finite loop가 next Context/DecisionPacket에서 재소비 | phase §12 corrected focused `60`; critic + audit PASS |
 | 6. Autonomous single-agent | ○ | finite episode와 cold crash-resume가 independent gates를 통과; hostile provider sandbox는 미청구 limitation | M3-C frozen `31/31`; race `3/3`; critic + audit PASS |
-| 7. Meta-evaluation/release | △ | actual public serializers와 archived v0.2를 쓰는 generator/comparator와 pre-draw directory-durable custody는 구현; unseen benchmark는 미실행 | focused `63`, adjacent `142`, full `921+115`; critic Attempt 3 PASS |
+| 7. Meta-evaluation/release | △ | actual public serializers와 archived v0.2를 쓰는 generator/comparator와 pre-draw directory-durable custody는 구현. Attempt 1은 chronology test 결함으로 `RESULT-INVALID`; same draw rerun 금지 | pre-unseen `63/142/921+115`; invalid one-shot `917/4+115`; correction/critic/new nonce pending |
 
 범례: ◎ 우수 / ○ 양호 / △ 부분 / ✗ 미구현
 
@@ -470,7 +473,9 @@ focused/adjacent gate를 통과했다. Critic Attempt 2 Q4-only FAIL을 교정�
 2. Historical floor 상호 재귀는 차단했지만 세 self-oracle child 때문에 full suite가 약 20분이다.
 3. M3-A packet은 memory read set을 검증하고 closed됐지만, FSM이 이를 next action으로 소비하는 것은
    아직 없다.
-4. autonomous loop와 pre-fixed learning harness는 있으나 post-freeze unseen paired receipt가 없다. 제품 multi-agent는 이 NS6 gate 통과 이후까지 명시적으로 유예한다.
+4. autonomous loop와 pre-fixed learning harness는 있으나 valid post-freeze unseen paired receipt가 없다.
+   Attempt 1은 `RESULT-INVALID`로 보존됐고 새 checkpoint/new nonce가 필요하다. 제품 multi-agent는 이 NS6
+   gate 통과 이후까지 명시적으로 유예한다.
 
 ### 10.4 한 문장 요약
 

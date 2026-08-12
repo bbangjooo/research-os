@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import inspect
+import json
 import subprocess
 from collections import Counter
 from copy import deepcopy
@@ -31,6 +32,18 @@ from research_os.meta_evaluation import (
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "tests/fixtures/meta_evaluation/v1/generator-manifest.json"
+PREARM_PATH = ROOT / "docs/research-os-status/14-m3-d-prearm-seal.json"
+ACCEPTANCE_PATHS = (
+    ROOT / "tests/fixtures/meta_evaluation/v1/acceptance-suite.json",
+    ROOT / "tests/fixtures/meta_evaluation/v1/acceptance-race-suite.json",
+)
+ATTEMPT1_PREARM_PATH = ROOT / "docs/research-os-status/14-m3-d-attempt-1-prearm-seal.json"
+ATTEMPT1_ACCEPTANCE_PATHS = (
+    ROOT
+    / "tests/fixtures/meta_evaluation/v1/failed-attempt-1-acceptance-suite.json",
+    ROOT
+    / "tests/fixtures/meta_evaluation/v1/failed-attempt-1-acceptance-race-suite.json",
+)
 MANIFEST_SHA = "dd767fcb787aa44cdf1c5aaad851f5556205bbd5143ccde169cbf469066e04a3"
 DEVELOPMENT_NONCE = "11" * 32
 V02_COMMIT = "6f36a1b97cf8bc3c5925a3b35f0b189d82f6bcb6"
@@ -85,6 +98,25 @@ def _forbidden_key_hits(value: object, path: str = "$") -> list[str]:
     return hits
 
 
+def _assert_bodies_absent_at_sealed_code_commit(
+    prearm_path: Path, acceptance_paths: tuple[Path, ...]
+) -> None:
+    assert prearm_path.is_file()
+    assert all(path.is_file() for path in acceptance_paths)
+    prearm = json.loads(prearm_path.read_text(encoding="utf-8"))
+    code_commit = prearm["code_commit"]
+    assert len(code_commit) == 40
+    for path in acceptance_paths:
+        relative = path.relative_to(ROOT).as_posix()
+        frozen = subprocess.run(
+            ["git", "cat-file", "-e", f"{code_commit}:{relative}"],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+        )
+        assert frozen.returncode != 0
+
+
 def test_generator_manifest_is_precommitted_and_has_no_acceptance_body() -> None:
     assert hashlib.sha256(MANIFEST_PATH.read_bytes()).hexdigest() == MANIFEST_SHA
     manifest = _manifest()
@@ -92,8 +124,19 @@ def test_generator_manifest_is_precommitted_and_has_no_acceptance_body() -> None
     assert [item["id"] for item in manifest["families"]] == list(FAMILIES)
     assert manifest["suite"]["episode_count"] == 36
     assert manifest["custody"]["nonce_bits"] == 256
-    assert not list(MANIFEST_PATH.parent.glob("*acceptance*"))
-    assert not list(MANIFEST_PATH.parent.glob("*nonce*"))
+    present = tuple(path.exists() for path in ACCEPTANCE_PATHS)
+    assert len(set(present)) == 1
+    if present[0]:
+        _assert_bodies_absent_at_sealed_code_commit(PREARM_PATH, ACCEPTANCE_PATHS)
+    else:
+        assert not PREARM_PATH.exists()
+
+
+def test_failed_attempt_archive_proves_post_draw_chronology() -> None:
+    _assert_bodies_absent_at_sealed_code_commit(
+        ATTEMPT1_PREARM_PATH,
+        ATTEMPT1_ACCEPTANCE_PATHS,
+    )
 
 
 def test_generator_is_deterministic_complete_and_nonce_sensitive() -> None:
