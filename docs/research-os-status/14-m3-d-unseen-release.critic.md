@@ -187,3 +187,48 @@ At Attempt 2 review time there was **no acceptance nonce, acceptance suite, race
 pre-arm seal, or v0.5 final receipt**. This review did not invoke `scripts.m3d_custodian`, either acceptance script, or
 any external custody path, and created no acceptance artifact. The reservation unit test used only a mocked nonce and
 pytest temporary directory.
+
+## Verify Attempt 3 — 2026-08-12
+
+**VERDICT: PASS**
+
+Clean checkpoint inspected: `038893137e6f77d60844168103b978e1a60f1d5c`.
+
+### Closed-question resolution
+
+- **Q1-Q3 and Q5-Q7: DIRECT preserved.** A path-by-path `git diff --quiet 20b35a5..0388931` confirms no byte change
+  in `src/research_os/meta_evaluation.py`, `src/research_os/service.py`, the generator/public-boundary/external/attack
+  manifests, or the M3-D meta-evaluation/protocol/external tests. Attempt 2's independently reproduced evidence
+  therefore remains bound to identical frozen bytes.
+- **Q8: DIRECT preserved.** `scripts/prepare_m3d_acceptance.py`, `scripts/run_m3d_acceptance.py`, and
+  `scripts/verify_v05_release.py` are byte-identical to Attempt 2. The v0.5 release manifest changes only the expected
+  hashes for the corrected custodian and release-gate test. Its binding test passes, and the exact seven-node release
+  verifier logic is unchanged.
+- **Q4: DIRECT.** `scripts/m3d_custodian.py:51-77` exclusively creates the checkpoint directory, exclusively creates
+  `draw-reservation.json`, writes and `fsync`s the reservation file, `fsync`s the checkpoint directory, then `fsync`s
+  the custody parent before the sole `secrets.token_hex(32)` call. `_safe_parent` also `fsync`s each parent immediately
+  when creating a missing custody-path component. The mock test records both required directory syncs before the nonce
+  callback and confirms a second draw for the same checkpoint remains blocked without a second nonce call.
+
+All eight closed questions are now DIRECT at the frozen pre-unseen checkpoint. This PASS approves the critic gate for
+the pre-unseen harness only; M3-D remains `0/8` until the authorized one-draw acceptance, release receipt, and subsequent
+independent progress audit complete.
+
+### Reproduction evidence
+
+- Q4 ordering + second-draw block + release-manifest binding:
+  `3 passed in 0.24s`
+- Complete `tests/test_m3d_release_gate.py`: `10 passed in 0.41s`
+- Targeted Ruff: PASS
+- `uvx --offline ty check src`: PASS
+- `git diff --check`: PASS
+- Frozen-byte comparison from `20b35a5` to `0388931`: only `scripts/m3d_custodian.py` and its Q4 test changed among
+  executable Q1-Q8 evidence surfaces; the release manifest contains the corresponding two hash updates.
+- Attempt 3 audit count: questions `8`; DIRECT verified `8`; LIMITATION `0`; OUT-OF-SCOPE `0`; failed `0`.
+
+### Custody confirmation
+
+At Attempt 3 review time the five checked-in acceptance artifact paths were absent (`0/5` present): suite, race suite,
+custody transcript, pre-arm seal, and v0.5 final receipt. This review did not invoke the real custodian, preparation,
+acceptance runner, or any external custody path, and generated no nonce or acceptance artifact. The only custody
+execution was the existing unit test with a mocked nonce and pytest-owned temporary directory.
