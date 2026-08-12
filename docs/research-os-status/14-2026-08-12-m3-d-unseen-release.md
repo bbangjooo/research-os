@@ -1,6 +1,6 @@
 # §14 — M3-D unseen benchmark and v0.5 release (2026-08-12)
 
-> Status: **CLOSE CANDIDATE — 8/8; Rule 9 approved; amended-foundation critic and corrected re-audit pending**
+> Status: **CLOSE CANDIDATE — 8/8; Rule 9 + amended-foundation critic PASS; corrected re-audit pending**
 > Previous phase: [§13](13-2026-08-12-m3-c-crash-resume.md) (`CLOSED 5/5` at `7b00e0b`)
 > Active milestone: `M3-D` close candidate; product multi-agent is not implemented and live migration remains a post-v0.5 activity
 
@@ -306,5 +306,6 @@ above 90%. This changed the M3-D exit definition and was falsely recorded as “
 
 The exact strengthening, critic trigger, pre-result chronology and no-scope-expansion assessment are now recorded in
 status §2.2.6, pipeline §9.5, and `14.5-correction-non-regression.md`. The user answered the exact Rule 9 proposal
-**“승인”**. The required amended-foundation critic re-run and corrected independent audit still gate closure. M3-D
-remains an 8/8 close candidate; the sealed PASS is neither withdrawn nor sufficient to bypass these governance gates.
+**“승인”**, and the amended-foundation bootstrap critic verified Q1–Q8 DIRECT with `VERDICT: PASS`. The corrected
+independent audit still gates closure. M3-D remains an 8/8 close candidate; the sealed PASS is neither withdrawn nor
+sufficient to bypass that final governance gate.
