@@ -32,3 +32,27 @@ Audit trail:
 - Files inspected: status core, pipeline core, Phase 14, critic, receipt, current/Attempt-1 suite/race/prearm/custody artifacts, both external custody bundles/results/reservations/transcripts, generator/release manifests, targeted source/tests, git history
 - git range audited: `7b00e0b..11f7947`
 - M3-D, parent M3, and v0.5 release close are not permitted by this audit.
+
+## Attempt 2 — corrected seven-pass re-audit
+
+VERDICT: FAIL
+
+Severity-1 findings:
+- [Reproducibility] `docs/research-os-status.md:461` — `phase+critic+receipt+audit/correction 750/800` is
+  unreproducible. The precommitted category is `316+325+1+34=676`, while adding both correction artifacts gives
+  `676+69+47=792`; `750` matches neither convention. Required fix: retain the original category, count this preserved
+  audit in its audit component, and report the two correction artifacts separately under the inclusive cap.
+
+Severity-2 findings: none.
+
+Seven-pass trail:
+- Schema, Drift/whitewash, Linguistic weakness, Intent-Execution drift, Claim-mode integrity, and
+  Milestone-discipline integrity: PASS.
+- Reproducibility: FAIL only on the LOC subcount; receipt, custody, chronology, thresholds, inclusive churn and safe
+  validation otherwise reproduce.
+- Checks `46`: matched `45`, mismatched `1`, unrunnable `0`; safe targeted tests `9`, Ruff and ty PASS.
+- Attempt 2 remains CONFIRMATORY; Attempt 1 remains archived `RESULT-INVALID` and was never rerun.
+- All eight non-compensating M3-D conjuncts, Rule 9 verbatim “승인”, foundation critic PASS, and parent M3/v0.5
+  open-until-audit boundary reproduce.
+- No acceptance, custodian, nonce, arm-run, full-suite, or release-verifier command was executed.
+- git range audited: `7b00e0b..9bdec8a18ffe0995303f6eed71c0fd1f4148eff0`.

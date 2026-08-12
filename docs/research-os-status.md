@@ -458,7 +458,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 11 M3-A close | product `1,081/1,100`; M3-A tests+fixtures `744/1,250` (frozen manifest `96` + provider fixture `51` + test `597`); phase+critic+receipt+audit docs `447/450`; result-triggered verifier correction `+119/-52`; paired-core additions `78`; inclusive gross `2,469/2,800` | frozen 32 CONFIRMATORY + historical-gate correction EXPLORATORY = MIXED; product/test/script sealed at `42c7557` | frozen `32/32`; focused `41`; adjacent `103`; full `757+115`; critic + corrected audit PASS |
 | 12 M3-B close | product `2,035 additions + 8 deletions = 2,043 churn`; tests+fixture `1,384`; paired+phase evidence `473`; exact inclusive `3,900/3,900` | product subtarget `1,600` miss is GENUINE-FINDING/EXPLORATORY; M3-C follow-up precommitted | frozen `43/43`; focused `60`; adjacent `125`; critic + audit Attempt 4 PASS |
 | 13 M3-C close | product `353/900`; tests+fixture `829/1,400`; paired evidence `489`; inclusive `1,671/2,800` | phase+critic+receipt+audit `419/500`; MIXED | frozen `31/31`; race `3/3`; focused `41`; adjacent `142`; critic + corrected audit PASS |
-| 14 M3-D provisional close | cycle base `7b00e0b` to re-audit checkpoint: `5,141 additions + 42 deletions = 5,183/6,000` inclusive; generated acceptance/evidence objects 10/1,200 | implementation subtarget miss remains GENUINE-FINDING/EXPLORATORY; phase+critic+receipt+audit/correction `750/800`; correction is docs-only | Attempt 1 invalid preserved; Attempt 5 PASS; Attempt 2 + verifier `922+115`; audit Attempt 1 FAIL; Rule 9 + foundation critic PASS; re-audit pending |
+| 14 M3-D provisional close | cycle base `7b00e0b` to corrected LOC checkpoint: `5,166 additions + 42 deletions = 5,208/6,000` inclusive; generated acceptance/evidence objects 10/1,200 | precommitted release category `316+325+1+58=700/800`; Rule 9 correction `69+47=116` lines reported separately | Attempt 1 invalid preserved; Attempt 2 audit FAIL on LOC only; release/Rule 9/foundation critic evidence otherwise PASS; re-audit pending |
 
 ---
 
@@ -547,4 +547,5 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - [x] Cycle 14 independent final progress audit Attempt 1 — **FAIL** (threshold typo + Rule 9 기록 누락)
 - [x] Cycle 14 non-regression strengthening Rule 9 사용자 회고 — verbatim **“승인”** (`research-os-status/14.5-correction-non-regression.md`)
 - [x] Cycle 14 amended-foundation bootstrap critic Q1~Q8 DIRECT — **PASS** (`research-os-status/14.5-correction.critic.md`)
+- [x] Cycle 14 corrected re-audit Attempt 2 — **FAIL** (LOC category mixed correction evidence into release subcount)
 - [ ] Cycle 14 corrected independent progress re-audit; PASS 뒤 M3-D/parent M3/v0.5 close

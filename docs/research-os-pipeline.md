@@ -358,7 +358,7 @@ Canonical truth boundaries:
 | 12 | 2026-08-12 | 구체화·검증 (`MIXED` correction) | single-provider finite episode와 three-log truth-owner 경계를 구현했다. Critic/audit 결함은 source reconciliation·actual service·type/schema sync로 보정했다. Crash resume·unseen quality는 유지한다 | frozen `43/43`, focused/adjacent `60/125`; critic + audit Attempt 4 PASS; M3-B close, M3-C active |
 | 13 | 2026-08-12 | 구체화·검증 (`MIXED` correction, `CLOSE`) | AutonomyLog orchestration·ProjectLog scientific truth·ProgramLog memory truth에서 crash cold-resume를 구현했다. Context/Program rating과 NS6/NS7은 유지하며 외부 billing exactly-once·hostile-provider sandbox·distributed consensus·learning quality는 미청구다 | frozen `31/31`; lookup→append `3/3`; critic + corrected audit PASS; M3-C close, M3-D active |
 | 14 | 2026-08-12 | PIVOT correction (`MIXED`, provisional `CLOSE`) | Attempt 1 `RESULT-INVALID`와 Attempt 4 FAIL을 보존하고 sealed canonical-path chronology를 교정했다. Attempt 5 PASS 뒤 distinct new-nonce Attempt 2와 single release verifier가 precommitted eight-conjunct gate를 통과했다 | choice `96/96`, terminal/evidence `36/36`, waste/retry `0`; protocol `24/24`; external `3/3`; full `922+115` twice; audit Attempt 1 FAIL; Rule 9 + foundation critic PASS; re-audit pending |
-| 14.5 | 2026-08-12 | 구체화·governance correction (`docs-only`) | M3-D non-regression threshold의 M-chain 변경을 정식 correction/Rule 9 기록으로 고정; §8.2 행동·§8.3 제외·§8.4 영역은 변경 없음 | 사용자 verbatim “승인”; bootstrap critic Q1~Q8 DIRECT PASS |
+| 14.5 | 2026-08-12 | 구체화·governance correction (`docs-only`) | M3-D non-regression threshold의 M-chain 변경을 정식 correction/Rule 9 기록으로 고정; §8.2 행동·§8.3 제외·§8.4 영역은 변경 없음 | 사용자 verbatim “승인”; bootstrap critic PASS; re-audit Attempt 2 LOC-only FAIL preserved |
 
 ---
 
