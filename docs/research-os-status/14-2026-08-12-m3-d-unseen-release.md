@@ -1,6 +1,6 @@
 # §14 — M3-D unseen benchmark and v0.5 release (2026-08-12)
 
-> Status: **CLOSE CANDIDATE — 8/8; Acceptance Attempt 2 PASS; release verifier PASS; final progress audit pending**
+> Status: **CLOSE CANDIDATE — 8/8; Rule 9 approved; amended-foundation critic and corrected re-audit pending**
 > Previous phase: [§13](13-2026-08-12-m3-c-crash-resume.md) (`CLOSED 5/5` at `7b00e0b`)
 > Active milestone: `M3-D` close candidate; product multi-agent is not implemented and live migration remains a post-v0.5 activity
 
@@ -148,8 +148,9 @@ eight-gate threshold or the inclusive cap. The exact inclusive count is frozen i
 
 ## 14.10 Next action
 
-Run the independent progress audit over the closed receipt, paired docs, custody chronology, M-chain, limitations,
-and inclusive cap. Do not rerun either acceptance draw or modify release-bound bytes.
+Run the amended-foundation bootstrap critic, then the corrected independent progress re-audit over the closed receipt,
+paired docs, custody chronology, M-chain, limitations, and inclusive cap. Do not rerun either acceptance draw or
+modify release-bound bytes.
 
 ## 14.11 Pre-unseen critic Attempt 1 FAIL and correction contract
 
@@ -287,7 +288,8 @@ Repository receipt `v0.5.0-release-receipt.json` is byte-identical to the extern
 `95e7eb5f3876cc445dde2fee0a5b91462ce8e2f187f28f32acfffff96c0a5387`. At clean receipt checkpoint
 `ca69bb9`, `python -m scripts.verify_v05_release` independently regenerated benchmark/runtime evidence, reran full
 `922+115`, rebuilt/installed the wheel, and returned the exact saved receipt. After the failed audit and Rule 9
-correction artifact, inclusive Cycle 14 working-tree churn is `5,082/6,000`; the named implementation subtarget miss
+correction artifact, inclusive Cycle 14 churn at the Rule 9 approval checkpoint is `5,121/6,000`; the named
+implementation subtarget miss
 remains disclosed, while the generated acceptance/evidence
 objects are 10 canonical JSON lines against the `1,200`-line allowance. M3-D is `8/8` close candidate pending only
 the independent progress audit; no live pilot, migration, product multi-agent, deployment, trade, or capital authority
@@ -303,6 +305,6 @@ byte or result. Second, Cycle 14's pre-result critic correction strengthened bot
 above 90%. This changed the M3-D exit definition and was falsely recorded as “M chain unchanged.”
 
 The exact strengthening, critic trigger, pre-result chronology and no-scope-expansion assessment are now recorded in
-status §2.2.6, pipeline §9.5, and `14-m3-d-non-regression-retro.md`. Rule 9 requires the user's explicit retrospective
-verdict before the correction can be closed and the audit rerun. M3-D remains an 8/8 close candidate; the sealed PASS
-is neither withdrawn nor sufficient to bypass this governance gate.
+status §2.2.6, pipeline §9.5, and `14.5-correction-non-regression.md`. The user answered the exact Rule 9 proposal
+**“승인”**. The required amended-foundation critic re-run and corrected independent audit still gate closure. M3-D
+remains an 8/8 close candidate; the sealed PASS is neither withdrawn nor sufficient to bypass these governance gates.

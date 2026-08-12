@@ -86,7 +86,8 @@
     PASS로 닫혔다. Distinct code checkpoint `463df30`/new nonce의 Acceptance Attempt 2는 choice `96/96`,
     terminal/evidence `36/36`, retry `0`, waste `0` 대 v0.2 `36`, protocol `24/24`, external `3/3`, full
     `922+115`, upgrades `7/7`, wheel/install 0.5.0으로 8/8 PASS했다. Receipt `95e7eb…5387`와 clean
-    `ca69bb9`의 single release verifier도 exact PASS했다. M3-D는 final progress audit만 남은 close candidate다.
+    `ca69bb9`의 single release verifier도 exact PASS했다. Final audit Attempt 1은 문서/governance 결함으로
+    FAIL했고 Rule 9 “승인”을 기록했다. M3-D close에는 amended-foundation critic과 corrected re-audit가 남았다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 
@@ -101,14 +102,15 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
   `757 passed, 115 subtests`, ruff/ty, authority non-null 0, product multi-agent false PASS.
 - M3-B correction checkpoint `e60b5dd`: frozen `43/43`, focused `60`, adjacent `125`, actual
   ResearchService/source-log reconciliation/post-terminal bounds, critic PASS, audit Attempt 4 PASS.
-- 제품 후보 버전: `0.5.0`; release claim은 unseen gate·critic·audit 전까지 금지된다.
+- 제품 후보 버전: `0.5.0`; official release close는 amended-foundation critic·corrected audit 전까지 금지된다.
 - 승인된 기존 certification 수정은 M1-A checkpoint `ed76067`에 포함됐다.
 - canonical StudyContract/generation/budget은 M1-B `df2c900`, typed Proposal/scope/replication은 M1-C `a783a88`과 후속 test-only checkpoints에 포함됐다. M1-D Diagnosis/ClassState/frontier는 `f570f92`에 포함됐다.
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** Acceptance Attempt 2 PASS receipt와 paired docs를 independent progress audit에
-      제출한다. Acceptance/release-bound bytes는 더 바꾸거나 다시 실행하지 않는다.
+- [ ] **단일 최우선 행동:** Rule 9-approved amended M chain을 bootstrap critic에 제출한다. PASS 뒤 같은
+      clean docs checkpoint를 independent progress re-audit에 제출한다. Acceptance/release-bound bytes는
+      더 바꾸거나 다시 실행하지 않는다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
@@ -116,7 +118,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 |---|---|---|---|
 | v0.5 제품 candidate + M1~M3 implementation | `src/research_os/` | release close candidate; M3-D 8/8 | finite restartable loop, Program memory, sealed unseen effect |
 | 전체 테스트 | `tests/` | PASS | acceptance and fresh verifier each `922+115`; protocol `24/24`; race `12/12` |
-| 진행 상태 core | `docs/research-os-status.md` | final audit pending | M1/M2/M3-A/B/C closed; M3-D 8/8 close candidate |
+| 진행 상태 core | `docs/research-os-status.md` | critic/re-audit pending | M1/M2/M3-A/B/C closed; M3-D 8/8 close candidate; Rule 9 approved |
 | M1-E vertical slice | `docs/research-os-status/05-2026-08-11-m1-e-usable-context.md` | complete; independent audit PASS | opt-in Context v3 + Diagnosis template + disposable example PASS |
 | M1-E release close | `docs/research-os-status/06-2026-08-11-m1-e-release-close.md` | complete; independent audit PASS | receipt `e120292`; `609+115`; installer `6/6` |
 | M2-A Program memory boundary | `docs/research-os-status/07-2026-08-11-m2-a-program-manifest-log.md` | complete; critic + audit PASS | corrected `22`, race `50/50`, full `635+115` |
@@ -126,10 +128,11 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | M3-A DecisionPacket | `docs/research-os-status/11-2026-08-12-m3-a-decision-packet.md` | closed 4/4 | receipt `32/32`; full `757+115`; critic + corrected audit PASS |
 | M3-B finite loop | `docs/research-os-status/12-2026-08-12-m3-b-finite-autonomy-loop.md` | closed 6/6 | frozen `43/43`; corrected `60/125`; critic + audit PASS |
 | M3-C crash resume | `docs/research-os-status/13-2026-08-12-m3-c-crash-resume.md` | closed 5/5 | frozen `31/31`; critic PASS; corrected audit PASS |
-| M3-D unseen/release | `docs/research-os-status/14-2026-08-12-m3-d-unseen-release.md` | close candidate 8/8 | Attempt 1 invalid preserved; Attempt 2 + release verifier PASS; final audit pending |
+| M3-D unseen/release | `docs/research-os-status/14-2026-08-12-m3-d-unseen-release.md` | close candidate 8/8 | Attempt 1 invalid preserved; Attempt 2 + verifier PASS; audit Attempt 1 FAIL; correction gates pending |
+| M3-D Rule 9 correction | `docs/research-os-status/14.5-correction-non-regression.md` | user approved; critic pending | exact proposal에 사용자 verbatim “승인”; docs-only |
 | M3-D Attempt 1 failure review | `docs/research-os-status/14-m3-d-attempt-1-failure-review.json` | immutable review evidence | same-draw rerun false; external result SHA recorded; authority null |
 | v0.5 release receipt | `docs/research-os-status/v0.5.0-release-receipt.json` | immutable PASS | external exact SHA `95e7eb…5387`; `922+115`; authority null |
-| 방법론 pipeline core | `docs/research-os-pipeline.md` | close candidate sync | Cycle 14 M3-D 8/8; final audit pending |
+| 방법론 pipeline core | `docs/research-os-pipeline.md` | close candidate sync | Cycle 14 M3-D 8/8; Rule 9 approved; critic/re-audit pending |
 
 ### 0.5 알려진 잔여 이슈
 
@@ -271,7 +274,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - Frozen 43 IDs/bytes와 six conjunct는 바꾸지 않았다. Corrections와 artifact binding, LOC finding은
   EXPLORATORY이며 phase는 `MIXED`; critic PASS, audit Attempts 1~3 corrected, Attempt 4 PASS다.
 
-### 2.2.6 Cycle 14 M3-D target strengthening — Rule 9 retrospective pending
+### 2.2.6 Cycle 14 M3-D target strengthening — Rule 9 approved
 
 - **Trigger:** pre-unseen critic Attempt 1이 기존 `min(90%, baseline+20%p)` 공식을 따르면 baseline이 90%를
   넘을 때 v0.5가 baseline보다 퇴행해도 통과할 수 있음을 지적했다.
@@ -280,7 +283,8 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - **Chronology:** `e23c089` correction contract와 `20b35a5` implementation에서 어떤 acceptance nonce/body/result
   보다 먼저 변경됐다. 따라서 사후 결과 완화가 아니라 pre-result non-regression guardrail 강화다.
 - **Governance correction:** prior “M chain definition unchanged” 표기는 철회한다. Pipeline §9.5와
-  `research-os-status/14-m3-d-non-regression-retro.md`에 기록했으며 사용자 Rule 9 verdict를 기다린다.
+  `research-os-status/14.5-correction-non-regression.md`에 기록했다. 사용자는 제시된 정확한 amendment에
+  **“승인”**이라고 verbatim 응답했다. Amended-foundation critic과 corrected re-audit은 아직 남았다.
 
 ### 2.3 마일스톤 진척 (checkpoint chain — Rule 8) ★
 
@@ -301,7 +305,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - **현재 M3-D 상태**: critic Attempt 5 PASS 뒤 distinct Acceptance Attempt 2와 release verifier가 8/8 PASS했다.
   Attempt 1 `RESULT-INVALID`와 Attempt 4 FAIL은 그대로 보존된다.
 - **이 M.j가 닫혀야 다음에 가능해지는 작업**: parent M3/v0.5 release close와 post-v0.5 pilot 계획.
-- **현재 close 차단 gate**: independent final progress audit only.
+- **현재 close 차단 gate**: amended-foundation bootstrap critic, then corrected independent progress re-audit.
 - **M3 parent close까지 남은 sub**: M3-D.
 
 #### 2.3.3 M 진척 표
@@ -340,7 +344,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 11 | 2026-08-12 | M3-A | 4/4 | close | frozen `32/32`, full `757+115`; critic + corrected audit PASS; M3-B active |
 | 12 | 2026-08-12 | M3-B | 6/6 | close | frozen `43/43`; critic PASS; audit FAIL 1~3 preserved, Attempt 4 PASS; M3-C active |
 | 13 | 2026-08-12 | M3-C | 5/5 | close | frozen `31/31`; critic FAIL→PASS; audit FAIL→PASS; M3-D active |
-| 14 | 2026-08-12 | M3-D | 8/8 | close candidate | Attempts 1 invalid/4 FAIL preserved; Attempt 5, Attempt 2 receipt, release verifier PASS; final audit pending |
+| 14 | 2026-08-12 | M3-D | 8/8 | close candidate | Attempts 1 invalid/4 FAIL preserved; Attempt 5, Attempt 2 receipt, verifier PASS; audit Attempt 1 FAIL; correction gates pending |
 
 #### 2.3.5 Gate-bypass 기록
 
@@ -372,16 +376,17 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 11 | 2026-08-12 / M3-A | [`research-os-status/11-2026-08-12-m3-a-decision-packet.md`](research-os-status/11-2026-08-12-m3-a-decision-packet.md) | DecisionPacket/provider 4/4 closed; critic + corrected audit PASS |
 | 12 | 2026-08-12 / M3-B | [`research-os-status/12-2026-08-12-m3-b-finite-autonomy-loop.md`](research-os-status/12-2026-08-12-m3-b-finite-autonomy-loop.md) | finite loop 6/6 closed; critic + audit Attempt 4 PASS; M3-C active |
 | 13 | 2026-08-12 / M3-C | [`research-os-status/13-2026-08-12-m3-c-crash-resume.md`](research-os-status/13-2026-08-12-m3-c-crash-resume.md) | crash-resume/authority 5/5 closed; critic + corrected audit PASS; M3-D active |
-| 14 | 2026-08-12 / M3-D | [`research-os-status/14-2026-08-12-m3-d-unseen-release.md`](research-os-status/14-2026-08-12-m3-d-unseen-release.md) | Attempt 2 unseen/release 8/8 PASS; final audit pending |
+| 14 | 2026-08-12 / M3-D | [`research-os-status/14-2026-08-12-m3-d-unseen-release.md`](research-os-status/14-2026-08-12-m3-d-unseen-release.md) | Attempt 2 unseen/release 8/8 PASS; audit Attempt 1 FAIL; Rule 9 approved; critic/re-audit pending |
+| 14.5 | 2026-08-12 / M3-D correction | [`research-os-status/14.5-correction-non-regression.md`](research-os-status/14.5-correction-non-regression.md) | non-regression M-chain amendment; user verbatim “승인”; docs-only |
 
 ---
 
 ## 11. 한 페이지 요약 (TL;DR)
 
-- 현재 상태: 제품 candidate version `0.5.0`; M1/M2/M3-A/B/C closed, M3-D 8/8 close candidate다.
+- 현재 상태: 제품 candidate version `0.5.0`; M1/M2/M3-A/B/C closed, M3-D 8/8 close candidate이며 Rule 9가 승인됐다.
 - 마지막 유효 측정: unseen Attempt 2와 fresh release verifier 모두 full `922+115`; receipt SHA
   `95e7eb…5387`; choice/terminal/evidence `96/96·36/36·36/36`, waste `0`.
-- 다음 1행동: independent final progress audit.
+- 다음 1행동: amended-foundation critic PASS, 그 뒤 corrected independent progress re-audit.
 - 가장 큰 잔여 갭: v0.5 scope 밖의 actual live-project efficacy, multi-agent ablation, full-suite latency.
 
 ---
@@ -453,7 +458,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 11 M3-A close | product `1,081/1,100`; M3-A tests+fixtures `744/1,250` (frozen manifest `96` + provider fixture `51` + test `597`); phase+critic+receipt+audit docs `447/450`; result-triggered verifier correction `+119/-52`; paired-core additions `78`; inclusive gross `2,469/2,800` | frozen 32 CONFIRMATORY + historical-gate correction EXPLORATORY = MIXED; product/test/script sealed at `42c7557` | frozen `32/32`; focused `41`; adjacent `103`; full `757+115`; critic + corrected audit PASS |
 | 12 M3-B close | product `2,035 additions + 8 deletions = 2,043 churn`; tests+fixture `1,384`; paired+phase evidence `473`; exact inclusive `3,900/3,900` | product subtarget `1,600` miss is GENUINE-FINDING/EXPLORATORY; M3-C follow-up precommitted | frozen `43/43`; focused `60`; adjacent `125`; critic + audit Attempt 4 PASS |
 | 13 M3-C close | product `353/900`; tests+fixture `829/1,400`; paired evidence `489`; inclusive `1,671/2,800` | phase+critic+receipt+audit `419/500`; MIXED | frozen `31/31`; race `3/3`; focused `41`; adjacent `142`; critic + corrected audit PASS |
-| 14 M3-D close candidate | cycle base `7b00e0b` to current working tree plus audit/retro: `4,969 additions + 40 deletions + 73 new audit/retro lines = 5,082/6,000` inclusive; generated acceptance/evidence objects 10/1,200 | implementation subtarget miss remains GENUINE-FINDING/EXPLORATORY; overall cap PASS; phase+critic+receipt+audit `666/800`; Rule 9 retro 39 lines counts in inclusive cap | Attempt 1 invalid preserved; Attempt 5 PASS; Attempt 2 + verifier `922+115`; audit Attempt 1 FAIL; user verdict pending |
+| 14 M3-D close candidate | cycle base `7b00e0b` to Rule 9 approval checkpoint: `5,081 additions + 40 deletions = 5,121/6,000` inclusive; generated acceptance/evidence objects 10/1,200 | implementation subtarget miss remains GENUINE-FINDING/EXPLORATORY; phase+critic+receipt+audit/correction `694/800`; correction is docs-only | Attempt 1 invalid preserved; Attempt 5 PASS; Attempt 2 + verifier `922+115`; audit Attempt 1 FAIL; user verdict “승인”; critic/re-audit pending |
 
 ---
 
@@ -540,5 +545,6 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - [x] Cycle 14 immutable external/repository receipt exact SHA `95e7eb…5387`; authority null
 - [x] Cycle 14 fresh single release verifier — exact receipt, full `922+115`, wheel/install 0.5.0 PASS
 - [x] Cycle 14 independent final progress audit Attempt 1 — **FAIL** (threshold typo + Rule 9 기록 누락)
-- [ ] Cycle 14 non-regression strengthening Rule 9 사용자 회고 승인
+- [x] Cycle 14 non-regression strengthening Rule 9 사용자 회고 — verbatim **“승인”** (`research-os-status/14.5-correction-non-regression.md`)
+- [ ] Cycle 14 amended-foundation bootstrap critic PASS
 - [ ] Cycle 14 corrected independent progress re-audit; PASS 뒤 M3-D/parent M3/v0.5 close
