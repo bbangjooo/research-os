@@ -56,3 +56,17 @@ Seven-pass trail:
   open-until-audit boundary reproduce.
 - No acceptance, custodian, nonce, arm-run, full-suite, or release-verifier command was executed.
 - git range audited: `7b00e0b..9bdec8a18ffe0995303f6eed71c0fd1f4148eff0`.
+
+## Attempt 3 — corrected seven-pass close audit
+
+VERDICT: PASS
+
+- Schema, Reproducibility, Drift/whitewash, Linguistic weakness, Intent-Execution drift,
+  Claim-mode integrity, and Milestone-discipline integrity: PASS; Severity-1/2 findings: none.
+- Exact accounting reproduced: precommitted release category `316+325+1+58=700/800`; Rule 9 correction
+  `69+47=116` is separate; inclusive Cycle 14 churn is `5,166+42=5,208/6,000` at the audited checkpoint.
+- Receipt/external SHA and bytes, eight AND gates, thresholds, null authority, product/live scope flags,
+  custody chronology, Attempt 1 `RESULT-INVALID`, Rule 9 verbatim approval, and foundation critic PASS reproduce.
+- Safe targeted tests `9`, Ruff, and ty PASS; no acceptance, custodian, nonce, arm-run, full-suite, or
+  release-verifier command was executed. Worktree was clean at the audited checkpoint.
+- git range audited: `7b00e0b..0c49417`; M3-D, parent M3, and v0.5 close are permitted.

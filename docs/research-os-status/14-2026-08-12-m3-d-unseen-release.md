@@ -1,8 +1,8 @@
 # §14 — M3-D unseen benchmark and v0.5 release (2026-08-12)
 
-> Status: **PROVISIONAL CLOSE CLAIM — 8/8; Rule 9 + foundation critic PASS; corrected re-audit pending**
+> Status: **CLOSED — 8/8; corrected independent audit Attempt 3 PASS**
 > Previous phase: [§13](13-2026-08-12-m3-c-crash-resume.md) (`CLOSED 5/5` at `7b00e0b`)
-> Active milestone: `M3-D` provisional `CLOSE`; parent M3/v0.5 remains open until re-audit PASS
+> Milestone: `M3-D`, parent M3, and v0.5 are closed; live pilot/migration remains post-v0.5
 
 ## 14.0 TL;DR
 
@@ -92,8 +92,8 @@ refute all five routes.
 
 ### 14.6.4 Milestone progress claim
 
-**Label: `CLOSE`. M_i.j: `M3-D`.** This is the author's provisional close claim; the independent re-audit remains the
-trust gate. Prerequisite gate: M3-C is closed at Phase 13 with critic and corrected audit PASS.
+**Label: `CLOSE`. M_i.j: `M3-D`.** Corrected independent audit Attempt 3 passed all seven passes and is the
+trust gate closing M3-D, parent M3, and v0.5. Prerequisite M3-C remains closed at Phase 13.
 
 | # | conjunct | 이전 | 이번 phase 후 | 근거 |
 |---:|---|---|---|---|
@@ -107,7 +107,7 @@ trust gate. Prerequisite gate: M3-C is closed at Phase 13 with critic and correc
 | 8 | compatibility/release | partial | ✅ | replay/opaque/no-write `3/3/0`; upgrades `7/7`; full `922+115`; install `0.5.0` |
 
 Product multi-agent was intentionally not added; NS6 passage only makes it eligible for later investigation. Live
-pilot/migration remains unperformed and explicitly post-v0.5. Parent M3/v0.5 closure awaits re-audit PASS.
+pilot/migration remains unperformed and explicitly post-v0.5. Neither is authorized by this release close.
 
 ### 14.6.5 End-state delta
 
@@ -154,8 +154,8 @@ eight-gate threshold or the inclusive cap. The exact inclusive count is frozen i
 
 ## 14.10 Next action
 
-Run the corrected independent progress re-audit over the closed receipt, paired docs, custody chronology, M-chain,
-Rule 9/critic records, limitations, and inclusive cap. Do not rerun either acceptance draw or modify release-bound bytes.
+Plan a separately authorized post-v0.5 live pilot/migration. Product multi-agent is only eligible for later
+investigation after NS6 PASS and remains unimplemented. Do not rerun either acceptance draw or modify release-bound bytes.
 
 ## 14.11 Pre-unseen critic Attempt 1 FAIL and correction contract
 
@@ -296,9 +296,9 @@ Repository receipt `v0.5.0-release-receipt.json` is byte-identical to the extern
 correction artifact, inclusive Cycle 14 churn at the Rule 9 approval checkpoint is `5,121/6,000`; the named
 implementation subtarget miss
 remains disclosed, while the generated acceptance/evidence
-objects are 10 canonical JSON lines against the `1,200`-line allowance. M3-D has an `8/8` provisional close claim
-pending only the corrected independent progress audit; no live pilot, migration, product multi-agent, deployment, trade, or capital authority
-was added.
+objects are 10 canonical JSON lines against the `1,200`-line allowance. Corrected independent audit Attempt 3
+passed all seven passes, closing M3-D, parent M3, and v0.5. No live pilot, migration, product multi-agent,
+deployment, trade, or capital authority was added.
 
 ## 14.18 Final progress audit Attempt 1 FAIL — Rule 9 governance correction
 
@@ -311,6 +311,6 @@ above 90%. This changed the M3-D exit definition and was falsely recorded as “
 
 The exact strengthening, critic trigger, pre-result chronology and no-scope-expansion assessment are now recorded in
 status §2.2.6, pipeline §9.5, and `14.5-correction-non-regression.md`. The user answered the exact Rule 9 proposal
-**“승인”**, and the amended-foundation bootstrap critic verified Q1–Q8 DIRECT with `VERDICT: PASS`. The corrected
-independent audit still gates closure. M3-D remains an 8/8 provisional close claim; the sealed PASS is neither withdrawn nor
-sufficient to bypass that final governance gate.
+**“승인”**, and the amended-foundation bootstrap critic verified Q1–Q8 DIRECT with `VERDICT: PASS`. Corrected
+independent audit Attempt 3 then passed all seven passes with no Severity-1/2 finding. M3-D, parent M3, and v0.5
+are closed without withdrawing or bypassing the preserved failed attempts and governance record.
