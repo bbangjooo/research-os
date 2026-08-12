@@ -435,6 +435,7 @@ Canonical truth boundaries:
 | Cycle | 일자 | 변경 분류 | 변경 내용 | Trigger | Rule 9 retrospective 파일 |
 |---|---|---|---|---|---|
 | 00 | 2026-08-09 | 추가 | M1 v0.3 → M2 v0.4 → M3 v0.5와 sub-checkpoint/exit conjunction 첫 정의 | Bootstrap step 6.5 사용자 합의 | `docs/research-os-status/00-bootstrap-retro.md` |
+| 14 | 2026-08-12 | 강화 (`PENDING USER VERDICT`) | M3-D choice/terminal threshold를 `min(90%, baseline+20%p)`에서 `max(baseline, min(90%, baseline+20%p))`로 강화; baseline >90%에서도 회귀 금지 | pre-unseen critic Attempt 1 Q5; acceptance nonce/result 전 `e23c089→20b35a5` | `docs/research-os-status/14-m3-d-non-regression-retro.md` |
 
 ---
 

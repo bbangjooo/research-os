@@ -271,6 +271,17 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - Frozen 43 IDs/bytes와 six conjunct는 바꾸지 않았다. Corrections와 artifact binding, LOC finding은
   EXPLORATORY이며 phase는 `MIXED`; critic PASS, audit Attempts 1~3 corrected, Attempt 4 PASS다.
 
+### 2.2.6 Cycle 14 M3-D target strengthening — Rule 9 retrospective pending
+
+- **Trigger:** pre-unseen critic Attempt 1이 기존 `min(90%, baseline+20%p)` 공식을 따르면 baseline이 90%를
+  넘을 때 v0.5가 baseline보다 퇴행해도 통과할 수 있음을 지적했다.
+- **Amendment:** choice와 terminal 모두 `max(baseline, min(90%, baseline+20%p))`로 강화했다. 36 episodes,
+  six families, protocol/evidence/retry/waste/compatibility gates, product scope와 exclusions는 바꾸지 않았다.
+- **Chronology:** `e23c089` correction contract와 `20b35a5` implementation에서 어떤 acceptance nonce/body/result
+  보다 먼저 변경됐다. 따라서 사후 결과 완화가 아니라 pre-result non-regression guardrail 강화다.
+- **Governance correction:** prior “M chain definition unchanged” 표기는 철회한다. Pipeline §9.5와
+  `research-os-status/14-m3-d-non-regression-retro.md`에 기록했으며 사용자 Rule 9 verdict를 기다린다.
+
 ### 2.3 마일스톤 진척 (checkpoint chain — Rule 8) ★
 
 > 정적 정의는 `docs/research-os-pipeline.md` §9, 동적 진척만 이 절에서 추적한다.
@@ -442,7 +453,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 11 M3-A close | product `1,081/1,100`; M3-A tests+fixtures `744/1,250` (frozen manifest `96` + provider fixture `51` + test `597`); phase+critic+receipt+audit docs `447/450`; result-triggered verifier correction `+119/-52`; paired-core additions `78`; inclusive gross `2,469/2,800` | frozen 32 CONFIRMATORY + historical-gate correction EXPLORATORY = MIXED; product/test/script sealed at `42c7557` | frozen `32/32`; focused `41`; adjacent `103`; full `757+115`; critic + corrected audit PASS |
 | 12 M3-B close | product `2,035 additions + 8 deletions = 2,043 churn`; tests+fixture `1,384`; paired+phase evidence `473`; exact inclusive `3,900/3,900` | product subtarget `1,600` miss is GENUINE-FINDING/EXPLORATORY; M3-C follow-up precommitted | frozen `43/43`; focused `60`; adjacent `125`; critic + audit Attempt 4 PASS |
 | 13 M3-C close | product `353/900`; tests+fixture `829/1,400`; paired evidence `489`; inclusive `1,671/2,800` | phase+critic+receipt+audit `419/500`; MIXED | frozen `31/31`; race `3/3`; focused `41`; adjacent `142`; critic + corrected audit PASS |
-| 14 M3-D close candidate | cycle base `7b00e0b` to current working tree: `4,941 additions + 40 deletions = 4,981/6,000` inclusive; generated acceptance/evidence objects 10/1,200 canonical JSON lines | implementation subtarget miss remains GENUINE-FINDING/EXPLORATORY; overall cap PASS; phase+critic+receipt `618/800`, leaving audit cap 182 lines | Attempt 1 invalid preserved; Attempt 5 PASS; Attempt 2 + verifier `922+115`; receipt `95e7eb…5387`; final audit pending |
+| 14 M3-D close candidate | cycle base `7b00e0b` to current working tree plus audit/retro: `4,969 additions + 40 deletions + 73 new audit/retro lines = 5,082/6,000` inclusive; generated acceptance/evidence objects 10/1,200 | implementation subtarget miss remains GENUINE-FINDING/EXPLORATORY; overall cap PASS; phase+critic+receipt+audit `666/800`; Rule 9 retro 39 lines counts in inclusive cap | Attempt 1 invalid preserved; Attempt 5 PASS; Attempt 2 + verifier `922+115`; audit Attempt 1 FAIL; user verdict pending |
 
 ---
 
@@ -519,7 +530,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - [x] Cycle 14 corrected focused `63`, adjacent `142`, full `921+115`, ruff/ty/diff PASS; nonce/result absent
 - [x] Cycle 14 critic Attempt 2 Q4-only FAIL 보존; pre-draw directory/parent fsync correction targeted `2/2`
 - [x] Cycle 14 critic Attempt 3 Q1~Q8 DIRECT — **PASS**; acceptance artifacts `0/5`
-- [x] Cycle 14 status §12·§13과 pipeline §8.4·§8.5·§10 동기화; M chain definition unchanged
+- [x] Cycle 14 당시 M chain unchanged 표기 — final audit에서 부정확 판정, 철회
 - [x] Cycle 14 Acceptance Attempt 1 exactly once — outer `917/4+115`; chronology root defect로 **RESULT-INVALID**
 - [x] Cycle 14 동일 draw 재실행 금지; external result와 suite/race/prearm/custody archive 보존
 - [x] Cycle 14 historical canonical-path correction focused `64`, collection `922`, ruff/ty/diff PASS
@@ -528,4 +539,6 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - [x] Cycle 14 Attempt 5 PASS 뒤 distinct new-nonce Acceptance Attempt 2 exactly once — **PASS 8/8**
 - [x] Cycle 14 immutable external/repository receipt exact SHA `95e7eb…5387`; authority null
 - [x] Cycle 14 fresh single release verifier — exact receipt, full `922+115`, wheel/install 0.5.0 PASS
-- [ ] Cycle 14 independent final progress audit; PASS 뒤 M3-D/parent M3/v0.5 close
+- [x] Cycle 14 independent final progress audit Attempt 1 — **FAIL** (threshold typo + Rule 9 기록 누락)
+- [ ] Cycle 14 non-regression strengthening Rule 9 사용자 회고 승인
+- [ ] Cycle 14 corrected independent progress re-audit; PASS 뒤 M3-D/parent M3/v0.5 close

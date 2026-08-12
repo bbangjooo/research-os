@@ -50,7 +50,7 @@ class/memory/recovery field enters v0.2 and no hidden/oracle field enters either
 | 2 | frozen protocol attack manifest whole-universe block rate | `24/24`; pytest `25` |
 | 3 | v0.5 evidence-bound conclusion | `36/36` |
 | 4 | v0.5 closed-class retry | `0` |
-| 5 | next-choice accuracy | v0.5 `96/96` vs v0.2 `1/96`; required `20.1042%`, observed `100%` |
+| 5 | next-choice accuracy | v0.5 `96/96` vs v0.2 `1/96`; required `21.0417%` (`0.210416…`), observed `100%` |
 | 6 | terminal accuracy | v0.5 `36/36` vs v0.2 `0/36`; required `20%`, observed `100%` |
 | 7 | positive-waste aggregate | v0.5 `0` vs v0.2 `36`; ratio `0.0 ≤ 0.7`; zero-baseline rule PASS |
 | 8 | NS7 actual read-only `3/3` + opaque `3/3` + writer delta zero + 0.5.0 docs/version/upgrades/wheel/full | `1/1`; upgrades `7/7`, full `922+115`, wheel/install `0.5.0` |
@@ -178,7 +178,8 @@ The correction is pre-result and must replace, not relabel, the defective eviden
 
 All changed generator/oracle/metric/attack/release bytes require a new clean pre-nonce checkpoint and a second
 independent critic PASS. The defective `min(90%, baseline+20%p)` formula was tightened pre-nonce with the intended
-non-regression conjunct; no gate was weakened and the eight release conjuncts are unchanged. Product multi-agent, live
+non-regression conjunct; no gate was weakened, the eight-conjunct structure remained, and the two accuracy formulas
+were strengthened as recorded in §14.18. Product multi-agent, live
 migration, and acceptance preparation remain prohibited until that PASS.
 
 ## 14.12 Corrected pre-unseen implementation candidate
@@ -285,8 +286,23 @@ Acceptance Attempt 2 returned immutable **PASS**:
 Repository receipt `v0.5.0-release-receipt.json` is byte-identical to the external immutable result with SHA-256
 `95e7eb5f3876cc445dde2fee0a5b91462ce8e2f187f28f32acfffff96c0a5387`. At clean receipt checkpoint
 `ca69bb9`, `python -m scripts.verify_v05_release` independently regenerated benchmark/runtime evidence, reran full
-`922+115`, rebuilt/installed the wheel, and returned the exact saved receipt. Inclusive Cycle 14 working-tree churn is
-`4,981/6,000`; the named implementation subtarget miss remains disclosed, while the generated acceptance/evidence
+`922+115`, rebuilt/installed the wheel, and returned the exact saved receipt. After the failed audit and Rule 9
+correction artifact, inclusive Cycle 14 working-tree churn is `5,082/6,000`; the named implementation subtarget miss
+remains disclosed, while the generated acceptance/evidence
 objects are 10 canonical JSON lines against the `1,200`-line allowance. M3-D is `8/8` close candidate pending only
 the independent progress audit; no live pilot, migration, product multi-agent, deployment, trade, or capital authority
 was added.
+
+## 14.18 Final progress audit Attempt 1 FAIL — Rule 9 governance correction
+
+The independent four-pass audit reproduced the immutable receipt, custody chronology and all eight conjuncts, but
+returned **FAIL** on two documentation/governance defects. First, §14.3 misstated the exact choice threshold as
+`20.1042%`; the sealed `1/96 + 20%p` threshold is `21.041666…%`. The table is corrected without changing any sealed
+byte or result. Second, Cycle 14's pre-result critic correction strengthened both choice and terminal targets from
+`min(90%, baseline+20%p)` to `max(baseline, min(90%, baseline+20%p))`, preventing regression when v0.2 already scores
+above 90%. This changed the M3-D exit definition and was falsely recorded as “M chain unchanged.”
+
+The exact strengthening, critic trigger, pre-result chronology and no-scope-expansion assessment are now recorded in
+status §2.2.6, pipeline §9.5, and `14-m3-d-non-regression-retro.md`. Rule 9 requires the user's explicit retrospective
+verdict before the correction can be closed and the audit rerun. M3-D remains an 8/8 close candidate; the sealed PASS
+is neither withdrawn nor sufficient to bypass this governance gate.
