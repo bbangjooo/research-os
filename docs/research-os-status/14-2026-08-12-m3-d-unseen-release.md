@@ -1,17 +1,17 @@
 # §14 — M3-D unseen benchmark and v0.5 release (2026-08-12)
 
-> Status: **ACCEPTANCE ATTEMPT 1 RESULT-INVALID — 0/8; critic Attempt 4 FAIL preserved; path-corrected candidate pending Attempt 5**
+> Status: **CLOSE CANDIDATE — 8/8; Acceptance Attempt 2 PASS; release verifier PASS; final progress audit pending**
 > Previous phase: [§13](13-2026-08-12-m3-c-crash-resume.md) (`CLOSED 5/5` at `7b00e0b`)
-> Active milestone: `M3-D`; product multi-agent and live migration remain blocked
+> Active milestone: `M3-D` close candidate; product multi-agent is not implemented and live migration remains a post-v0.5 activity
 
 ## 14.0 TL;DR
 
 M3-D is the sole remaining v0.5 milestone. It must compare a byte-fixed v0.2 arm with the frozen v0.5 single-agent
 system on 36 post-freeze unseen synthetic episodes, pass protocol/evidence/choice/terminal/waste gates, confirm three
 external projects read-only, and ship one 0.5.0 release gate. The initial pre-spec froze the generator/oracle/metric;
-the corrected harness received critic Attempt 3 PASS and drew one externally custodied suite. The run was
-`RESULT-INVALID` because a chronology test inspected the post-draw working tree instead of the sealed code commit.
-That draw is immutable, archived, and prohibited from rerun; it makes no quality or release claim.
+the corrected harness received critic Attempt 3 PASS. Acceptance Attempt 1 was `RESULT-INVALID`, was archived, and
+was never rerun. After critic Attempts 4 FAIL/5 PASS corrected its chronology witness, a distinct external custody
+draw passed all eight conjuncts. The saved receipt and a fresh single release-verifier run both report `922+115`.
 
 ## 14.1 Intent, scope, and prerequisites
 
@@ -46,14 +46,14 @@ class/memory/recovery field enters v0.2 and no hidden/oracle field enters either
 
 | # | exit conjunct | pre-result state |
 |---:|---|---|
-| 1 | precommitted generator + post-freeze 256-bit nonce + pre-arm receipt seal + exact 36 bodies | `0/1` |
-| 2 | frozen protocol attack manifest whole-universe block rate | development `24/24`; sealed acceptance `0/1` |
-| 3 | v0.5 evidence-bound conclusion | `0/36`, required `36/36` |
-| 4 | v0.5 closed-class retry | unmeasured, required `0` |
-| 5 | next-choice accuracy | unmeasured, required `v0.5 ≥ max(v0.2, min(90%, v0.2+20%p))` |
-| 6 | terminal accuracy | unmeasured, required `v0.5 ≥ max(v0.2, min(90%, v0.2+20%p))` |
-| 7 | positive-waste aggregate | unmeasured, required `≤70%`; each v0.2-zero episode requires v0.5 zero |
-| 8 | NS7 actual read-only `3/3` + opaque `3/3` + writer delta zero + 0.5.0 docs/version/upgrades/wheel/full | `0/1` |
+| 1 | precommitted generator + post-freeze 256-bit nonce + pre-arm receipt seal + exact 36 bodies | `1/1`; code `463df30`, seal `ba2471…fef1`, suite `6ffa2f…a914` |
+| 2 | frozen protocol attack manifest whole-universe block rate | `24/24`; pytest `25` |
+| 3 | v0.5 evidence-bound conclusion | `36/36` |
+| 4 | v0.5 closed-class retry | `0` |
+| 5 | next-choice accuracy | v0.5 `96/96` vs v0.2 `1/96`; required `20.1042%`, observed `100%` |
+| 6 | terminal accuracy | v0.5 `36/36` vs v0.2 `0/36`; required `20%`, observed `100%` |
+| 7 | positive-waste aggregate | v0.5 `0` vs v0.2 `36`; ratio `0.0 ≤ 0.7`; zero-baseline rule PASS |
+| 8 | NS7 actual read-only `3/3` + opaque `3/3` + writer delta zero + 0.5.0 docs/version/upgrades/wheel/full | `1/1`; upgrades `7/7`, full `922+115`, wheel/install `0.5.0` |
 
 No conjunct can compensate for another. A quality miss cannot be waived by regression PASS; a release cannot be
 called v0.5 while a threshold is unmet.
@@ -103,34 +103,35 @@ refute all five routes.
 
 ### 14.6.4 Milestone progress claim
 
-**Current label: `ADVANCE 0/8`.** M3-D exists and M3-C is closed, but Attempt 1 was `RESULT-INVALID`; no engineering
-or release conjunct is claimed.
-Product multi-agent remains prohibited until NS6 passes; live pilot/migration remains post-v0.5.
+**Current label: `CLOSE CANDIDATE 8/8`.** Attempt 2 and the fresh release verifier passed every conjunct. Product
+multi-agent was intentionally not added; NS6 passage only makes it eligible for later investigation. Live
+pilot/migration remains unperformed and explicitly post-v0.5. Final phase closure awaits independent progress audit.
 
 ### 14.6.5 End-state delta
 
-**Classification: `구체화` (planned).** Before: restartable autonomy exists but learning quality is unmeasured. After
-the phase only if all gates pass: operators can compare v0.2/v0.5 choice, terminal correctness and waste on sealed
-unseen worlds and install 0.5.0 without mutating prior projects. No other stage rating moves.
+**Classification: `구체화·검증`.** Before: restartable autonomy existed but learning quality was unmeasured. After:
+operators can compare v0.2/v0.5 choice, terminal correctness and waste on sealed unseen worlds and install 0.5.0
+without mutating prior projects. Synthetic transfer—not open-domain creativity or live-project efficacy—is claimed.
 
 ### 14.6.6 Intent-execution reconciliation
 
 - **Intent (§14.1; NS1/NS6/NS7):** source = approved unseen-release gate and pipeline §7/§9.4; sample = 36 unseen,
   protocol attack universe, six public-boundary E2E, three external snapshots; measurement = the eight AND gates.
-- **Execution:** the corrected generator/comparator/public-boundary/protocol/custody implementation exists and has
-  development evidence. One unseen draw exists only as immutable invalid-attempt evidence; no valid unseen result exists.
+- **Execution:** Attempt 1 remains immutable invalid-attempt evidence. Attempt 2 used a distinct code checkpoint,
+  custody path and nonce, produced a PASS receipt, and the single verifier independently reproduced it exactly.
 
-**Label: `MATCH` for pre-spec scope only.** Result matching is deliberately unclaimed.
+**Label: `MATCH`.** All precommitted gates passed without threshold, oracle, metric, selector, or arm changes after
+the valid draw. The result remains scoped to the approved synthetic benchmark and read-only compatibility surface.
 
 ### 14.6.7 Claim mode
 
-**`MIXED`.** Generator/world/oracle/metric preceded Attempt 1, but its body result is unusable because the release
-conjunction did not complete. The chronology correction is EXPLORATORY. A future new-nonce result may remain
-CONFIRMATORY only against a newly sealed clean code checkpoint; Attempt 1 is never relabeled.
+**`MIXED`.** Attempt 1 remains unusable and its chronology corrections are EXPLORATORY. Attempt 2 is CONFIRMATORY
+against the precommitted generator/oracle/metric and post-freeze custody; the phase label remains MIXED because the
+result-triggered correction history is preserved rather than erased.
 
 ### 14.6.8 Requirement-result divergence
 
-No valid result exists. Attempt 1 fixture/runner chronology failure is `RESULT-INVALID`; a defective oracle/metric is
+Attempt 1 fixture/runner chronology failure is `RESULT-INVALID`; Attempt 2 is valid PASS. A defective oracle/metric is
 `REQUIREMENT-WRONG`; a valid quality/cap/compatibility miss is `GENUINE-FINDING` and blocks release. Results are never
 silently regenerated or relabeled.
 
@@ -147,9 +148,8 @@ eight-gate threshold or the inclusive cap. The exact inclusive count is frozen i
 
 ## 14.10 Next action
 
-Validate the path-corrected chronology proof and commit it at a clean checkpoint, then obtain independent critic
-Attempt 5. Only after PASS may a new external custody path draw a new nonce
-exactly once. Never rerun or reconstruct Attempt 1.
+Run the independent progress audit over the closed receipt, paired docs, custody chronology, M-chain, limitations,
+and inclusive cap. Do not rerun either acceptance draw or modify release-bound bytes.
 
 ## 14.11 Pre-unseen critic Attempt 1 FAIL and correction contract
 
@@ -203,8 +203,8 @@ Current executable evidence before the Q4-only correction: M3-D focused `63/63`,
 `git diff --check` PASS. The Q4 correction's targeted durability tests pass `2/2`. After the Attempt 1 chronology
 correction, current focused is `64/64`, collection is `922`, and Ruff/ty/diff PASS. This remains engineering evidence:
 Attempt 1 has no valid paired result or release receipt, and the independent final progress audit does not exist.
-Therefore M3-D remains `ADVANCE 0/8`, product multi-agent/live migration stay blocked, and a new arm execution is
-prohibited until a new clean checkpoint receives critic Attempt 5 PASS and distinct custody preparation is committed.
+At that point M3-D remained `ADVANCE 0/8`, product multi-agent/live migration stayed blocked, and a new arm execution
+was prohibited until a new clean checkpoint received critic Attempt 5 PASS and distinct custody preparation.
 
 ## 14.13 Critic Attempt 2 FAIL — Q4 crash durability correction
 
@@ -249,7 +249,7 @@ absent at the prearm document's sealed `code_commit`. A dedicated archive test a
 post-draw chronology is immediately executable instead of relying on a body-absence test that becomes false by design.
 No generator, oracle, selector, metric threshold, v0.2 arm, or product policy changed. The correction requires focused
 and static PASS, a new clean checkpoint, independent critic Attempt 5, and a distinct code-commit custody path/new nonce
-before one new one-shot execution. M3-D remains `0/8`; product multi-agent and live migration remain blocked.
+before one new one-shot execution. At that point M3-D remained `0/8`; product multi-agent and live migration remained blocked.
 
 ## 14.16 Critic Attempt 4 FAIL — historical path correction
 
@@ -264,3 +264,29 @@ must exist under their preserved names, while `git cat-file` queries the histori
 commit. The current-draw path uses the same canonical pair for both roles. No product, generator, oracle, selector,
 metric, threshold, historical arm, custodian, runner, or verifier byte changes. The bound manifest hash, focused/static
 evidence, a new clean checkpoint, and independent Attempt 5 PASS are required before any new draw.
+
+## 14.17 Acceptance Attempt 2 PASS and release-verifier reproduction
+
+Critic Attempt 5 passed Q1–Q8 at `846d18b`. Its PASS record produced clean code checkpoint
+`463df30c60951ceeeaaeb50a4ff7827d3cf6f365`; that distinct external custody path was reserved before drawing nonce
+commitment `fcdd9d…d17a`. Prearm seal `ba2471…fef1` binds generator `dd767f…04a3`, suite
+`6ffa2f…a914`, race suite `ffcf9b…7213`, archived v0.2 bytes, and arm order v0.5→v0.2. Generated objects were
+checked in at `16c8fa2` before the single arm reservation/run.
+
+Acceptance Attempt 2 returned immutable **PASS**:
+
+- choice: v0.5 `96/96` versus v0.2 `1/96`; terminal: `36/36` versus `0/36`;
+- evidence-bound terminal `36/36`, closed-class retry `0`, waste `0` versus `36`;
+- protocol attacks `24/24`, generated public boundaries `6/6`, race schedules `12/12`;
+- actual external replay/opaque/no-write `3/3`, writer delta `0`, managed upgrades `7/7`;
+- full `922 passed, 115 subtests`, Ruff/ty/diff PASS, wheel and temp install version `0.5.0`;
+- `authorized_action=null`, `product_multi_agent=false`, `live_migration=false`.
+
+Repository receipt `v0.5.0-release-receipt.json` is byte-identical to the external immutable result with SHA-256
+`95e7eb5f3876cc445dde2fee0a5b91462ce8e2f187f28f32acfffff96c0a5387`. At clean receipt checkpoint
+`ca69bb9`, `python -m scripts.verify_v05_release` independently regenerated benchmark/runtime evidence, reran full
+`922+115`, rebuilt/installed the wheel, and returned the exact saved receipt. Inclusive Cycle 14 working-tree churn is
+`4,981/6,000`; the named implementation subtarget miss remains disclosed, while the generated acceptance/evidence
+objects are 10 canonical JSON lines against the `1,200`-line allowance. M3-D is `8/8` close candidate pending only
+the independent progress audit; no live pilot, migration, product multi-agent, deployment, trade, or capital authority
+was added.
