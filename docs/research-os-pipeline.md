@@ -48,8 +48,8 @@
 6. **유한 자율 루프** (§6): provider의 출력은 비신뢰 packet이며 kernel preflight 뒤에만 실행된다.
 7. **비교 가능한 효과 측정** (§7): 동일 후보 언어·실험 budget에서 정확도와 낭비를 비교한다.
 
-현재 상태 (Cycle 14 M3-D 8/8 close candidate; Acceptance Attempt 2/release verifier, Rule 9,
-amended-foundation critic Q1~Q8 PASS; corrected re-audit pending):
+현재 상태 (Cycle 14 M3-D provisional CLOSE 8/8; Acceptance Attempt 2/release verifier, Rule 9,
+amended-foundation critic Q1~Q8 PASS; parent M3/v0.5는 corrected re-audit 전까지 open):
 
 - 1번 ✅/○ — directional delta, constitution-owned typed gate/slack, baseline/candidate verify 대칭과 nested/flat certification lifecycle이 구현·검증됐다.
 - 2번 ○ — checkpoint `df2c900`에서 canonical StudyContract·evaluation-sealed generation·replayable cumulative reservation ledger·locked overrun gate가 구현됐다. executable manifest `29/29`, focused `81+37`; 단, generation별 non-refundable reservation이지 actual usage telemetry나 study lifetime cap은 아니며 successor 반복 증액을 막지 않는다.
@@ -337,7 +337,7 @@ Canonical truth boundaries:
 | Context | v3가 budget/class/pending diagnosis/relevant claim/reason을 제공 | exact retrieval/disposition read set을 finite loop의 next Context/DecisionPacket이 current Program head에서 재소비 | Cycle 12 next-packet witness; focused `60`; critic + audit PASS |
 | Autonomy | provider-neutral finite state machine이 stop/resume | three verified logs에서 cold crash-resume `13/13`; duplicate/stale/authority/forbidden `31/31`; lookup→append race `3/3`; independent gates PASS | Cycle 13 `CLOSE`; critic + corrected audit PASS |
 | Meta-evaluation | post-freeze unseen 36 episodes와 choice oracle로 v0.2/v0.5 paired comparison | Attempt 2 36 episodes: choice `96/96`, terminal/evidence `36/36`, retry/waste `0`; release verifier exact reproduction | Cycle 14 `△→○`; receipt `95e7eb…5387`; foundation critic PASS; re-audit pending |
-| Compatibility/authority | v1 logs 무변환, legacy 격리, authority null 유지 | 0.5.0, actual replay/opaque/no-write `3/3`, writer delta 0, authority null, full `922+115`, wheel/install PASS | Cycle 14 close candidate; live migration remains post-v0.5; re-audit pending |
+| Compatibility/authority | v1 logs 무변환, legacy 격리, authority null 유지 | 0.5.0, actual replay/opaque/no-write `3/3`, writer delta 0, authority null, full `922+115`, wheel/install PASS | M3-D provisional close; parent M3 open; live migration post-v0.5; re-audit pending |
 
 ### 8.5 비전 변경 이력 ★
 
@@ -357,7 +357,7 @@ Canonical truth boundaries:
 | 11 | 2026-08-12 | 구체화·검증 (PIVOT correction) | 비신뢰 provider output을 current Program/Context/retrieval/Proposal에 검증하는 DecisionPacket seam을 추가; historical v0.4 HEAD-bound verifier Attempt 1은 철회·checkpoint-bound correction; FSM/NS5는 유지 | `50ee73d→eb289c4→42c7557`; frozen `32/32`, full `757+115`; critic + corrected audit PASS; M3-A close, M3-B active |
 | 12 | 2026-08-12 | 구체화·검증 (`MIXED` correction) | single-provider finite episode와 three-log truth-owner 경계를 구현했다. Critic/audit 결함은 source reconciliation·actual service·type/schema sync로 보정했다. Crash resume·unseen quality는 유지한다 | frozen `43/43`, focused/adjacent `60/125`; critic + audit Attempt 4 PASS; M3-B close, M3-C active |
 | 13 | 2026-08-12 | 구체화·검증 (`MIXED` correction, `CLOSE`) | AutonomyLog orchestration·ProjectLog scientific truth·ProgramLog memory truth에서 crash cold-resume를 구현했다. Context/Program rating과 NS6/NS7은 유지하며 외부 billing exactly-once·hostile-provider sandbox·distributed consensus·learning quality는 미청구다 | frozen `31/31`; lookup→append `3/3`; critic + corrected audit PASS; M3-C close, M3-D active |
-| 14 | 2026-08-12 | PIVOT correction (`MIXED`, `CLOSE CANDIDATE`) | Attempt 1 `RESULT-INVALID`와 Attempt 4 FAIL을 보존하고 sealed canonical-path chronology를 교정했다. Attempt 5 PASS 뒤 distinct new-nonce Attempt 2와 single release verifier가 precommitted eight-conjunct gate를 통과했다 | choice `96/96`, terminal/evidence `36/36`, waste/retry `0`; protocol `24/24`; external `3/3`; full `922+115` twice; audit Attempt 1 FAIL; Rule 9 + foundation critic PASS; re-audit pending |
+| 14 | 2026-08-12 | PIVOT correction (`MIXED`, provisional `CLOSE`) | Attempt 1 `RESULT-INVALID`와 Attempt 4 FAIL을 보존하고 sealed canonical-path chronology를 교정했다. Attempt 5 PASS 뒤 distinct new-nonce Attempt 2와 single release verifier가 precommitted eight-conjunct gate를 통과했다 | choice `96/96`, terminal/evidence `36/36`, waste/retry `0`; protocol `24/24`; external `3/3`; full `922+115` twice; audit Attempt 1 FAIL; Rule 9 + foundation critic PASS; re-audit pending |
 | 14.5 | 2026-08-12 | 구체화·governance correction (`docs-only`) | M3-D non-regression threshold의 M-chain 변경을 정식 correction/Rule 9 기록으로 고정; §8.2 행동·§8.3 제외·§8.4 영역은 변경 없음 | 사용자 verbatim “승인”; bootstrap critic Q1~Q8 DIRECT PASS |
 
 ---

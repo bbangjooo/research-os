@@ -1,8 +1,8 @@
 # §14 — M3-D unseen benchmark and v0.5 release (2026-08-12)
 
-> Status: **CLOSE CANDIDATE — 8/8; Rule 9 + amended-foundation critic PASS; corrected re-audit pending**
+> Status: **PROVISIONAL CLOSE CLAIM — 8/8; Rule 9 + foundation critic PASS; corrected re-audit pending**
 > Previous phase: [§13](13-2026-08-12-m3-c-crash-resume.md) (`CLOSED 5/5` at `7b00e0b`)
-> Active milestone: `M3-D` close candidate; product multi-agent is not implemented and live migration remains a post-v0.5 activity
+> Active milestone: `M3-D` provisional `CLOSE`; parent M3/v0.5 remains open until re-audit PASS
 
 ## 14.0 TL;DR
 
@@ -44,19 +44,8 @@ class/memory/recovery field enters v0.2 and no hidden/oracle field enters either
 
 ## 14.3 Eight conjuncts and exact thresholds
 
-| # | exit conjunct | pre-result state |
-|---:|---|---|
-| 1 | precommitted generator + post-freeze 256-bit nonce + pre-arm receipt seal + exact 36 bodies | `1/1`; code `463df30`, seal `ba2471…fef1`, suite `6ffa2f…a914` |
-| 2 | frozen protocol attack manifest whole-universe block rate | `24/24`; pytest `25` |
-| 3 | v0.5 evidence-bound conclusion | `36/36` |
-| 4 | v0.5 closed-class retry | `0` |
-| 5 | next-choice accuracy | v0.5 `96/96` vs v0.2 `1/96`; required `21.0417%` (`0.210416…`), observed `100%` |
-| 6 | terminal accuracy | v0.5 `36/36` vs v0.2 `0/36`; required `20%`, observed `100%` |
-| 7 | positive-waste aggregate | v0.5 `0` vs v0.2 `36`; ratio `0.0 ≤ 0.7`; zero-baseline rule PASS |
-| 8 | NS7 actual read-only `3/3` + opaque `3/3` + writer delta zero + 0.5.0 docs/version/upgrades/wheel/full | `1/1`; upgrades `7/7`, full `922+115`, wheel/install `0.5.0` |
-
-No conjunct can compensate for another. A quality miss cannot be waived by regression PASS; a release cannot be
-called v0.5 while a threshold is unmet.
+The authoritative before/after/evidence close table is §14.6.4. No conjunct can compensate for another: a quality
+miss cannot be waived by regression PASS, and a release cannot be called v0.5 while any threshold is unmet.
 
 ## 14.4 Custody and anti-leak sequence
 
@@ -103,9 +92,22 @@ refute all five routes.
 
 ### 14.6.4 Milestone progress claim
 
-**Current label: `CLOSE CANDIDATE 8/8`.** Attempt 2 and the fresh release verifier passed every conjunct. Product
-multi-agent was intentionally not added; NS6 passage only makes it eligible for later investigation. Live
-pilot/migration remains unperformed and explicitly post-v0.5. Final phase closure awaits independent progress audit.
+**Label: `CLOSE`. M_i.j: `M3-D`.** This is the author's provisional close claim; the independent re-audit remains the
+trust gate. Prerequisite gate: M3-C is closed at Phase 13 with critic and corrected audit PASS.
+
+| # | conjunct | 이전 | 이번 phase 후 | 근거 |
+|---:|---|---|---|---|
+| 1 | post-freeze unseen seal | absent | ✅ | code `463df30`; 36 bodies; seal `ba2471…fef1`; suite `6ffa2f…a914` |
+| 2 | protocol block 100% | absent | ✅ | manifest `24/24`; pytest `25` |
+| 3 | evidence-bound conclusion 100% | absent | ✅ | receipt `36/36` |
+| 4 | closed-class retry 0 | absent | ✅ | receipt `0` |
+| 5 | choice non-regression | unmeasured | ✅ | v0.5 `96/96`; v0.2 `1/96`; exact minimum `21/96` |
+| 6 | terminal non-regression | unmeasured | ✅ | v0.5 `36/36`; v0.2 `0/36`; exact minimum `8/36` |
+| 7 | positive waste ≤70% | unmeasured | ✅ | v0.5 `0`; v0.2 `36`; ratio `0.0` |
+| 8 | compatibility/release | partial | ✅ | replay/opaque/no-write `3/3/0`; upgrades `7/7`; full `922+115`; install `0.5.0` |
+
+Product multi-agent was intentionally not added; NS6 passage only makes it eligible for later investigation. Live
+pilot/migration remains unperformed and explicitly post-v0.5. Parent M3/v0.5 closure awaits re-audit PASS.
 
 ### 14.6.5 End-state delta
 
@@ -125,9 +127,13 @@ the valid draw. The result remains scoped to the approved synthetic benchmark an
 
 ### 14.6.7 Claim mode
 
-**`MIXED`.** Attempt 1 remains unusable and its chronology corrections are EXPLORATORY. Attempt 2 is CONFIRMATORY
-against the precommitted generator/oracle/metric and post-freeze custody; the phase label remains MIXED because the
-result-triggered correction history is preserved rather than erased.
+**Label: `MIXED`.**
+
+| claim | mode | chronology/evidence |
+|---|---|---|
+| Attempt 1 chronology correction | EXPLORATORY | first invalid data `604e1d0`; result excluded |
+| Attempt 2 eight-gate result | CONFIRMATORY | pre-spec `e23c089` (08:28:03) < first data `604e1d0` (09:48:54); valid body `16c8fa2` |
+| implementation subtarget miss | EXPLORATORY | measured after implementation; `2,349/1,800` |
 
 ### 14.6.8 Requirement-result divergence
 
@@ -148,9 +154,8 @@ eight-gate threshold or the inclusive cap. The exact inclusive count is frozen i
 
 ## 14.10 Next action
 
-Run the amended-foundation bootstrap critic, then the corrected independent progress re-audit over the closed receipt,
-paired docs, custody chronology, M-chain, limitations, and inclusive cap. Do not rerun either acceptance draw or
-modify release-bound bytes.
+Run the corrected independent progress re-audit over the closed receipt, paired docs, custody chronology, M-chain,
+Rule 9/critic records, limitations, and inclusive cap. Do not rerun either acceptance draw or modify release-bound bytes.
 
 ## 14.11 Pre-unseen critic Attempt 1 FAIL and correction contract
 
@@ -291,8 +296,8 @@ Repository receipt `v0.5.0-release-receipt.json` is byte-identical to the extern
 correction artifact, inclusive Cycle 14 churn at the Rule 9 approval checkpoint is `5,121/6,000`; the named
 implementation subtarget miss
 remains disclosed, while the generated acceptance/evidence
-objects are 10 canonical JSON lines against the `1,200`-line allowance. M3-D is `8/8` close candidate pending only
-the independent progress audit; no live pilot, migration, product multi-agent, deployment, trade, or capital authority
+objects are 10 canonical JSON lines against the `1,200`-line allowance. M3-D has an `8/8` provisional close claim
+pending only the corrected independent progress audit; no live pilot, migration, product multi-agent, deployment, trade, or capital authority
 was added.
 
 ## 14.18 Final progress audit Attempt 1 FAIL — Rule 9 governance correction
@@ -307,5 +312,5 @@ above 90%. This changed the M3-D exit definition and was falsely recorded as “
 The exact strengthening, critic trigger, pre-result chronology and no-scope-expansion assessment are now recorded in
 status §2.2.6, pipeline §9.5, and `14.5-correction-non-regression.md`. The user answered the exact Rule 9 proposal
 **“승인”**, and the amended-foundation bootstrap critic verified Q1–Q8 DIRECT with `VERDICT: PASS`. The corrected
-independent audit still gates closure. M3-D remains an 8/8 close candidate; the sealed PASS is neither withdrawn nor
+independent audit still gates closure. M3-D remains an 8/8 provisional close claim; the sealed PASS is neither withdrawn nor
 sufficient to bypass that final governance gate.
