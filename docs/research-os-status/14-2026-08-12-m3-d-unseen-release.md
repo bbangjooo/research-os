@@ -1,6 +1,6 @@
 # §14 — M3-D unseen benchmark and v0.5 release (2026-08-12)
 
-> Status: **CORRECTED PRE-UNSEEN CANDIDATE — 0/8; critic Attempt 2 pending; no acceptance nonce/body exists**
+> Status: **CORRECTED PRE-UNSEEN CANDIDATE — 0/8; critic Attempt 2 FAIL/Q4 corrected; Attempt 3 pending; no acceptance nonce/body exists**
 > Previous phase: [§13](13-2026-08-12-m3-c-crash-resume.md) (`CLOSED 5/5` at `7b00e0b`)
 > Active milestone: `M3-D`; product multi-agent and live migration remain blocked
 
@@ -133,8 +133,8 @@ No result exists. Future fixture/runner corruption is `RESULT-INVALID`; a defect
 silently regenerated or relabeled.
 
 The corrected pre-unseen implementation already has one engineering divergence: benchmark/generator/release-script
-churn is `2,341/1,800`, while tests+fixtures are `1,677/2,400`, phase+critic evidence is below `800`, and inclusive
-M3-D churn is `4,555/6,000`. This is a `GENUINE-FINDING`/EXPLORATORY subtarget miss, not permission to weaken an
+churn is `2,349/1,800`, while tests+fixtures are `1,696/2,400`, phase+critic evidence is `402/800`, and inclusive
+M3-D churn is `4,652/6,000`. This is a `GENUINE-FINDING`/EXPLORATORY subtarget miss, not permission to weaken an
 eight-gate threshold or the inclusive cap. The exact inclusive count is frozen in status §13 at the checkpoint.
 
 ## 14.7 Residual limitations
@@ -145,8 +145,8 @@ eight-gate threshold or the inclusive cap. The exact inclusive count is frozen i
 
 ## 14.10 Next action
 
-Commit the corrected pre-unseen checkpoint, then obtain independent critic Attempt 2 over the closed Q1–Q8 set. Do
-not create a nonce/body until that critic returns PASS and its evidence is committed on a clean checkpoint.
+Commit the Q4 durability correction, then obtain independent critic Attempt 3 over the same closed Q1–Q8 set. Do not
+create a nonce/body until that critic returns PASS and its evidence is committed on a clean checkpoint.
 
 ## 14.11 Pre-unseen critic Attempt 1 FAIL and correction contract
 
@@ -195,9 +195,19 @@ The Attempt 1 correction contract is now implemented but not yet independently a
 - the legacy `run_once` return surface again matches the frozen v1/M1-B observer, while canonical terminal events keep
   captured artifact digest/size evidence.
 
-Current executable evidence: M3-D focused `63/63`, adjacent M3-A/B/C `142/142`, full `921+115` in `1195.61s`,
-targeted legacy parity `1/1`, actual ResearchService/autonomy evidence `1/1`, Ruff, ty, and `git diff --check` PASS.
+Current executable evidence before the Q4-only correction: M3-D focused `63/63`, adjacent M3-A/B/C `142/142`, full
+`921+115` in `1195.61s`, targeted legacy parity `1/1`, actual ResearchService/autonomy evidence `1/1`, Ruff, ty, and
+`git diff --check` PASS. The Q4 correction's targeted durability tests pass `2/2`; corrected focused recheck is pending.
 This is engineering evidence only: the
-post-freeze nonce, 36 unseen bodies, one-shot arms, full-suite release receipt, critic Attempt 2, and independent
+post-freeze nonce, 36 unseen bodies, one-shot arms, full-suite release receipt, critic Attempt 3, and independent
 progress audit do not yet exist. Therefore M3-D remains `ADVANCE 0/8`, product multi-agent/live migration stay blocked,
 and acceptance preparation is still prohibited.
+
+## 14.13 Critic Attempt 2 FAIL — Q4 crash durability correction
+
+Attempt 2 independently closed Q1–Q3 and Q5–Q8 as DIRECT, but found that `draw-reservation.json` was file-fsynced
+without fsyncing its checkpoint directory and custody parent before the nonce draw. A filesystem/power crash could
+therefore lose the directory entry and permit a redraw. The pre-data correction now fsyncs the checkpoint directory
+and custody parent after the exclusive reservation write and before `secrets.token_hex(32)`. The executable test
+records both directory-sync events before the mocked nonce event and still rejects a second draw. No real custodian,
+acceptance script, nonce, body, prearm seal or receipt was invoked.

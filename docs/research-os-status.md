@@ -75,7 +75,8 @@
     boundary/verifier 결함으로 FAIL했다. Pre-data correction은 실제 `ClassState`/retrieval/disposition/autonomy
     serializer, archived v0.2 builder, M3-D-owned attack `24/24`, durable draw+arm reservation, non-regression metric,
     generated boundary `6/6`으로 교체됐다. Corrected focused `63`, adjacent M3-A/B/C `142`, full `921+115`,
-    legacy parity `1`과 ruff/ty/diff는 PASS했지만 critic Attempt 2와 unseen nonce/result는 아직 없다.
+    legacy parity `1`과 ruff/ty/diff는 PASS했다. Critic Attempt 2는 Q1~Q3/Q5~Q8 DIRECT, Q4 FAIL이었고,
+    nonce 전 reservation-directory/parent fsync를 추가해 targeted `2/2`로 교정했다. Attempt 3와 unseen은 없다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 
@@ -96,14 +97,14 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** corrected clean pre-nonce checkpoint를 커밋하고 independent critic Attempt 2를 실행한다.
+- [ ] **단일 최우선 행동:** Q4 corrected clean pre-nonce checkpoint를 커밋하고 independent critic Attempt 3를 실행한다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
 | 항목 | 위치 | 상태 | 근거 |
 |---|---|---|---|
 | v0.5 제품 candidate + M1~M3 implementation | `src/research_os/` | pre-unseen; M3-D active | finite restartable loop, Program memory, exact managed upgrades |
-| 전체 테스트 | `tests/` | corrected pre-unseen green | `921+115` in `1195.61s`; M3-D focused `63`; adjacent `142` |
+| 전체 테스트 | `tests/` | Q4-corrected pre-unseen | last full `921+115` at `20b35a5`; current focused `63`, collection `921` |
 | 진행 상태 core | `docs/research-os-status.md` | active | M1/M2/M3-A/B/C closed; M3-D active |
 | M1-E vertical slice | `docs/research-os-status/05-2026-08-11-m1-e-usable-context.md` | complete; independent audit PASS | opt-in Context v3 + Diagnosis template + disposable example PASS |
 | M1-E release close | `docs/research-os-status/06-2026-08-11-m1-e-release-close.md` | complete; independent audit PASS | receipt `e120292`; `609+115`; installer `6/6` |
@@ -114,7 +115,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | M3-A DecisionPacket | `docs/research-os-status/11-2026-08-12-m3-a-decision-packet.md` | closed 4/4 | receipt `32/32`; full `757+115`; critic + corrected audit PASS |
 | M3-B finite loop | `docs/research-os-status/12-2026-08-12-m3-b-finite-autonomy-loop.md` | closed 6/6 | frozen `43/43`; corrected `60/125`; critic + audit PASS |
 | M3-C crash resume | `docs/research-os-status/13-2026-08-12-m3-c-crash-resume.md` | closed 5/5 | frozen `31/31`; critic PASS; corrected audit PASS |
-| M3-D unseen/release | `docs/research-os-status/14-2026-08-12-m3-d-unseen-release.md` | corrected pre-unseen candidate 0/8 | focused `63`; adjacent `142`; full `921+115`; critic Attempt 2 pending; nonce absent |
+| M3-D unseen/release | `docs/research-os-status/14-2026-08-12-m3-d-unseen-release.md` | corrected pre-unseen candidate 0/8 | Attempt 2 FAIL/Q4 corrected `2/2`; Attempt 3 pending; nonce absent |
 | 방법론 pipeline core | `docs/research-os-pipeline.md` | active | Cycle 14 correction candidate; M3-D active |
 
 ### 0.5 알려진 잔여 이슈
@@ -272,7 +273,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 
 - **Active M_i.j**: `M3-D` (`open`)
 - **직전 close가 가능하게 한 작업**: M3-C가 crash-resume/authority `5/5`, critic과 corrected audit를 PASS했다.
-- **현재 M3-D 상태**: Attempt 1 FAIL을 corrected pre-unseen candidate로 교정; independent Attempt 2 전이다.
+- **현재 M3-D 상태**: Attempt 1 broad FAIL, Attempt 2 Q4-only FAIL을 보존; Q4 crash durability corrected, Attempt 3 전이다.
 - **이 M.j가 닫혀야 다음에 가능해지는 작업**: parent M3/v0.5 release close.
 - **현재 close 차단 gate**: M3-D precommitted generator/oracle, post-freeze unseen 36 episodes, compatibility/release evidence.
 - **M3 parent close까지 남은 sub**: M3-D.
@@ -313,7 +314,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 11 | 2026-08-12 | M3-A | 4/4 | close | frozen `32/32`, full `757+115`; critic + corrected audit PASS; M3-B active |
 | 12 | 2026-08-12 | M3-B | 6/6 | close | frozen `43/43`; critic PASS; audit FAIL 1~3 preserved, Attempt 4 PASS; M3-C active |
 | 13 | 2026-08-12 | M3-C | 5/5 | close | frozen `31/31`; critic FAIL→PASS; audit FAIL→PASS; M3-D active |
-| 14 | 2026-08-12 | M3-D | 0/8 | advance | critic Attempt 1 FAIL 보존; corrected focused `63`, adjacent `142`, full `921+115`; Attempt 2/unseen pending |
+| 14 | 2026-08-12 | M3-D | 0/8 | advance | critic Attempts 1/2 FAIL 보존; Q4 directory durability corrected `2/2`; Attempt 3/unseen pending |
 
 #### 2.3.5 Gate-bypass 기록
 
@@ -345,15 +346,15 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 11 | 2026-08-12 / M3-A | [`research-os-status/11-2026-08-12-m3-a-decision-packet.md`](research-os-status/11-2026-08-12-m3-a-decision-packet.md) | DecisionPacket/provider 4/4 closed; critic + corrected audit PASS |
 | 12 | 2026-08-12 / M3-B | [`research-os-status/12-2026-08-12-m3-b-finite-autonomy-loop.md`](research-os-status/12-2026-08-12-m3-b-finite-autonomy-loop.md) | finite loop 6/6 closed; critic + audit Attempt 4 PASS; M3-C active |
 | 13 | 2026-08-12 / M3-C | [`research-os-status/13-2026-08-12-m3-c-crash-resume.md`](research-os-status/13-2026-08-12-m3-c-crash-resume.md) | crash-resume/authority 5/5 closed; critic + corrected audit PASS; M3-D active |
-| 14 | 2026-08-12 / M3-D | [`research-os-status/14-2026-08-12-m3-d-unseen-release.md`](research-os-status/14-2026-08-12-m3-d-unseen-release.md) | corrected pre-unseen candidate; focused `63`, adjacent `142`, full `921+115`; critic Attempt 2 pending |
+| 14 | 2026-08-12 / M3-D | [`research-os-status/14-2026-08-12-m3-d-unseen-release.md`](research-os-status/14-2026-08-12-m3-d-unseen-release.md) | Attempt 2 Q4-only FAIL; directory durability corrected `2/2`; Attempt 3 pending |
 
 ---
 
 ## 11. 한 페이지 요약 (TL;DR)
 
 - 현재 상태: 제품 candidate version `0.5.0`; M1/M2/M3-A/B/C closed, M3-D corrected pre-unseen candidate다.
-- 마지막 유효 engineering 측정: M3-D focused `63`, adjacent M3-A/B/C `142`, full `921+115`, legacy parity `1`; critic Attempt 2 전이다.
-- 다음 1행동: corrected clean checkpoint commit → independent critic Attempt 2.
+- 마지막 유효 engineering 측정: checkpoint `20b35a5` focused `63`, adjacent `142`, full `921+115`; Q4-only correction targeted `2/2`.
+- 다음 1행동: Q4 corrected clean checkpoint commit → independent critic Attempt 3.
 - 가장 큰 갭: M3-D sealed unseen 36-episode 학습 효과와 v0.5 release evidence다.
 
 ---
@@ -425,7 +426,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 11 M3-A close | product `1,081/1,100`; M3-A tests+fixtures `744/1,250` (frozen manifest `96` + provider fixture `51` + test `597`); phase+critic+receipt+audit docs `447/450`; result-triggered verifier correction `+119/-52`; paired-core additions `78`; inclusive gross `2,469/2,800` | frozen 32 CONFIRMATORY + historical-gate correction EXPLORATORY = MIXED; product/test/script sealed at `42c7557` | frozen `32/32`; focused `41`; adjacent `103`; full `757+115`; critic + corrected audit PASS |
 | 12 M3-B close | product `2,035 additions + 8 deletions = 2,043 churn`; tests+fixture `1,384`; paired+phase evidence `473`; exact inclusive `3,900/3,900` | product subtarget `1,600` miss is GENUINE-FINDING/EXPLORATORY; M3-C follow-up precommitted | frozen `43/43`; focused `60`; adjacent `125`; critic + audit Attempt 4 PASS |
 | 13 M3-C close | product `353/900`; tests+fixture `829/1,400`; paired evidence `489`; inclusive `1,671/2,800` | phase+critic+receipt+audit `419/500`; MIXED | frozen `31/31`; race `3/3`; focused `41`; adjacent `142`; critic + corrected audit PASS |
-| 14 M3-D pre-unseen candidate | benchmark/generator/release scripts `2,341/1,800`; tests+fixtures `1,677/2,400`; phase+critic `<800`; inclusive `4,555/6,000` | named subtarget miss = GENUINE-FINDING/EXPLORATORY; eight gates and inclusive cap unchanged | focused `63`; adjacent `142`; full `921+115`; critic Attempt 2/unseen pending |
+| 14 M3-D pre-unseen candidate | benchmark/generator/release scripts `2,349/1,800`; tests+fixtures `1,696/2,400`; phase+critic `402/800`; inclusive `4,652/6,000` | named subtarget miss = GENUINE-FINDING/EXPLORATORY; eight gates and inclusive cap unchanged | current focused `63`; prior full `921+115`; critic Attempt 3/unseen pending |
 
 ---
 
@@ -500,4 +501,5 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - [x] Cycle 13 M3-C closed; M3-D active
 - [x] Cycle 14 critic Attempt 1 FAIL 보존; Q1~Q6/Q8 pre-data correction 구현
 - [x] Cycle 14 corrected focused `63`, adjacent `142`, full `921+115`, ruff/ty/diff PASS; nonce/result absent
+- [x] Cycle 14 critic Attempt 2 Q4-only FAIL 보존; pre-draw directory/parent fsync correction targeted `2/2`
 - [x] Cycle 14 status §12·§13과 pipeline §8.4·§8.5·§10 동기화; M chain definition unchanged

@@ -21,14 +21,24 @@ def _canonical(value: object) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n"
 
 
+def _fsync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_CLOEXEC", 0))
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
 def _safe_parent(path: Path) -> None:
     current = Path(path.anchor)
     for part in path.parts[1:]:
+        parent = current
         current = current / part
         try:
             info = current.lstat()
         except FileNotFoundError:
             current.mkdir(mode=0o700)
+            _fsync_directory(parent)
             info = current.lstat()
         if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode):
             raise RuntimeError(f"unsafe custody directory: {current}")
@@ -62,6 +72,8 @@ def reserve_draw(code_commit: str, *, custody_parent: Path = CUSTODY_PARENT) -> 
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
+    _fsync_directory(custody)
+    _fsync_directory(custody_parent)
     nonce = secrets.token_hex(32)
     transcript = {
         "custodian_transcript_schema_version": 1,
@@ -85,11 +97,7 @@ def reserve_draw(code_commit: str, *, custody_parent: Path = CUSTODY_PARENT) -> 
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
-    parent_descriptor = os.open(custody, os.O_RDONLY | getattr(os, "O_CLOEXEC", 0))
-    try:
-        os.fsync(parent_descriptor)
-    finally:
-        os.close(parent_descriptor)
+    _fsync_directory(custody)
     return transcript
 
 

@@ -186,6 +186,12 @@ def test_custodian_reservation_is_durable_and_blocks_a_second_draw(tmp_path: Pat
     parent = tmp_path / "external-custody"
     commit = "a" * 40
     calls = 0
+    durability_events: list[tuple[str, Path | None]] = []
+    real_fsync_directory = m3d_custodian._fsync_directory
+
+    def record_directory_sync(path: Path) -> None:
+        durability_events.append(("fsync-directory", path))
+        real_fsync_directory(path)
 
     def one_draw(_: int) -> str:
         nonlocal calls
@@ -194,12 +200,25 @@ def test_custodian_reservation_is_durable_and_blocks_a_second_draw(tmp_path: Pat
         assert json.loads(reservation.read_text(encoding="utf-8"))["state"] == (
             "reserved-before-nonce"
         )
+        assert ("fsync-directory", parent / commit) in durability_events
+        assert ("fsync-directory", parent) in durability_events
+        durability_events.append(("nonce", None))
         return "ab" * 32
 
-    with mock.patch.object(m3d_custodian.secrets, "token_hex", side_effect=one_draw):
+    with (
+        mock.patch.object(
+            m3d_custodian,
+            "_fsync_directory",
+            side_effect=record_directory_sync,
+        ),
+        mock.patch.object(m3d_custodian.secrets, "token_hex", side_effect=one_draw),
+    ):
         transcript = m3d_custodian.reserve_draw(commit, custody_parent=parent)
         with pytest.raises(RuntimeError, match="already has a durable"):
             m3d_custodian.reserve_draw(commit, custody_parent=parent)
     assert calls == 1
+    nonce_index = durability_events.index(("nonce", None))
+    assert durability_events.index(("fsync-directory", parent / commit)) < nonce_index
+    assert durability_events.index(("fsync-directory", parent)) < nonce_index
     assert transcript["acceptance_nonce"] == "ab" * 32
     assert (parent / commit / "nonce-transcript.json").is_file()

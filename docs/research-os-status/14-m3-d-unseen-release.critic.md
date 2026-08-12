@@ -129,3 +129,61 @@ create a nonce, body, seal, transcript, or receipt.
 
 The phase remains pre-unseen. Fixing any frozen product/generator/oracle/metric/attack/release byte requires a new
 clean pre-nonce checkpoint and a fresh independently enforceable custody cycle before acceptance may run.
+
+## Verify Attempt 2 — 2026-08-12
+
+**VERDICT: FAIL**
+
+Clean checkpoint inspected: `20b35a5778d8c224092b93a5b1175800a5040c5d`.
+
+### Closed-question resolution
+
+| Q | Attempt 2 result | Independent evidence |
+|---:|---|---|
+| Q1 | **DIRECT** | `ClassState.to_dict()`, `retrieve_claims`, `ProposalKnowledgeDisposition.to_dict()`, `AutonomyEpisodeState.to_dict()`, and Context v3 are the actual typed public renderers in `src/research_os/meta_evaluation.py:658-986`. The material test exercises all six episodes in every family under remove, class-ID permutation, and contradiction and requires exact `6/6` for every family/mutation; irrelevant context remains invariant. Six generated-family boundary nodes and the exact terminal-reference negative test pass. |
+| Q2 | **DIRECT** | `_historical_v02_context_batch` obtains `6f36a1b` with `git archive` and executes that checkout's Context v2 builder in an isolated subprocess. The current builder is monkeypatched to fail in the fidelity test without affecting the historical arm. Historical agent/skill SHAs are exact, the complete Context v2 shape is asserted, and the common selector refuses a non-bound historical skill-policy digest. Candidate bytes, budgets, required denominators, and common context intersection are symmetric. |
+| Q3 | **DIRECT** | Public rendering does not call `_oracle_choice`; mutating every oracle choice leaves selector bytes identical. Recursive hidden/oracle key checks, class/candidate-ID bijection, candidate-array reversal, and reversed action priority preserve oracle-equivalent v0.5 results. |
+| Q4 | **LIMITATION — blocks PASS** | The new fixed external path, `O_EXCL` reservation, one source-level nonce call, second-live-invocation rejection, and pre-arm external reservation are improvements. However `scripts/m3d_custodian.py:41-65` creates the checkpoint directory and reservation file, `fsync`s only the file, and calls `secrets.token_hex(32)` before `fsync`ing the containing directory at lines 88-92. Neither the new checkpoint-directory entry in its parent nor the reservation entry in the checkpoint directory is made crash-durable before the draw. A power/filesystem crash can therefore lose the supposedly durable pre-nonce reservation and permit a second draw. `tests/test_m3d_release_gate.py:185-205` proves only immediate same-filesystem visibility and a second live call; it does not establish crash durability. |
+| Q5 | **DIRECT** | `run_arm` now closes the selected trajectory on a wrong choice and charges all later body-fixed decisions as omitted errors; wrong executed experiments are waste. `compare_arms` retains equal fixed denominators, positive-baseline anti-vacuity and per-episode zero rules, and now applies `max(v0.2, min(90%, v0.2+20%p))`. The explicit above-90% regression test passes. |
+| Q6 | **DIRECT** | M3-D owns a literal 24-entry `ATTACK_HANDLERS` table and no longer imports M3-A's handler table. All 24 rows re-execute and snapshot actual ProjectLog, ProgramLog, and `AutonomyEpisodeLog` bytes. The public-boundary manifest now contains exactly six generated-family nodes using the typed nearest public boundaries; all six pass. |
+| Q7 | **DIRECT** | The unchanged precommitted roots contain `1/15/32` events. Independent focused execution again passed external replay, opaque classification, and strict bytes/modes/symlink-target no-write checks `4/4`; no adapter, installer, or migration path ran. |
+| Q8 | **DIRECT for the corrected pre-unseen harness** | The verifier constructs only the seven literal upgrade node IDs. Independent execution returned `7 passed`; release-manifest binding tests pass, and `pytest --collect-only -q` reports exactly `921 tests collected`. The same clean checkpoint records the completed main run as `921 passed, 115 subtests passed`; per parent direction that 20-minute suite was not redundantly rerun. Version/docs/wheel/full remain one release-verifier conjunction, while the final unseen receipt remains deliberately absent. |
+
+### Blocking finding
+
+Q4 still does not meet its own durable one-draw chronology. The required ordering is:
+
+1. create the deterministic checkpoint directory and `draw-reservation.json` with exclusive semantics;
+2. `fsync` the reservation file;
+3. `fsync` the checkpoint directory so the reservation directory entry is durable;
+4. `fsync` the custody parent so the checkpoint-directory entry is durable;
+5. only then call `secrets.token_hex(32)`.
+
+The frozen candidate performs steps 3-4 only after drawing and writing the nonce transcript. Correcting this relevant
+custody byte requires another clean pre-nonce checkpoint and critic re-verification. No acceptance draw may start from
+`20b35a5`.
+
+### Disclosed subcap assessment
+
+The subcap miss is accurately disclosed rather than hidden or rebaselined. From `7b00e0b..20b35a5`, independent
+`git diff --numstat` classification reproduces benchmark/generator/release scripts `2,341/1,800`, tests+fixtures
+`1,677/2,400`, and inclusive churn `4,555/6,000`. Treating the first number as a
+`GENUINE-FINDING`/EXPLORATORY engineering subtarget miss while keeping the inclusive cap and all eight release gates
+unchanged is consistent with the precommitted contract. It neither repairs nor compounds the Q4 release blocker.
+
+### Reproduction evidence
+
+- M3-D focused suite: `63 passed in 19.04s`
+- Adjacent M3-A/B/C: `142 passed in 162.25s`
+- Exact seven managed upgrade/rollback node IDs: `7 passed in 0.70s`
+- Full collection: `921 tests collected in 0.21s`
+- Recorded clean-checkpoint main run: `921 passed, 115 subtests passed in 1195.61s` (not redundantly rerun)
+- Targeted Ruff, `ty`, and `git diff --check`: PASS
+- Attempt 2 audit count: questions `8`; DIRECT verified `7`; LIMITATION `1`; failed `1`
+
+### Custody confirmation
+
+At Attempt 2 review time there was **no acceptance nonce, acceptance suite, race suite, checked-in custody transcript,
+pre-arm seal, or v0.5 final receipt**. This review did not invoke `scripts.m3d_custodian`, either acceptance script, or
+any external custody path, and created no acceptance artifact. The reservation unit test used only a mocked nonce and
+pytest temporary directory.
