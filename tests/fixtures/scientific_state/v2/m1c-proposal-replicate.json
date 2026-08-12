@@ -1,0 +1,14 @@
+{
+  "proposal_schema_version": 1,
+  "generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54",
+  "candidate_digest": "8c056c3399fce447330a0e90971addc793e4171b16f384a70db3519e0ad4958c",
+  "hypothesis_class_id": "class-a",
+  "action": "replicate",
+  "mechanism": "Repeat the frozen class-a candidate on one preregistered replication scope.",
+  "predicted_effect": "The primary-metric improvement survives on replication-1.",
+  "falsifier": "The same frozen candidate fails the sealed replication-1 evaluation.",
+  "parent_experiment_id": "exp_14dab599bb9be91cbac8751a5c0da192",
+  "evaluation_scope_id": "replication-1",
+  "intervention_json_pointers": [],
+  "authorized_action": null
+}

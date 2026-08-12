@@ -1,0 +1,254 @@
+{
+  "schema_version": 1,
+  "release": "0.3.0",
+  "context": {
+    "default_schema_version": 3,
+    "explicit_legacy_schema_version": 2,
+    "context_token_snapshot_schema_version": 2,
+    "context_v2_exact_top_level_keys": [
+      "agent",
+      "allowed_agent_actions",
+      "authority",
+      "evidence",
+      "graph",
+      "kind",
+      "packet_size_bytes",
+      "project",
+      "proposal_contract",
+      "schema_version",
+      "snapshot",
+      "state"
+    ],
+    "context_v3_required_science_keys": [
+      "active_generation_id",
+      "budget",
+      "class_states",
+      "pending_diagnosis_experiment_ids",
+      "retry_frontier",
+      "semantic_frontier",
+      "study_stop"
+    ]
+  },
+  "compatibility": {
+    "legacy_v1_events": {
+      "path": "tests/fixtures/scientific_state/v1/legacy-v1-events.jsonl",
+      "size_bytes": 1053,
+      "sha256": "b35e9d74a64c729ceea3c5ca66303a7f4e14043129d4e4686741c5939cf178d6"
+    },
+    "scientific_state_v1_manifest": {
+      "path": "tests/fixtures/scientific_state/v1/manifest.json",
+      "size_bytes": 15958,
+      "sha256": "a1ba1a6eccd2a10ead5ef0d2006a0fa850e15c0f73fc8b928e981c74c4e2f659"
+    },
+    "branch_conclusion_schema_version": 1,
+    "branch_conclusion_context_snapshot_schema_version": 2
+  },
+  "tokenless_v2": {
+    "cases": [
+      {
+        "id": "registration-requires-proposal",
+        "observer": "live-service",
+        "path": "register-first-attempt",
+        "expected": {
+          "error_code": "PROPOSAL_REQUIRED",
+          "appended": false,
+          "event_delta": 0,
+          "budget_delta": 0
+        }
+      },
+      {
+        "id": "pending-blocks-registration",
+        "observer": "m1d-transition",
+        "source_case_id": "pending-blocks-first-attempt",
+        "path": "register-first-attempt",
+        "expected": {
+          "error_code": "DIAGNOSIS_REQUIRED",
+          "appended": false,
+          "event_delta": 0,
+          "budget_delta": 0
+        }
+      },
+      {
+        "id": "pending-blocks-retry",
+        "observer": "m1d-transition",
+        "source_case_id": "pending-blocks-retry",
+        "path": "register-retry",
+        "expected": {
+          "error_code": "DIAGNOSIS_REQUIRED",
+          "appended": false,
+          "event_delta": 0,
+          "budget_delta": 0
+        }
+      },
+      {
+        "id": "pending-blocks-successor",
+        "observer": "m1d-transition",
+        "source_case_id": "pending-blocks-successor",
+        "path": "open-successor-generation",
+        "expected": {
+          "error_code": "DIAGNOSIS_REQUIRED",
+          "appended": false,
+          "event_delta": 0,
+          "budget_delta": 0
+        }
+      },
+      {
+        "id": "closed-class-blocks-registration",
+        "observer": "m1d-transition",
+        "source_case_id": "closed-class-blocks-first-attempt-before-payload",
+        "path": "register-first-attempt",
+        "expected": {
+          "error_code": "HYPOTHESIS_CLASS_CLOSED",
+          "appended": false,
+          "event_delta": 0,
+          "budget_delta": 0
+        }
+      },
+      {
+        "id": "locked-budget-blocks-registration",
+        "observer": "m1b-budget-reservation",
+        "source_case_id": "budget-attempts-overrun",
+        "path": "reserve-registration",
+        "expected": {
+          "error_code": "BUDGET_ATTEMPTS_EXCEEDED",
+          "appended": false,
+          "event_delta": 0,
+          "budget_delta": 0
+        }
+      },
+      {
+        "id": "pre-generation-legacy-stays-untyped",
+        "observer": "m1b-legacy-replay",
+        "source_case_id": "legacy-registration-before-generation",
+        "path": "replay",
+        "expected": {
+          "active_generation_id": null,
+          "legacy_unstructured_registrations": 1,
+          "typed_registration_count": 0,
+          "proposal_count": 0,
+          "diagnosis_count": 0,
+          "class_state_count": 0
+        }
+      }
+    ],
+    "required_no_write_codes": [
+      "BUDGET_ATTEMPTS_EXCEEDED",
+      "HYPOTHESIS_CLASS_CLOSED",
+      "DIAGNOSIS_REQUIRED",
+      "PROPOSAL_REQUIRED"
+    ]
+  },
+  "managed_skill_upgrade": {
+    "from_release": "0.2.0",
+    "to_release": "0.3.0",
+    "source_commit": "6f36a1b",
+    "directories": [
+      "agents",
+      "references"
+    ],
+    "files": {
+      ".research-os-managed.json": {
+        "size_bytes": 595,
+        "sha256": "3001753fa5f0908ccdfa63f5f3e4c9e8dabe596b73c20584b26b990075e11be0"
+      },
+      "SKILL.md": {
+        "size_bytes": 14409,
+        "sha256": "0cab9ff5279b7715c02688d4e26c4c745200400fb2ffad657924a6cec1a59a9f"
+      },
+      "agents/openai.yaml": {
+        "size_bytes": 218,
+        "sha256": "a4e0ea2cb6b7ee315c578092a09c09e961e86cb729b457fe276b056c903b359b"
+      },
+      "references/scientific-protocol.md": {
+        "size_bytes": 13411,
+        "sha256": "b05812c5bc7bf10f55c216f36a15693dcb30f89601564abf8ab93bb0850354d8"
+      },
+      "references/status-actions.md": {
+        "size_bytes": 2686,
+        "sha256": "5e7654d2913dc7bde67eff937126cf25808b92b4cf87625aa6f354a7f4da429e"
+      }
+    },
+    "cases": [
+      {
+        "id": "explicit-upgrade-required",
+        "operation": "reject-exact-prior-without-upgrade",
+        "expected": {
+          "error_type": "ConfigurationError",
+          "destination_unchanged": true,
+          "transactions_empty": true
+        }
+      },
+      {
+        "id": "exact-managed-upgrade-retains-prior-backup",
+        "operation": "upgrade-exact-prior",
+        "expected": {
+          "status": "upgraded",
+          "from_release": "0.2.0",
+          "to_release": "0.3.0",
+          "destination_is_current": true,
+          "recovery_count": 1,
+          "recovery_is_prior": true
+        }
+      },
+      {
+        "id": "drifted-managed-tree-rejected-no-write",
+        "operation": "reject-drifted-prior",
+        "expected": {
+          "error_type": "ConfigurationError",
+          "destination_unchanged": true,
+          "transactions_empty": true
+        }
+      },
+      {
+        "id": "unknown-managed-release-rejected-no-write",
+        "operation": "reject-unknown-managed-release",
+        "expected": {
+          "error_type": "ConfigurationError",
+          "destination_unchanged": true,
+          "transactions_empty": true
+        }
+      },
+      {
+        "id": "two-target-commit-failure-restores-both",
+        "operation": "fail-second-target-commit",
+        "expected": {
+          "error_type": "OSError",
+          "codex_unchanged": true,
+          "claude_unchanged": true
+        }
+      },
+      {
+        "id": "publish-then-fail-restores-prior-and-retains-new-recovery",
+        "operation": "fail-after-new-tree-publish",
+        "expected": {
+          "error_type": "OSError",
+          "destination_is_prior": true,
+          "recovery_count": 1,
+          "recovery_is_current": true
+        }
+      }
+    ]
+  },
+  "release_gate": {
+    "version_surfaces": [
+      "pyproject.toml",
+      "src/research_os/__init__.py",
+      "uv.lock"
+    ],
+    "python": "3.12",
+    "minimum_collected_tests": 589,
+    "minimum_subtests": 111,
+    "authorized_action_non_null": 0,
+    "external_projects_mode": "read-only-no-live-migration",
+    "external_projects": [
+      "crypto-new",
+      "manager",
+      "BinancePredictionStrategy"
+    ],
+    "external_snapshot_surface": ".research-os",
+    "product_multi_agent": false,
+    "product_python_file_count": 37,
+    "product_python_tree_sha256": "52cbf8e2a22420508a6fb3d9e60478571639cba136196af03a4ef960424b277d",
+    "single_verifier": "scripts/verify_release.py"
+  }
+}

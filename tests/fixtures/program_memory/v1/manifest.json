@@ -1,0 +1,247 @@
+{
+  "schema_version": 1,
+  "kind": "research_os.program_memory_m2a_oracle",
+  "comparison": "exact canonical JSON equality",
+  "forbidden_dispatch": [
+    "case id",
+    "expected value",
+    "hidden scenario",
+    "fallback operation"
+  ],
+  "fixtures": {
+    "project_id": "fixture-m1d",
+    "terminal_corpus": "../../../scientific_state/v3/m1d-terminal-corpus.json",
+    "terminal_corpus_raw_sha256": "e3623748815bdba58feb399a1dab55399917e80e11894eb981572af9a08cc20f",
+    "diagnosis_valid": "../../../scientific_state/v3/m1d-diagnosis-valid.json",
+    "diagnosis_valid_raw_sha256": "3c9394d0ee2ccc06b6e21dbca403dfc6b4e0e3264ffc43e13cc39c5673462336",
+    "contract": "../../../scientific_state/v3/m1d-contract.json",
+    "contract_raw_sha256": "58d3c416c9ce98c336fe888bccf19859a6e5c789d85306b93492a7cabd0a30f3",
+    "program_id": "program_fixture-m2a",
+    "manifest_digest": "3065d24231f6656b8702bb89ec9f1240d8ed61e29d53281105b3be9c2983b1a4",
+    "origin_id": "origin_e20606048f6e42201757b3a98cdf9648",
+    "origin_digest": "69c5c8324dd9a02d9bb6105654de1a71cc22f3027022c1b6eba0a130423e0a4e",
+    "initialized_event_hash": "ff53a7dd96b88a675c44bf53568ef95ca82b8b5d559dd7f213742888144bf399",
+    "linked_event_hash": "5112d50db1f7fe81c6ae71eaaebb23651b72636632445bc38db53446956c0f0b",
+    "binding": {
+      "project_id": "fixture-m1d",
+      "science_state_schema_version": 1,
+      "study_contract_schema_version": 2,
+      "study_contract_digest": "bf7c43e19f14ae37fbec74416256ede5fc42d79cb520b4f0d774f632e412d7ae",
+      "generation_id": "generation_5d41220428bdc7434fc3a1be0b8eace4",
+      "evaluation_scope_schema_version": 1,
+      "evaluation_scope": {
+        "id": "development",
+        "role": "development",
+        "manifest_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "evaluation_scope_digest": "8277e1adef97321068a4aca24b7fc25f663bede4bb5ac8384bd306051a517cb2",
+      "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
+      "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "authorized_action": null
+    },
+    "origin": {
+      "origin_evidence_schema_version": 1,
+      "origin_id": "origin_e20606048f6e42201757b3a98cdf9648",
+      "project_id": "fixture-m1d",
+      "project_head": {
+        "sequence": 7,
+        "hash": "d97421917a5f298f1289bfe66f329bc8cbb924862bcfaca89c5c9bb9798891d7"
+      },
+      "generation_id": "generation_5d41220428bdc7434fc3a1be0b8eace4",
+      "evaluation_scope_id": "development",
+      "diagnosis_event": {
+        "sequence": 7,
+        "event_id": "evt_m1d_supported_diagnosis",
+        "event_hash": "d97421917a5f298f1289bfe66f329bc8cbb924862bcfaca89c5c9bb9798891d7"
+      },
+      "diagnosis_id": "diagnosis_7f2274bba9214219b97b241fc1e0761a",
+      "diagnosis_digest": "e8965a25c53059b524d13f13571f718cd23ff6c3d29e0110b45ff738e85e337d",
+      "class_state_id": "classstate_abd093f05bc613b46eb9676cf86dd43c",
+      "class_state_digest": "d3e9c22ef37e8568a0a1a8f191320071a7fba2fa7ad6da4dc42810c1dac76dd5",
+      "authorized_action": null
+    }
+  },
+  "cases": [
+    {
+      "id": "manifest-valid-exact",
+      "operation": "parse_and_validate_manifest",
+      "expected": {
+        "manifest_digest": "3065d24231f6656b8702bb89ec9f1240d8ed61e29d53281105b3be9c2983b1a4",
+        "binding_count": 1,
+        "program_event_delta": 0,
+        "projection_delta": 0
+      }
+    },
+    {
+      "id": "manifest-contract-digest-forged",
+      "operation": "reject_manifest_contract_digest_forgery",
+      "expected": {
+        "error_code": "PROGRAM_BINDING_MISMATCH",
+        "program_event_delta": 0,
+        "projection_delta": 0
+      }
+    },
+    {
+      "id": "manifest-duplicate-binding",
+      "operation": "reject_manifest_duplicate_binding",
+      "expected": {
+        "error_code": "PROGRAM_MANIFEST_INVALID",
+        "program_event_delta": 0,
+        "projection_delta": 0
+      }
+    },
+    {
+      "id": "manifest-unknown-version",
+      "operation": "reject_manifest_unknown_version",
+      "expected": {
+        "error_code": "PROGRAM_MANIFEST_INVALID",
+        "program_event_delta": 0,
+        "projection_delta": 0
+      }
+    },
+    {
+      "id": "manifest-non-null-authority",
+      "operation": "reject_manifest_non_null_authority",
+      "expected": {
+        "error_code": "PROGRAM_MANIFEST_INVALID",
+        "program_event_delta": 0,
+        "projection_delta": 0
+      }
+    },
+    {
+      "id": "origin-valid-exact",
+      "operation": "append_exact_origin",
+      "expected": {
+        "origin_id": "origin_e20606048f6e42201757b3a98cdf9648",
+        "origin_digest": "69c5c8324dd9a02d9bb6105654de1a71cc22f3027022c1b6eba0a130423e0a4e",
+        "program_head_sequence": 2,
+        "program_head_hash": "5112d50db1f7fe81c6ae71eaaebb23651b72636632445bc38db53446956c0f0b",
+        "origin_count": 1,
+        "authorized_action": null
+      }
+    },
+    {
+      "id": "origin-diagnosis-event-hash-forged",
+      "operation": "reject_origin_diagnosis_event_hash_forgery",
+      "expected": {
+        "error_code": "PROGRAM_ORIGIN_MISMATCH",
+        "program_event_delta": 0,
+        "projection_delta": 0
+      }
+    },
+    {
+      "id": "origin-class-state-forged",
+      "operation": "reject_origin_class_state_forgery",
+      "expected": {
+        "error_code": "PROGRAM_ORIGIN_MISMATCH",
+        "program_event_delta": 0,
+        "projection_delta": 0
+      }
+    },
+    {
+      "id": "origin-scope-mismatch",
+      "operation": "reject_origin_scope_mismatch",
+      "expected": {
+        "error_code": "PROGRAM_ORIGIN_MISMATCH",
+        "program_event_delta": 0,
+        "projection_delta": 0
+      }
+    },
+    {
+      "id": "origin-stale-project-head",
+      "operation": "reject_origin_stale_project_head",
+      "expected": {
+        "error_code": "PROGRAM_PROJECT_HEAD_MISMATCH",
+        "program_event_delta": 0,
+        "projection_delta": 0
+      }
+    },
+    {
+      "id": "program-canonical-two-events",
+      "operation": "verify_canonical_program_events",
+      "expected": {
+        "event_count": 2,
+        "initialized_event_hash": "ff53a7dd96b88a675c44bf53568ef95ca82b8b5d559dd7f213742888144bf399",
+        "linked_event_hash": "5112d50db1f7fe81c6ae71eaaebb23651b72636632445bc38db53446956c0f0b"
+      }
+    },
+    {
+      "id": "program-stale-head",
+      "operation": "reject_stale_program_head",
+      "expected": {
+        "error_code": "PROGRAM_HEAD_MISMATCH",
+        "winner_count": 1,
+        "loser_program_event_delta": 0
+      }
+    },
+    {
+      "id": "program-project-envelope-mixing",
+      "operation": "reject_project_envelope_in_program_log",
+      "expected": {
+        "error_type": "IntegrityError",
+        "program_event_delta": 0
+      }
+    },
+    {
+      "id": "program-committed-hash-corruption",
+      "operation": "reject_committed_program_log_corruption",
+      "expected": {
+        "error_type": "IntegrityError",
+        "projection_used_as_fallback": false
+      }
+    },
+    {
+      "id": "projection-missing-rebuild",
+      "operation": "rebuild_missing_projection",
+      "expected": {
+        "recovered": true,
+        "program_head_sequence": 2,
+        "origin_count": 1,
+        "authorized_action": null
+      }
+    },
+    {
+      "id": "projection-corrupt-rebuild",
+      "operation": "rebuild_corrupt_projection",
+      "expected": {
+        "recovered": true,
+        "program_head_sequence": 2,
+        "origin_count": 1,
+        "authorized_action": null
+      }
+    },
+    {
+      "id": "projection-stale-rebuild",
+      "operation": "rebuild_stale_projection",
+      "expected": {
+        "recovered": true,
+        "program_head_sequence": 2,
+        "origin_count": 1,
+        "authorized_action": null
+      }
+    },
+    {
+      "id": "lock-order-project-vs-origin",
+      "operation": "race_project_append_against_origin_append",
+      "expected": {
+        "deadlock": false,
+        "project_append_count": 1,
+        "origin_append_count": 0,
+        "origin_error_code": "PROGRAM_PROJECT_HEAD_MISMATCH",
+        "program_origin_count": 0
+      }
+    },
+    {
+      "id": "lock-order-program-head-race",
+      "operation": "race_same_program_head",
+      "expected": {
+        "deadlock": false,
+        "winner_count": 1,
+        "loser_error_code": "PROGRAM_HEAD_MISMATCH",
+        "loser_log_write_count": 0,
+        "loser_projection_write_count": 0,
+        "program_origin_count": 1
+      }
+    }
+  ]
+}

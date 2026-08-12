@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "study_id": "study_toy_optimization",
+  "hypothesis_classes": [
+    {
+      "id": "optimizer_family",
+      "description": "Change the optimizer family while holding the evaluation contract fixed.",
+      "conclusive_rejection_limit": 3
+    },
+    {
+      "id": "regularization",
+      "description": "Change regularization strength within the declared candidate surface.",
+      "conclusive_rejection_limit": 2
+    }
+  ],
+  "intervention_surface": {
+    "candidate_schema_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "allowed_json_pointers": [
+      "/learning_rate",
+      "/optimizer",
+      "/regularization"
+    ],
+    "max_changes": 1
+  },
+  "evaluation_scopes": [
+    {
+      "id": "development",
+      "role": "development",
+      "manifest_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "id": "replication-1",
+      "role": "replication",
+      "manifest_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  ],
+  "frontier": {
+    "max_active_branches": 2
+  },
+  "stop_policy": {
+    "on_untrusted": "stop",
+    "on_budget_exhausted": "stop",
+    "when_all_classes_closed": "stop"
+  },
+  "change_control": {
+    "require_new_generation": true
+  },
+  "budget": {
+    "max_attempts": 4,
+    "max_retries": 1,
+    "max_elapsed_milliseconds": 4000,
+    "elapsed_reservation_per_attempt_milliseconds": 1000,
+    "cost_unit": "USD_MICRO",
+    "max_cost_microunits": 10000,
+    "cost_reservation_per_attempt_microunits": 2500
+  }
+}

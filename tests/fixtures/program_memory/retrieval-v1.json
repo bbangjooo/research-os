@@ -1,0 +1,351 @@
+{
+  "retrieval_oracle_schema_version": 1,
+  "program": {
+    "program_id": "program_retrieval_v1",
+    "program_head": {
+      "sequence": 17,
+      "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  },
+  "ordering": [
+    "relation_priority",
+    "scope_specificity",
+    "status_priority",
+    "claim_id"
+  ],
+  "candidates": [
+    {
+      "claim_id": "claim_01_exact_active",
+      "hypothesis_class_id": "class-a",
+      "compatibility_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evaluation_scope": {
+        "id": "development-a",
+        "role": "development",
+        "manifest_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "claim_kind": "effect",
+      "diagnosis_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+      "effective_status": "active",
+      "effective_maturity": "observed"
+    },
+    {
+      "claim_id": "claim_02_same_role_active",
+      "hypothesis_class_id": "class-a",
+      "compatibility_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evaluation_scope": {
+        "id": "development-b",
+        "role": "development",
+        "manifest_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "claim_kind": "effect",
+      "diagnosis_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+      "effective_status": "active",
+      "effective_maturity": "replicated"
+    },
+    {
+      "claim_id": "claim_03_exact_contested",
+      "hypothesis_class_id": "class-a",
+      "compatibility_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evaluation_scope": {
+        "id": "development-a",
+        "role": "development",
+        "manifest_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "claim_kind": "effect",
+      "diagnosis_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+      "effective_status": "contested",
+      "effective_maturity": "observed"
+    },
+    {
+      "claim_id": "claim_04_contradiction",
+      "hypothesis_class_id": "class-a",
+      "compatibility_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evaluation_scope": {
+        "id": "development-a",
+        "role": "development",
+        "manifest_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "claim_kind": "effect",
+      "diagnosis_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+      "effective_status": "active",
+      "effective_maturity": "observed"
+    },
+    {
+      "claim_id": "claim_05_superseded",
+      "hypothesis_class_id": "class-a",
+      "compatibility_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evaluation_scope": {
+        "id": "development-b",
+        "role": "development",
+        "manifest_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "claim_kind": "effect",
+      "diagnosis_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+      "effective_status": "superseded",
+      "effective_maturity": "observed"
+    },
+    {
+      "claim_id": "claim_06_superseder",
+      "hypothesis_class_id": "class-a",
+      "compatibility_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evaluation_scope": {
+        "id": "development-b",
+        "role": "development",
+        "manifest_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "claim_kind": "effect",
+      "diagnosis_digest": "6666666666666666666666666666666666666666666666666666666666666666",
+      "effective_status": "active",
+      "effective_maturity": "observed"
+    },
+    {
+      "claim_id": "claim_07_wrong_class",
+      "hypothesis_class_id": "class-b",
+      "compatibility_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evaluation_scope": {
+        "id": "development-a",
+        "role": "development",
+        "manifest_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "claim_kind": "effect",
+      "diagnosis_digest": "7777777777777777777777777777777777777777777777777777777777777777",
+      "effective_status": "active",
+      "effective_maturity": "observed"
+    },
+    {
+      "claim_id": "claim_08_wrong_compatibility",
+      "hypothesis_class_id": "class-a",
+      "compatibility_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "evaluation_scope": {
+        "id": "development-a",
+        "role": "development",
+        "manifest_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "claim_kind": "effect",
+      "diagnosis_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+      "effective_status": "active",
+      "effective_maturity": "observed"
+    },
+    {
+      "claim_id": "claim_09_wrong_tag",
+      "hypothesis_class_id": "class-a",
+      "compatibility_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evaluation_scope": {
+        "id": "development-a",
+        "role": "development",
+        "manifest_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "claim_kind": "constraint",
+      "diagnosis_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+      "effective_status": "active",
+      "effective_maturity": "observed"
+    },
+    {
+      "claim_id": "claim_10_cross_role",
+      "hypothesis_class_id": "class-a",
+      "compatibility_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evaluation_scope": {
+        "id": "replication-a",
+        "role": "replication",
+        "manifest_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "claim_kind": "effect",
+      "diagnosis_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "effective_status": "active",
+      "effective_maturity": "replicated"
+    }
+  ],
+  "relations": [
+    {
+      "relation_id": "relation_01_contradicts",
+      "relation_type": "contradicts",
+      "source_claim_id": "claim_04_contradiction",
+      "target_claim_id": "claim_03_exact_contested"
+    },
+    {
+      "relation_id": "relation_02_supersedes",
+      "relation_type": "supersedes",
+      "source_claim_id": "claim_06_superseder",
+      "target_claim_id": "claim_05_superseded"
+    },
+    {
+      "relation_id": "relation_03_supports",
+      "relation_type": "supports",
+      "source_claim_id": "claim_02_same_role_active",
+      "target_claim_id": "claim_01_exact_active"
+    }
+  ],
+  "queries": [
+    {
+      "query_id": "broad-class-scope",
+      "query": {
+        "hypothesis_class_id": "class-a",
+        "compatibility_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evaluation_scope": {
+          "id": "development-a",
+          "role": "development",
+          "manifest_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "claim_kinds": ["effect"],
+        "diagnosis_digest": null,
+        "relation_types": ["contradicts"],
+        "limit": 10
+      },
+      "candidate_claim_ids": [
+        "claim_01_exact_active",
+        "claim_02_same_role_active",
+        "claim_03_exact_contested",
+        "claim_04_contradiction",
+        "claim_05_superseded",
+        "claim_06_superseder",
+        "claim_07_wrong_class",
+        "claim_08_wrong_compatibility",
+        "claim_09_wrong_tag",
+        "claim_10_cross_role"
+      ],
+      "expected_active_claim_ids": [
+        "claim_01_exact_active",
+        "claim_03_exact_contested",
+        "claim_02_same_role_active",
+        "claim_06_superseder",
+        "claim_10_cross_role"
+      ],
+      "expected_contradiction_claim_ids": ["claim_04_contradiction"],
+      "expected_superseded_claim_ids": ["claim_05_superseded"],
+      "expected_irrelevant_claim_ids": [
+        "claim_07_wrong_class",
+        "claim_08_wrong_compatibility",
+        "claim_09_wrong_tag"
+      ]
+    },
+    {
+      "query_id": "exact-diagnosis-with-contradiction",
+      "query": {
+        "hypothesis_class_id": "class-a",
+        "compatibility_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evaluation_scope": {
+          "id": "development-a",
+          "role": "development",
+          "manifest_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "claim_kinds": ["effect"],
+        "diagnosis_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+        "relation_types": ["contradicts"],
+        "limit": 10
+      },
+      "candidate_claim_ids": [
+        "claim_01_exact_active",
+        "claim_02_same_role_active",
+        "claim_03_exact_contested",
+        "claim_04_contradiction",
+        "claim_05_superseded",
+        "claim_06_superseder",
+        "claim_07_wrong_class",
+        "claim_08_wrong_compatibility",
+        "claim_09_wrong_tag",
+        "claim_10_cross_role"
+      ],
+      "expected_active_claim_ids": ["claim_03_exact_contested"],
+      "expected_contradiction_claim_ids": ["claim_04_contradiction"],
+      "expected_superseded_claim_ids": [],
+      "expected_irrelevant_claim_ids": [
+        "claim_01_exact_active",
+        "claim_02_same_role_active",
+        "claim_05_superseded",
+        "claim_06_superseder",
+        "claim_07_wrong_class",
+        "claim_08_wrong_compatibility",
+        "claim_09_wrong_tag",
+        "claim_10_cross_role"
+      ]
+    },
+    {
+      "query_id": "expected-empty",
+      "query": {
+        "hypothesis_class_id": "class-z",
+        "compatibility_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evaluation_scope": {
+          "id": "development-a",
+          "role": "development",
+          "manifest_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "claim_kinds": ["effect"],
+        "diagnosis_digest": null,
+        "relation_types": ["contradicts"],
+        "limit": 10
+      },
+      "candidate_claim_ids": [
+        "claim_01_exact_active",
+        "claim_02_same_role_active",
+        "claim_03_exact_contested",
+        "claim_04_contradiction",
+        "claim_05_superseded",
+        "claim_06_superseder",
+        "claim_07_wrong_class",
+        "claim_08_wrong_compatibility",
+        "claim_09_wrong_tag",
+        "claim_10_cross_role"
+      ],
+      "expected_active_claim_ids": [],
+      "expected_contradiction_claim_ids": [],
+      "expected_superseded_claim_ids": [],
+      "expected_irrelevant_claim_ids": [
+        "claim_01_exact_active",
+        "claim_02_same_role_active",
+        "claim_03_exact_contested",
+        "claim_04_contradiction",
+        "claim_05_superseded",
+        "claim_06_superseder",
+        "claim_07_wrong_class",
+        "claim_08_wrong_compatibility",
+        "claim_09_wrong_tag",
+        "claim_10_cross_role"
+      ]
+    },
+    {
+      "query_id": "shuffled-broad-class-scope",
+      "query": {
+        "hypothesis_class_id": "class-a",
+        "compatibility_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evaluation_scope": {
+          "id": "development-a",
+          "role": "development",
+          "manifest_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "claim_kinds": ["effect"],
+        "diagnosis_digest": null,
+        "relation_types": ["contradicts"],
+        "limit": 10
+      },
+      "candidate_claim_ids": [
+        "claim_10_cross_role",
+        "claim_04_contradiction",
+        "claim_08_wrong_compatibility",
+        "claim_02_same_role_active",
+        "claim_06_superseder",
+        "claim_01_exact_active",
+        "claim_09_wrong_tag",
+        "claim_05_superseded",
+        "claim_03_exact_contested",
+        "claim_07_wrong_class"
+      ],
+      "expected_active_claim_ids": [
+        "claim_01_exact_active",
+        "claim_03_exact_contested",
+        "claim_02_same_role_active",
+        "claim_06_superseder",
+        "claim_10_cross_role"
+      ],
+      "expected_contradiction_claim_ids": ["claim_04_contradiction"],
+      "expected_superseded_claim_ids": ["claim_05_superseded"],
+      "expected_irrelevant_claim_ids": [
+        "claim_07_wrong_class",
+        "claim_08_wrong_compatibility",
+        "claim_09_wrong_tag"
+      ]
+    }
+  ],
+  "authority": {
+    "authorized_action": null
+  }
+}

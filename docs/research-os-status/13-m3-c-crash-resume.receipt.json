@@ -1,0 +1,79 @@
+{
+  "receipt_schema_version": 1,
+  "phase": "M3-C",
+  "pre_spec_commit": "22190bffd76d2a153a1628326ff05aec8097900c",
+  "critic_questions_commit": "52919450fff4c540da1cce4c73ef0a7957f1e863",
+  "first_product_and_data_commit": "7394246da93f9ee9ea66ddd354c1a6d0690ba2c2",
+  "chronology": {
+    "pre_spec": "2026-08-12T06:14:30+09:00",
+    "critic_questions": "2026-08-12T06:16:37+09:00",
+    "first_product_and_data": "2026-08-12T06:37:22+09:00"
+  },
+  "frozen_manifest": {
+    "path": "tests/fixtures/autonomy/v1/m3c-manifest.json",
+    "sha256": "c3752c811e44cebd7c542a3653ee19c8c5d2b2b7c1daf11a9a11b23565e27c7b",
+    "cases": 31,
+    "passed": 31,
+    "groups": {
+      "crash_resume": "13/13",
+      "duplicate_suppression": "5/5; canonical truth count one each; duplicate delta zero",
+      "stale_head": "4/4; exact stable code; forbidden write delta zero",
+      "null_authority": "6/6; recursive non-null count zero",
+      "forbidden_operation": "3/3; callable surface count zero"
+    }
+  },
+  "focused_command": ".venv/bin/pytest -q tests/test_m3c_crash_resume.py",
+  "focused_result": "author 41 passed in 70.70s; independent critic 41 passed in 71.61s",
+  "combined_command": ".venv/bin/pytest -q tests/test_m3b_finite_autonomy.py tests/test_m3c_crash_resume.py",
+  "combined_result": "independent critic 101 passed in 158.74s",
+  "adjacent_command": ".venv/bin/pytest -q tests/test_m3a_decision_packet.py tests/test_m3b_finite_autonomy.py tests/test_m3c_crash_resume.py",
+  "adjacent_result": "142 passed in 165.08s",
+  "exact_witnesses": {
+    "cold_new_instances": "new service, ProgramStore, provider, and FiniteAutonomyLoop reopen the same three raw logs",
+    "semantic_truth_counts": {
+      "terminal": 1,
+      "disposition": 1,
+      "diagnosis": 1,
+      "origin": 1,
+      "claim": 1
+    },
+    "budget_recharge": 0,
+    "stale_provider_or_service_calls_after_restart": 0,
+    "stale_project_program_write_delta": "0/0",
+    "recursive_non_null_authority": 0,
+    "reachable_deploy_merge_trade_calls": "0/0/0",
+    "static_checks": "ruff PASS; ty PASS (0 diagnostics)"
+  },
+  "exploratory_witnesses": {
+    "nondeterministic_provider_capture_boundary": "4/4; pre-capture reinvokes once, post-capture reinvokes zero; canonical truth remains one",
+    "registration_without_terminal": "actual ResearchService cold recovery emits one RECOVERED_INTERRUPTED_RUN terminal",
+    "lookup_to_append_interleavings": "3/3; Project generation or Program head advances after recovery lookup; stable stale code; restarted calls zero; post-writer controller delta 0/0; existing truth counts unchanged",
+    "adversarial_nested_authority": "Context/DecisionPacket/Synthesis/AutonomyLog forged nested authority rejected before commit",
+    "injected_forbidden_methods": "provider deploy/merge/trade methods remain uncalled"
+  },
+  "limitations": {
+    "external_provider_billing_exactly_once": false,
+    "distributed_consensus": false,
+    "learning_quality": "M3-D unseen gate only",
+    "live_project_migration": "post-v0.5"
+  },
+  "loc": {
+    "product_additions": 294,
+    "product_deletions": 59,
+    "product_churn": 353,
+    "product_target": 900,
+    "tests_and_fixture": 829,
+    "tests_and_fixture_target": 1400,
+    "phase_critic_receipt_and_paired_churn_before_audit": 384,
+    "inclusive_before_audit": 1566,
+    "phase_critic_receipt_and_audit_lines_current": 419,
+    "paired_evidence_churn_current": 489,
+    "inclusive_current": 1671,
+    "inclusive_target": 2800,
+    "all_measured_targets_met_before_independent_gates": true
+  },
+  "claim_mode": "MIXED (frozen 31 confirmatory; critic-driven witnesses exploratory)",
+  "critic_verdict": "Attempt 1 FAIL preserved; Attempt 2 PASS (Q1-Q8; race 3; focused 41; combined 101)",
+  "audit_verdict": "Attempt 1 FAIL preserved; corrected Attempt 2 PASS (8/8 fresh checks; Severity-1/2 zero)",
+  "authorized_action": null
+}

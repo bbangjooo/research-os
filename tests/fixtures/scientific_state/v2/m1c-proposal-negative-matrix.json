@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "kind": "research_os.proposal_negative_matrix",
+  "observer_contract": {
+    "case_id_is_display_only": true,
+    "dispatch_fields": [
+      "cases[].remove[]",
+      "cases[].add.*",
+      "cases[].replace.*",
+      "cases[].transform",
+      "transforms.*.operation",
+      "transforms.*.generator.kind"
+    ],
+    "forbidden_dispatch": ["case.id", "case.id prefix", "named Python case helper"],
+    "resolution_order": [
+      "strict_load_base_fixture",
+      "resolve_named_transform",
+      "execute_transform_operation",
+      "apply_remove_add_replace",
+      "evaluate_transform_assertions",
+      "parse_proposal"
+    ],
+    "resolution_semantics": {
+      "replace_generated": "Generate a value solely from generator.kind and its data, then RFC-6901 replace the declared pointer on a deep copy.",
+      "replace_root": "Replace the complete deep-copied document with transform.value.",
+      "repeat_text": "Require Unicode-scalar generator.text and a non-negative safe-integer count; return text repeated count times and measure limits from UTF-8 encoded bytes.",
+      "unicode_code_point": "Require an integer from 0 through 1114111 and return the single code point, including a surrogate test value for the Proposal parser to reject.",
+      "remove_add_replace": "Apply case remove pointers in listed order, then add and replace mapping pointers in lexicographic pointer order, using one generic RFC-6901 engine.",
+      "assertions": "Evaluate assert_code_points and assert_utf8_bytes on the generated value before Proposal parsing; assertion metadata never enters the Proposal body."
+    }
+  },
+  "base_fixture": "m1c-proposal-explore.json",
+  "expected_error_code": "PROPOSAL_INVALID",
+  "transforms": {
+    "oversized_mechanism": {
+      "operation": "replace_generated",
+      "pointer": "/mechanism",
+      "generator": {"kind": "repeat_text", "text": "x", "count": 16385}
+    },
+    "multibyte_oversized_mechanism": {
+      "operation": "replace_generated",
+      "pointer": "/mechanism",
+      "generator": {"kind": "repeat_text", "text": "é", "count": 8193},
+      "assert_code_points": 8193,
+      "assert_utf8_bytes": 16386
+    },
+    "surrogate_mechanism": {
+      "operation": "replace_generated",
+      "pointer": "/mechanism",
+      "generator": {"kind": "unicode_code_point", "value": 55296}
+    },
+    "replace_root_with_array": {
+      "operation": "replace_root",
+      "value": []
+    }
+  },
+  "cases": [
+    {"id": "missing-schema-version", "remove": ["/proposal_schema_version"]},
+    {"id": "unknown-top-level", "add": {"/notes": "not canonical"}},
+    {"id": "null-required", "replace": {"/hypothesis_class_id": null}},
+    {"id": "bool-schema-version", "replace": {"/proposal_schema_version": true}},
+    {"id": "wrong-schema-version", "replace": {"/proposal_schema_version": 2}},
+    {"id": "bad-generation-id", "replace": {"/generation_id": "generation bad"}},
+    {"id": "bad-candidate-digest", "replace": {"/candidate_digest": "not-a-digest"}},
+    {"id": "untrimmed-hypothesis-class", "replace": {"/hypothesis_class_id": " class-a"}},
+    {"id": "unsupported-action", "replace": {"/action": "tune"}},
+    {"id": "empty-mechanism", "replace": {"/mechanism": ""}},
+    {"id": "blank-predicted-effect", "replace": {"/predicted_effect": "   "}},
+    {"id": "nonstr-falsifier", "replace": {"/falsifier": 7}},
+    {"id": "numeric-parent", "replace": {"/parent_experiment_id": 1}},
+    {"id": "bad-parent-id", "replace": {"/parent_experiment_id": "parent"}},
+    {"id": "empty-evaluation-scope", "replace": {"/evaluation_scope_id": ""}},
+    {"id": "pointers-not-array", "replace": {"/intervention_json_pointers": "/x"}},
+    {"id": "duplicate-pointer", "replace": {"/intervention_json_pointers": ["/x", "/x"]}},
+    {"id": "bad-rfc6901-pointer", "replace": {"/intervention_json_pointers": ["x"]}},
+    {"id": "pointer-not-string", "replace": {"/intervention_json_pointers": [1]}},
+    {"id": "authorized-action-nonnull", "replace": {"/authorized_action": "deploy"}},
+    {"id": "authorized-action-missing", "remove": ["/authorized_action"]},
+    {"id": "oversized-mechanism", "transform": "oversized_mechanism"},
+    {"id": "multibyte-oversized-mechanism", "transform": "multibyte_oversized_mechanism"},
+    {"id": "unicode-surrogate", "transform": "surrogate_mechanism"},
+    {"id": "root-not-object", "transform": "replace_root_with_array"}
+  ]
+}

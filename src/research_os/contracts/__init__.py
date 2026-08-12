@@ -36,7 +36,15 @@ from .protocol import (
     validate_failure_category,
 )
 from .results import DESIGN_PROVENANCE as _RESULT_PROVENANCE
-from .results import Metric, MetricDirection, ResultEnvelope
+from .results import (
+    GateDefinition,
+    GateEvaluation,
+    GateOperator,
+    GateRole,
+    Metric,
+    MetricDirection,
+    ResultEnvelope,
+)
 from .status import DESIGN_PROVENANCE as _STATUS_PROVENANCE
 from .status import TerminalStatus
 
@@ -57,6 +65,10 @@ __all__ = [
     "DESIGN_PROVENANCE",
     "FAILURE_CATEGORIES_BY_OPERATION",
     "FailureCategory",
+    "GateDefinition",
+    "GateEvaluation",
+    "GateOperator",
+    "GateRole",
     "JSONObject",
     "JSONScalar",
     "JSONValue",

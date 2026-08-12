@@ -1,0 +1,14 @@
+{
+  "proposal_schema_version": 1,
+  "generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54",
+  "candidate_digest": "8c056c3399fce447330a0e90971addc793e4171b16f384a70db3519e0ad4958c",
+  "hypothesis_class_id": "class-a",
+  "action": "explore",
+  "mechanism": "Change only /x to test the declared class-a mechanism.",
+  "predicted_effect": "The primary metric improves relative to the same-scope baseline.",
+  "falsifier": "The sealed evaluation shows no positive primary-metric improvement.",
+  "parent_experiment_id": null,
+  "evaluation_scope_id": "development",
+  "intervention_json_pointers": ["/x"],
+  "authorized_action": null
+}

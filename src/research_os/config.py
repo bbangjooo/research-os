@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, cast
 
-from .contracts.results import MetricDirection
+from .contracts.results import GateDefinition, MetricDirection
 from .errors import ConfigurationError
 
 SCHEMA_VERSION = 1
@@ -71,7 +71,14 @@ class ProjectConfig:
     baseline_repeats: int
     baseline_tolerance: float
     minimum_improvement: float
+    gates: tuple[GateDefinition, ...] = ()
     authorized_action: None = field(default=None, init=False, repr=False)
+
+    @property
+    def promotion_gates(self) -> tuple[GateDefinition, ...]:
+        """Explicit alias for the gates declared beneath ``[promotion]``."""
+
+        return self.gates
 
     @property
     def adapter_argv(self) -> tuple[str, ...]:
@@ -673,6 +680,33 @@ def _nonnegative_number(value: Any, field_name: str, source: Path) -> float:
     return result
 
 
+def _gate_definitions(
+    value: Any,
+    source: Path,
+) -> tuple[GateDefinition, ...]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes, bytearray)):
+        raise _configuration_error(
+            "promotion.gates must be an array of tables", source=source
+        )
+
+    gates: list[GateDefinition] = []
+    seen_ids: set[str] = set()
+    for index, item in enumerate(value):
+        try:
+            gate = GateDefinition.from_dict(item)
+        except (TypeError, ValueError) as exc:
+            raise _configuration_error(
+                f"promotion.gates[{index}] is invalid: {exc}", source=source
+            ) from exc
+        if gate.id in seen_ids:
+            raise _configuration_error(
+                f"promotion.gates contains duplicate id {gate.id!r}", source=source
+            )
+        seen_ids.add(gate.id)
+        gates.append(gate)
+    return tuple(gates)
+
+
 def _canonical_root(root: str | os.PathLike[str] | Path) -> Path:
     path = Path(root).expanduser()
     if (
@@ -873,6 +907,7 @@ def load_project_config(root: str | os.PathLike[str] | Path) -> ProjectConfig:
             "promotion.minimum_improvement",
             constitution_path,
         ),
+        gates=_gate_definitions(promotion.get("gates", ()), constitution_path),
     )
 
 

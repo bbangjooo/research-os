@@ -11,6 +11,7 @@ import fcntl
 import math
 import os
 import stat
+import tempfile
 from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
@@ -18,7 +19,7 @@ from pathlib import Path
 from statistics import fmean
 from typing import Any, cast
 
-from .agent import build_agent_context, load_agent_spec
+from .agent import build_agent_context, build_agent_context_v3, load_agent_spec
 from .artifacts.catalog import ArtifactCatalog, ArtifactRecord
 from .certification import (
     build_evaluator_review_subject,
@@ -34,6 +35,7 @@ from .contracts import (
     ProtocolResponse,
     ResultEnvelope,
     TerminalStatus,
+    VerifyResult,
     decode_json_object,
     normalize_json_object,
     sha256_json,
@@ -42,9 +44,11 @@ from .contracts import (
 from .errors import (
     AgentResearchNotReadyError,
     ConfigurationError,
+    EvaluatorCertificationError,
     IntegrityError,
     LifecycleError,
     ProtocolError,
+    ScientificStateError,
     StaleAgentContextError,
 )
 from .execution.adapter import AdapterClient
@@ -63,8 +67,28 @@ from .kernel.projection import ProjectionStore
 from .memory.findings import make_finding_event
 from .policy import Decision, decide
 from .provenance import environment_fingerprint, project_fingerprints
+from .science import (
+    DIAGNOSIS_EVENT_TYPE,
+    GENERATION_EVENT_TYPE,
+    Diagnosis,
+    DiagnosisEventPayload,
+    EvaluationSeal,
+    Proposal,
+    StudyContract,
+    build_diagnosis_template,
+    plan_diagnosis_append,
+    plan_generation_open,
+    proposal_id,
+    reduce_scientific_state,
+    registration_payload_fields,
+    reserve_registration,
+    validate_registration,
+    validate_registration_preflight,
+    validate_successor_preflight,
+)
 
 REQUIRED_OPERATIONS = frozenset(operation.value for operation in Operation)
+EVALUATION_SCOPE_CAPABILITY = "evaluation_scope_v1"
 _TERMINAL_EVENT_TYPES = frozenset(
     {"EXPERIMENT_TERMINATED", "EXPERIMENT_STATUS_CHANGED"}
 )
@@ -73,6 +97,26 @@ _ARTIFACT_EVENT_TYPES = frozenset(
 )
 _PRESERVED_RECOVERY_REASON = "INTERRUPTED_EVIDENCE_UNTRUSTED"
 _USE_CURRENT_PRIMARY_METRIC = object()
+
+
+class _GenerationAlreadyOpen(RuntimeError):
+    """Internal control flow for an identical generation-open race loser."""
+
+    def __init__(self, generation_id: str):
+        super().__init__(generation_id)
+        self.generation_id = generation_id
+
+
+class _ProjectAlreadyInitialized(RuntimeError):
+    """Internal control flow for an initialization race loser."""
+
+
+class _DiagnosisAlreadyRecorded(RuntimeError):
+    """Internal control flow for an identical Diagnosis append race loser."""
+
+    def __init__(self, event_id: str):
+        super().__init__(event_id)
+        self.event_id = event_id
 
 
 def _normalized_event_type(value: str) -> str:
@@ -117,7 +161,7 @@ class DoctorReport:
     event_count: int
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "project_id": self.project_id,
             "project_root": self.project_root,
             "healthy": True,
@@ -128,6 +172,7 @@ class DoctorReport:
             "event_count": self.event_count,
             "authorized_action": None,
         }
+        return normalize_json_object(result, field_name="doctor report")
 
 
 def _response_payload(
@@ -151,6 +196,70 @@ def _result(response: ProtocolResponse, operation: Operation) -> ResultEnvelope:
             f"{operation.value} returned status; terminal status is owned by the kernel"
         )
     return envelope
+
+
+def _bind_captured_result(
+    result: ResultEnvelope, records: Sequence[ArtifactRecord]
+) -> ResultEnvelope:
+    """Return the terminal envelope with OS-captured digest and size evidence."""
+
+    by_path = {record.relative_path: record for record in records}
+    if len(by_path) != len(records) or set(by_path) != {
+        reference.path for reference in result.artifacts
+    }:
+        raise IntegrityError("captured artifacts do not match the result envelope")
+    bound = []
+    for reference in result.artifacts:
+        record = by_path[reference.path]
+        if (
+            record.media_type != reference.media_type
+            or record.metadata
+            != {
+                "retention": reference.retention,
+                "sensitivity": reference.sensitivity,
+            }
+        ):
+            raise IntegrityError("captured artifact metadata changed before termination")
+        bound.append(reference.with_capture(sha256=record.digest, size_bytes=record.size))
+    return replace(result, artifacts=tuple(bound))
+
+
+def _legacy_public_run_summary(summary: Mapping[str, Any]) -> dict[str, Any]:
+    """Keep run_once's v0.1-v0.4 shape while canonical terminals retain capture evidence."""
+
+    raw_result = summary.get("result")
+    if not isinstance(raw_result, Mapping):
+        return dict(summary)
+    raw_artifacts = raw_result.get("artifacts")
+    if not isinstance(raw_artifacts, Sequence) or isinstance(
+        raw_artifacts, (str, bytes, bytearray)
+    ):
+        return dict(summary)
+    artifacts = []
+    for raw in raw_artifacts:
+        if not isinstance(raw, Mapping):
+            return dict(summary)
+        artifacts.append(
+            {
+                key: value
+                for key, value in raw.items()
+                if key not in {"sha256", "size_bytes"}
+            }
+        )
+    return {
+        **summary,
+        "result": {**raw_result, "artifacts": artifacts},
+    }
+
+
+def _verify_result(response: ProtocolResponse) -> VerifyResult:
+    """Parse one successful adapter VERIFY response under the shared contract."""
+
+    _response_payload(response, Operation.VERIFY)
+    try:
+        return response.verify_result()
+    except (TypeError, ValueError, KeyError) as exc:
+        raise ProtocolError(f"verify returned an invalid verdict: {exc}") from exc
 
 
 def _safe_error(exc: BaseException) -> dict[str, Any]:
@@ -287,6 +396,10 @@ class ResearchService:
                 "baseline_tolerance": config.baseline_tolerance,
                 "minimum_improvement": config.minimum_improvement,
             },
+            "promotion": {
+                "minimum_improvement": config.minimum_improvement,
+                "gates": [gate.to_dict() for gate in config.gates],
+            },
             "authorized_action": None,
         }
 
@@ -383,6 +496,8 @@ class ResearchService:
     def _verify_terminal_artifact_bindings(
         self,
         projected_records: Sequence[tuple[Mapping[str, Any], ArtifactRecord]],
+        *,
+        events: Sequence[Event] | None = None,
     ) -> None:
         """Bind every terminal result declaration to earlier canonical artifacts."""
 
@@ -394,7 +509,8 @@ class ResearchService:
                 (projected, record)
             )
 
-        for event in self.event_log.read():
+        canonical_events = self.event_log.read() if events is None else events
+        for event in canonical_events:
             event_type = _normalized_event_type(event.event_type)
             if event_type not in _TERMINAL_EVENT_TYPES:
                 continue
@@ -597,6 +713,63 @@ class ResearchService:
         )
         self._sync()
 
+    def _ensure_initialized_for_generation(
+        self,
+        fingerprints: Mapping[str, Any],
+        *,
+        events: Sequence[Event],
+    ) -> tuple[Event, ...]:
+        """Initialize an empty stream without serializing generation races."""
+
+        if events:
+            if _normalized_event_type(events[0].event_type) != "PROJECT_INITIALIZED":
+                raise IntegrityError(
+                    "the first canonical event must initialize the project"
+                )
+            return tuple(events)
+
+        payload = {
+            "project_id": self.config.project_id,
+            "status": "active",
+            "metadata": {
+                "name": self.config.name,
+                "schema_version": 1,
+                "initial_compatibility_digest": fingerprints[
+                    "compatibility_digest"
+                ],
+                "authorized_action": None,
+            },
+        }
+
+        def require_empty(locked_events: tuple[Event, ...]) -> None:
+            if not locked_events:
+                return
+            if _normalized_event_type(
+                locked_events[0].event_type
+            ) != "PROJECT_INITIALIZED":
+                raise IntegrityError(
+                    "the first canonical event must initialize the project"
+                )
+            raise _ProjectAlreadyInitialized()
+
+        try:
+            self.event_log.append(
+                "PROJECT_INITIALIZED",
+                payload,
+                precondition=require_empty,
+                postcondition=require_empty,
+            )
+        except _ProjectAlreadyInitialized:
+            pass
+        initialized = tuple(self.event_log.read())
+        if (
+            not initialized
+            or _normalized_event_type(initialized[0].event_type)
+            != "PROJECT_INITIALIZED"
+        ):
+            raise IntegrityError("project initialization did not become canonical")
+        return initialized
+
     def doctor(self) -> DoctorReport:
         """Validate configuration and initialize canonical state atomically."""
 
@@ -639,6 +812,521 @@ class ResearchService:
                 self.config,
                 fingerprints=report.fingerprints,
             )
+
+    def open_generation(
+        self,
+        contract: str | Path | Mapping[str, Any],
+        *,
+        predecessor_generation_id: str | None = None,
+        change_reason: str | None = None,
+    ) -> dict[str, Any]:
+        """Open one evaluation-sealed study generation atomically.
+
+        Generation change control is canonical-event authority, so this path
+        deliberately does not use the process-local workflow lock.  The
+        authoritative plan is recalculated while EventLog holds its exclusive
+        append lock, with the evaluator certification held stable across the
+        complete write.
+        """
+
+        explicit_successor = (
+            predecessor_generation_id is not None or change_reason is not None
+        )
+        if explicit_successor:
+            with self.event_log.locked_read() as preflight_events:
+                preflight_state = reduce_scientific_state(
+                    tuple(preflight_events),
+                    project_id=self.config.project_id,
+                )
+                validate_successor_preflight(preflight_state)
+
+        raw_contract = (
+            dict(contract)
+            if isinstance(contract, Mapping)
+            else self._load_json_object(contract, label="study contract")
+        )
+        study_contract = StudyContract.from_mapping(raw_contract)
+        self._assert_config_unchanged()
+        self.event_log.verify()
+        events = tuple(self.event_log.read())
+        current_state = reduce_scientific_state(
+            events,
+            project_id=self.config.project_id,
+        )
+        if (
+            current_state.active_generation_id is not None
+            and study_contract.digest != current_state.study_contract_digest
+        ):
+            validate_successor_preflight(current_state)
+
+        event: Event | None = None
+        appended_events = 0
+        try:
+            with evaluator_certification_read_lock(self.config):
+                report = self._doctor_snapshot(event_count=len(events))
+                evaluation_seal = self._evaluation_seal_from_report(report)
+                self._validate_typed_generation_environment(
+                    study_contract,
+                    report,
+                )
+                events = self._ensure_initialized_for_generation(
+                    report.fingerprints,
+                    events=events,
+                )
+                # Planning failures and idempotent confirmations are also
+                # scientific-state decisions. Keep the verified snapshot
+                # locked while deriving them; append-required plans are then
+                # rerun under the exclusive append lock below.
+                with self.event_log.locked_read() as planning_events:
+                    plan = plan_generation_open(
+                        tuple(planning_events),
+                        project_id=self.config.project_id,
+                        contract=study_contract,
+                        evaluation_seal=evaluation_seal,
+                        predecessor_generation_id=predecessor_generation_id,
+                        change_reason=change_reason,
+                    )
+                    if not plan.append_required:
+                        fresh_report = self._doctor_snapshot(
+                            event_count=len(planning_events)
+                        )
+                        fresh_seal = self._evaluation_seal_from_report(fresh_report)
+                        self._validate_typed_generation_environment(
+                            study_contract,
+                            fresh_report,
+                        )
+                        if (
+                            fresh_report.capabilities != report.capabilities
+                            or fresh_report.side_effects != report.side_effects
+                            or fresh_report.adapter_fingerprint
+                            != report.adapter_fingerprint
+                            or fresh_report.fingerprints != report.fingerprints
+                            or fresh_seal.digest != evaluation_seal.digest
+                        ):
+                            raise IntegrityError(
+                                "evaluation seal changed before generation confirmation"
+                            )
+                        locked_plan = plan_generation_open(
+                            tuple(planning_events),
+                            project_id=self.config.project_id,
+                            contract=study_contract,
+                            evaluation_seal=fresh_seal,
+                            predecessor_generation_id=predecessor_generation_id,
+                            change_reason=change_reason,
+                        )
+                        if locked_plan.append_required:
+                            raise IntegrityError(
+                                "study generation plan changed before idempotent confirmation"
+                            )
+                        generation_id = locked_plan.generation_id
+                if plan.append_required:
+                    proposed_payload = dict(plan.payload)
+
+                    def validate_locked_plan(locked_events: tuple[Event, ...]) -> None:
+                        fresh_report = self._doctor_snapshot(
+                            event_count=len(locked_events)
+                        )
+                        fresh_seal = self._evaluation_seal_from_report(fresh_report)
+                        self._validate_typed_generation_environment(
+                            study_contract,
+                            fresh_report,
+                        )
+                        if (
+                            fresh_report.capabilities != report.capabilities
+                            or fresh_report.side_effects != report.side_effects
+                            or fresh_report.adapter_fingerprint
+                            != report.adapter_fingerprint
+                            or fresh_report.fingerprints != report.fingerprints
+                            or fresh_seal.digest != evaluation_seal.digest
+                        ):
+                            raise IntegrityError(
+                                "evaluation seal changed before generation commit"
+                            )
+                        locked_plan = plan_generation_open(
+                            locked_events,
+                            project_id=self.config.project_id,
+                            contract=study_contract,
+                            evaluation_seal=fresh_seal,
+                            predecessor_generation_id=predecessor_generation_id,
+                            change_reason=change_reason,
+                        )
+                        if not locked_plan.append_required:
+                            raise _GenerationAlreadyOpen(locked_plan.generation_id)
+                        if (
+                            locked_plan.generation_id != plan.generation_id
+                            or locked_plan.event_type != plan.event_type
+                            or dict(locked_plan.payload) != proposed_payload
+                        ):
+                            raise IntegrityError(
+                                "study generation plan changed before canonical append"
+                            )
+
+                    event = self.event_log.append(
+                        plan.event_type,
+                        proposed_payload,
+                        precondition=validate_locked_plan,
+                        postcondition=validate_locked_plan,
+                    )
+                    generation_id = plan.generation_id
+                    appended_events = 1
+        except _GenerationAlreadyOpen as raced:
+            generation_id = raced.generation_id
+
+        self._sync()
+        result: dict[str, Any] = {
+            "project_id": self.config.project_id,
+            "event_type": GENERATION_EVENT_TYPE,
+            "generation_id": generation_id,
+            "study_contract_digest": study_contract.digest,
+            "evaluation_seal_digest": evaluation_seal.digest,
+            "predecessor_generation_id": predecessor_generation_id,
+            "change_reason": change_reason,
+            "appended": appended_events == 1,
+            "appended_events": appended_events,
+            "authorized_action": None,
+        }
+        if event is not None:
+            result["event_sequence"] = event.sequence
+        return normalize_json_object(result, field_name="generation open result")
+
+    def record_diagnosis(
+        self,
+        diagnosis: str | Path | Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Append one exact terminal Diagnosis or reuse its canonical event.
+
+        Diagnosis is scientific-state authority rather than adapter work, so it
+        serializes directly on EventLog's exclusive append lock.  The pure plan
+        is rerun against the verified locked history immediately before and
+        after the provisional write.  This keeps Diagnosis, registration, and
+        generation races on one canonical ordering without a process-local
+        workflow-lock decision seam.
+        """
+
+        raw_diagnosis = (
+            diagnosis
+            if isinstance(diagnosis, Mapping)
+            else self._load_json_object(diagnosis, label="diagnosis")
+        )
+        typed_diagnosis = Diagnosis.from_mapping(raw_diagnosis)
+        self._assert_config_unchanged()
+
+        with self.event_log.locked_read() as planning_events:
+            initial_plan = plan_diagnosis_append(
+                tuple(planning_events),
+                project_id=self.config.project_id,
+                diagnosis=typed_diagnosis,
+            )
+        appended = False
+        canonical_event_id = initial_plan.existing_event_id
+        if initial_plan.append_required:
+            proposed_payload = dict(initial_plan.payload)
+
+            def validate_locked_plan(locked_events: tuple[Event, ...]) -> None:
+                locked_plan = plan_diagnosis_append(
+                    locked_events,
+                    project_id=self.config.project_id,
+                    diagnosis=typed_diagnosis,
+                )
+                if not locked_plan.append_required:
+                    existing_event_id = locked_plan.existing_event_id
+                    if not isinstance(existing_event_id, str):  # pragma: no cover
+                        raise IntegrityError(
+                            "idempotent Diagnosis plan omitted its canonical event ID"
+                        )
+                    raise _DiagnosisAlreadyRecorded(existing_event_id)
+                if (
+                    locked_plan.event_type != initial_plan.event_type
+                    or locked_plan.diagnosis_id != initial_plan.diagnosis_id
+                    or locked_plan.diagnosis_digest
+                    != initial_plan.diagnosis_digest
+                    or dict(locked_plan.payload) != proposed_payload
+                ):
+                    raise IntegrityError(
+                        "Diagnosis append plan changed before canonical commit"
+                    )
+
+            try:
+                event = self.event_log.append(
+                    initial_plan.event_type,
+                    proposed_payload,
+                    precondition=validate_locked_plan,
+                    postcondition=validate_locked_plan,
+                )
+            except _DiagnosisAlreadyRecorded as raced:
+                canonical_event_id = raced.event_id
+            else:
+                appended = True
+                canonical_event_id = event.event_id
+
+        if not isinstance(canonical_event_id, str):  # pragma: no cover - plan invariant
+            raise IntegrityError("Diagnosis plan omitted its canonical event identity")
+
+        # Replay a fresh, fully verified stream before returning.  This rejects
+        # persisted duplicate Diagnosis corruption while still allowing a
+        # legitimate successor generation to commit after this operation's
+        # linearization point.
+        canonical_events = tuple(self.event_log.read())
+        reduce_scientific_state(
+            canonical_events,
+            project_id=self.config.project_id,
+        )
+        matches = tuple(
+            event
+            for event in canonical_events
+            if event.event_id == canonical_event_id
+        )
+        if len(matches) != 1:
+            raise IntegrityError("canonical Diagnosis event identity is not unique")
+        canonical_event = matches[0]
+        if canonical_event.event_type != DIAGNOSIS_EVENT_TYPE:
+            raise IntegrityError("canonical Diagnosis event has the wrong event type")
+        parsed_payload = DiagnosisEventPayload.from_mapping(
+            canonical_event.payload,
+            project_id=self.config.project_id,
+        ).to_dict()
+        if parsed_payload["diagnosis"] != typed_diagnosis.to_dict():
+            raise IntegrityError("canonical Diagnosis body changed after append")
+        if (
+            parsed_payload["diagnosis_id"] != initial_plan.diagnosis_id
+            or parsed_payload["diagnosis_digest"]
+            != initial_plan.diagnosis_digest
+        ):
+            raise IntegrityError("canonical Diagnosis identity changed after append")
+
+        self._sync()
+        result = {
+            "project_id": self.config.project_id,
+            "event_type": DIAGNOSIS_EVENT_TYPE,
+            "event_id": canonical_event.event_id,
+            "event_hash": canonical_event.hash,
+            "event_sequence": canonical_event.sequence,
+            "experiment_id": typed_diagnosis.experiment_id,
+            "diagnosis_id": initial_plan.diagnosis_id,
+            "diagnosis_digest": initial_plan.diagnosis_digest,
+            "appended": appended,
+            "appended_events": int(appended),
+            "idempotent_reuse": not appended,
+            "authorized_action": None,
+        }
+        return normalize_json_object(result, field_name="Diagnosis record result")
+
+    def diagnosis_template(
+        self,
+        experiment_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Return one no-write Diagnosis body with agent judgment sentinels."""
+
+        if experiment_id is not None and (
+            not isinstance(experiment_id, str) or not experiment_id
+        ):
+            raise ValueError("experiment_id must be a non-empty string or null")
+        self._assert_config_unchanged()
+        self.event_log.verify()
+        with self.event_log.locked_read() as events:
+            state = reduce_scientific_state(
+                tuple(events),
+                project_id=self.config.project_id,
+            )
+            template = build_diagnosis_template(
+                state,
+                experiment_id=experiment_id,
+            )
+        return normalize_json_object(template, field_name="Diagnosis template")
+
+    def _require_evaluation_scope_capability(
+        self,
+        report: DoctorReport,
+    ) -> None:
+        """Require the explicit adapter promise used by scoped studies."""
+
+        if EVALUATION_SCOPE_CAPABILITY in report.capabilities:
+            return
+        raise ScientificStateError(
+            "STUDY_SCOPE_CAPABILITY_REQUIRED",
+            "StudyContract v2 requires adapter evaluation-scope support",
+            details={"required_capability": EVALUATION_SCOPE_CAPABILITY},
+        )
+
+    def _validate_typed_generation_environment(
+        self,
+        contract: StudyContract,
+        report: DoctorReport,
+    ) -> None:
+        """Bind a v2 generation to the advertised scope and candidate schema."""
+
+        if contract.schema_version != 2:
+            return
+        self._require_evaluation_scope_capability(report)
+        agent_spec = load_agent_spec(self.config.root)
+        candidate_schema = agent_spec.get("candidate_schema")
+        observed_digest = (
+            sha256_json(candidate_schema)
+            if isinstance(candidate_schema, Mapping)
+            else None
+        )
+        expected_digest = contract.intervention_surface.candidate_schema_digest
+        if observed_digest == expected_digest:
+            return
+        raise ScientificStateError(
+            "STUDY_CANDIDATE_SCHEMA_MISMATCH",
+            "StudyContract v2 candidate schema does not match the certified project schema",
+            details={
+                "expected_candidate_schema_digest": expected_digest,
+                "observed_candidate_schema_digest": observed_digest,
+            },
+        )
+
+    def _require_active_evaluation_seal(
+        self,
+        science_state: Any,
+        report: DoctorReport,
+    ) -> EvaluationSeal:
+        """Require a fresh report to match the active generation seal."""
+
+        live_seal = self._evaluation_seal_from_report(report)
+        if live_seal.digest == science_state.evaluation_seal_digest:
+            return live_seal
+        raise ScientificStateError(
+            "STUDY_EVALUATION_SEAL_MISMATCH",
+            "the active generation is not bound to the current evaluator seal",
+            details={
+                "active_evaluation_seal_digest": (
+                    science_state.evaluation_seal_digest
+                ),
+                "current_evaluation_seal_digest": live_seal.digest,
+            },
+        )
+
+    def _resolve_baseline_evaluation_scope(
+        self,
+        science_state: Any,
+        evaluation_scope_id: str | None,
+    ) -> Any | None:
+        """Resolve the full preregistered scope for a prospective baseline."""
+
+        if science_state.active_generation_id is None:
+            if evaluation_scope_id is not None:
+                raise ScientificStateError(
+                    "STUDY_GENERATION_REQUIRED",
+                    "a scoped baseline requires an active study generation",
+                )
+            return None
+        contract = science_state.contract
+        if contract is None:  # pragma: no cover - reducer invariant
+            raise IntegrityError("active generation omitted its study contract")
+        if contract.schema_version != 2:
+            if evaluation_scope_id is not None:
+                raise ScientificStateError(
+                    "STUDY_SCOPE_CONTRACT_VERSION_REQUIRED",
+                    "evaluation_scope_id requires StudyContract v2",
+                )
+            return None
+        if evaluation_scope_id is None:
+            raise ScientificStateError(
+                "STUDY_EVALUATION_SCOPE_REQUIRED",
+                "StudyContract v2 baseline requires evaluation_scope_id",
+            )
+        evaluation_scope = next(
+            (
+                scope
+                for scope in contract.evaluation_scopes
+                if scope.id == evaluation_scope_id
+            ),
+            None,
+        )
+        if evaluation_scope is None:
+            raise ScientificStateError(
+                "STUDY_EVALUATION_SCOPE_UNKNOWN",
+                "evaluation_scope_id is not declared by the active StudyContract",
+                details={"evaluation_scope_id": evaluation_scope_id},
+            )
+        if evaluation_scope.role == "holdout":
+            raise ScientificStateError(
+                "STUDY_SCOPE_BASELINE_FORBIDDEN",
+                "locked holdout scopes cannot be consumed by iterative baselines",
+                details={"evaluation_scope_id": evaluation_scope.id},
+            )
+        return evaluation_scope
+
+    def _append_scoped_baseline_event(
+        self,
+        payload: Mapping[str, Any],
+    ) -> Event:
+        """Commit a typed baseline only while its generation and seal are current."""
+
+        scope_id = payload.get("evaluation_scope_id")
+        if not isinstance(scope_id, str):  # pragma: no cover - caller invariant
+            raise IntegrityError("typed baseline evaluation scope ID is invalid")
+
+        def validate_locked_baseline(locked_events: tuple[Event, ...]) -> None:
+            locked_state = reduce_scientific_state(
+                locked_events,
+                project_id=self.config.project_id,
+            )
+            scope = self._resolve_baseline_evaluation_scope(locked_state, scope_id)
+            if scope is None:  # pragma: no cover - resolver invariant
+                raise IntegrityError("typed baseline evaluation scope is unavailable")
+            contract = locked_state.contract
+            if contract is None:  # pragma: no cover - reducer invariant
+                raise IntegrityError("typed baseline study contract is unavailable")
+            if payload.get("generation_id") != locked_state.active_generation_id:
+                raise ScientificStateError(
+                    "STUDY_GENERATION_MISMATCH",
+                    "baseline generation no longer matches the active generation",
+                )
+            if payload.get("study_contract_digest") != contract.digest:
+                raise ScientificStateError(
+                    "STUDY_CONTRACT_MISMATCH",
+                    "baseline contract no longer matches the active generation",
+                )
+            if payload.get("evaluation_seal_digest") != (
+                locked_state.evaluation_seal_digest
+            ):
+                raise ScientificStateError(
+                    "STUDY_EVALUATION_SEAL_MISMATCH",
+                    "baseline evaluator seal no longer matches the active generation",
+                )
+            if payload.get("evaluation_scope") != scope.to_dict():
+                raise ScientificStateError(
+                    "STUDY_EVALUATION_SCOPE_MISMATCH",
+                    "baseline scope body disagrees with the active StudyContract",
+                )
+            fresh_report = self._doctor_snapshot(event_count=len(locked_events))
+            self._validate_typed_generation_environment(contract, fresh_report)
+            self._require_active_evaluation_seal(locked_state, fresh_report)
+            if payload.get("compatibility_digest") != fresh_report.fingerprints.get(
+                "compatibility_digest"
+            ):
+                raise IntegrityError(
+                    "baseline compatibility changed before canonical append"
+                )
+
+        with evaluator_certification_read_lock(self.config):
+            return self.event_log.append(
+                "BASELINE_RECORDED",
+                payload,
+                precondition=validate_locked_baseline,
+                postcondition=validate_locked_baseline,
+            )
+
+    def study_status(self) -> dict[str, Any]:
+        """Return the replay-derived generation and reserved-budget state."""
+
+        self._assert_config_unchanged()
+        self.event_log.verify()
+        state = reduce_scientific_state(
+            self.event_log.read(),
+            project_id=self.config.project_id,
+        )
+        return normalize_json_object(
+            {
+                **state.to_dict(),
+                "project_id": self.config.project_id,
+                "authorized_action": None,
+            },
+            field_name="study status",
+        )
 
     def _doctor(self) -> DoctorReport:
         """Unlocked implementation for callers already holding the workflow lock."""
@@ -732,53 +1420,178 @@ class ResearchService:
         )
         _response_payload(response, Operation.CLEANUP)
 
-    def baseline(self) -> dict[str, Any]:
+    def baseline(
+        self,
+        *,
+        evaluation_scope_id: str | None = None,
+    ) -> dict[str, Any]:
         with self._workflow_lock():
-            return self._baseline()
+            return self._baseline(evaluation_scope_id=evaluation_scope_id)
 
-    def _baseline(self) -> dict[str, Any]:
+    def _baseline(
+        self,
+        *,
+        evaluation_scope_id: str | None = None,
+    ) -> dict[str, Any]:
         """Measure a stable baseline in isolated snapshots and seal it."""
 
+        science_state = reduce_scientific_state(
+            self.event_log.read(),
+            project_id=self.config.project_id,
+        )
+        evaluation_scope = self._resolve_baseline_evaluation_scope(
+            science_state,
+            evaluation_scope_id,
+        )
         report = self._doctor()
+        if evaluation_scope is not None:
+            self._validate_typed_generation_environment(
+                cast(StudyContract, science_state.contract),
+                report,
+            )
+            self._require_active_evaluation_seal(science_state, report)
         self._recover_incomplete_experiments()
+        if evaluation_scope is not None:
+            # Recovery can append terminal evidence, and generation change-control
+            # intentionally does not share the workflow lock. Rebind the complete
+            # typed baseline identity before any evaluator work begins.
+            science_state = reduce_scientific_state(
+                self.event_log.read(),
+                project_id=self.config.project_id,
+            )
+            evaluation_scope = self._resolve_baseline_evaluation_scope(
+                science_state,
+                evaluation_scope_id,
+            )
+            if evaluation_scope is None:  # pragma: no cover - guarded by v2 path
+                raise IntegrityError("typed baseline evaluation scope is unavailable")
+            self._validate_typed_generation_environment(
+                cast(StudyContract, science_state.contract),
+                report,
+            )
+            self._require_active_evaluation_seal(science_state, report)
         count = self.config.baseline_repeats
 
         manager = WorkspaceManager(self.config)
         results: list[ResultEnvelope] = []
         captured_artifacts: list[dict[str, Any]] = []
+        verifications: list[dict[str, Any]] = []
         try:
             for index in range(count):
-                workspace_id = stable_id(
-                    "baseline",
-                    self.config.project_id,
-                    report.fingerprints["compatibility_digest"],
-                    index,
-                )
+                if evaluation_scope is None:
+                    workspace_id = stable_id(
+                        "baseline",
+                        self.config.project_id,
+                        report.fingerprints["compatibility_digest"],
+                        index,
+                    )
+                else:
+                    workspace_id = stable_id(
+                        "baseline",
+                        self.config.project_id,
+                        report.fingerprints["compatibility_digest"],
+                        science_state.active_generation_id,
+                        evaluation_scope.id,
+                        index,
+                    )
                 self._assert_static_compatibility(report)
                 handle = manager.create(workspace_id)
                 operation_error: BaseException | None = None
                 try:
                     self._assert_static_compatibility(report)
+                    baseline_input: dict[str, Any] = {
+                        "repetition": index,
+                        "repetitions": count,
+                    }
+                    if evaluation_scope is not None:
+                        baseline_input["evaluation_scope"] = evaluation_scope.to_dict()
                     response = self._call_sealed(
                         report,
                         Operation.BASELINE,
-                        payload={"repetition": index, "repetitions": count},
+                        payload=baseline_input,
                         workspace=handle.path,
                         experiment_id=workspace_id,
                     )
                     baseline_result = _result(response, Operation.BASELINE)
-                    results.append(baseline_result)
                     manager.verify(
                         handle,
                         allowed_outputs=baseline_result.artifacts,
                         allow_mutable=False,
                     )
-                    for record in self.catalog.capture(
+                    captured_records = self.catalog.capture(
                         handle.path,
                         self.config.project_id,
                         workspace_id,
                         baseline_result.artifacts,
-                    ):
+                    )
+
+                    result_digest = sha256_json(baseline_result.to_dict())
+                    verify_result: VerifyResult | None = None
+                    try:
+                        verify_input: dict[str, Any] = {
+                            "result_digest": result_digest
+                        }
+                        if evaluation_scope is not None:
+                            verify_input["evaluation_scope"] = (
+                                evaluation_scope.to_dict()
+                            )
+                        verify_response = self._call_sealed(
+                            report,
+                            Operation.VERIFY,
+                            payload=verify_input,
+                            workspace=handle.path,
+                            experiment_id=workspace_id,
+                        )
+                        verify_result = _verify_result(verify_response)
+                    finally:
+                        # VERIFY is project code.  Its mutation boundary must be
+                        # checked even when transport fails or its verdict is
+                        # malformed; otherwise cleanup could erase the stronger
+                        # integrity failure and leave only a protocol error.
+                        manager.verify(
+                            handle,
+                            allowed_outputs=baseline_result.artifacts,
+                            allow_mutable=False,
+                        )
+                        recaptured = self.catalog.capture(
+                            handle.path,
+                            self.config.project_id,
+                            workspace_id,
+                            [
+                                {
+                                    "path": record.relative_path,
+                                    "role": record.role,
+                                    "media_type": record.media_type,
+                                    "metadata": record.metadata,
+                                    "sha256": record.digest,
+                                    "size_bytes": record.size,
+                                }
+                                for record in captured_records
+                            ],
+                        )
+                        if [record.to_dict() for record in recaptured] != [
+                            record.to_dict() for record in captured_records
+                        ]:
+                            raise IntegrityError(
+                                "verified baseline artifact records changed after evaluation"
+                            )
+                    if verify_result is None:  # pragma: no cover - guarded by try/finally
+                        raise ProtocolError("baseline verification verdict is unavailable")
+                    if not verify_result.valid:
+                        raise ProtocolError(
+                            "baseline verification rejected repetition "
+                            f"{index}: {verify_result.reason_code}"
+                        )
+
+                    results.append(baseline_result)
+                    verifications.append(
+                        {
+                            "repetition": index,
+                            "result_digest": result_digest,
+                            "verdict": verify_result.to_dict(),
+                        }
+                    )
+                    for record in captured_records:
                         captured_artifacts.append(
                             {
                                 **record.to_dict(),
@@ -873,14 +1686,32 @@ class ResearchService:
             "primary_value": metrics[self.config.primary_metric],
             "repetitions": count,
             "observations": [result.to_dict() for result in results],
+            "verifications": verifications,
             "artifacts": captured_artifacts,
             "spread": spread,
             "tolerance": self.config.baseline_tolerance,
             "fingerprints": dict(report.fingerprints),
             "authorized_action": None,
         }
+        if evaluation_scope is not None:
+            contract = science_state.contract
+            if contract is None:  # pragma: no cover - guarded by resolver
+                raise IntegrityError("typed baseline study contract is unavailable")
+            payload.update(
+                {
+                    "science_state_version": 1,
+                    "generation_id": science_state.active_generation_id,
+                    "study_contract_digest": contract.digest,
+                    "evaluation_seal_digest": science_state.evaluation_seal_digest,
+                    "evaluation_scope_id": evaluation_scope.id,
+                    "evaluation_scope": evaluation_scope.to_dict(),
+                }
+            )
         payload["digest"] = sha256_json(payload)
-        event = self.event_log.append("BASELINE_RECORDED", payload)
+        if evaluation_scope is None:
+            event = self.event_log.append("BASELINE_RECORDED", payload)
+        else:
+            event = self._append_scoped_baseline_event(payload)
         self._sync()
         return {**payload, "event_sequence": event.sequence}
 
@@ -890,6 +1721,10 @@ class ResearchService:
         compatibility_digest: str,
         *,
         enforce_current_policy: bool = True,
+        generation_id: str | None = None,
+        study_contract_digest: str | None = None,
+        evaluation_seal_digest: str | None = None,
+        evaluation_scope: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Revalidate a sealed baseline before it can authorize comparison."""
 
@@ -908,6 +1743,41 @@ class ResearchService:
         baseline["baseline_id"] = baseline_id
         if baseline.get("compatibility_digest") != compatibility_digest:
             raise IntegrityError("compatible baseline fingerprint is inconsistent")
+
+        has_scope_id = "evaluation_scope_id" in baseline
+        has_scope_body = "evaluation_scope" in baseline
+        if has_scope_id is not has_scope_body:
+            raise IntegrityError("compatible baseline scope binding is incomplete")
+        stored_scope_id: str | None = None
+        if has_scope_id:
+            stored_scope_id_value = baseline.get("evaluation_scope_id")
+            stored_scope_value = baseline.get("evaluation_scope")
+            if (
+                not isinstance(stored_scope_id_value, str)
+                or not stored_scope_id_value
+                or not isinstance(stored_scope_value, Mapping)
+                or set(stored_scope_value) != {"id", "role", "manifest_digest"}
+                or stored_scope_value.get("id") != stored_scope_id_value
+            ):
+                raise IntegrityError("compatible baseline scope binding is invalid")
+            stored_scope_id = stored_scope_id_value
+            stored_generation = baseline.get("generation_id")
+            if not isinstance(stored_generation, str) or not stored_generation:
+                raise IntegrityError("compatible baseline generation binding is invalid")
+
+        if evaluation_scope is not None:
+            expected_scope = dict(evaluation_scope)
+            expected_scope_id = expected_scope.get("id")
+            expected_bindings = {
+                "science_state_version": 1,
+                "generation_id": generation_id,
+                "study_contract_digest": study_contract_digest,
+                "evaluation_seal_digest": evaluation_seal_digest,
+                "evaluation_scope_id": expected_scope_id,
+                "evaluation_scope": expected_scope,
+            }
+            if any(baseline.get(key) != value for key, value in expected_bindings.items()):
+                raise IntegrityError("compatible baseline scope binding is inconsistent")
         fingerprints = baseline.get("fingerprints")
         adapter_fingerprint = baseline.get("adapter_fingerprint")
         if not isinstance(fingerprints, Mapping) or not isinstance(
@@ -975,6 +1845,63 @@ class ResearchService:
         except (KeyError, TypeError, ValueError) as exc:
             raise IntegrityError(f"compatible baseline observation is invalid: {exc}") from exc
 
+        if "verifications" not in baseline:
+            if enforce_current_policy:
+                raise IntegrityError(
+                    "compatible baseline verification evidence is missing"
+                )
+        else:
+            verifications_value = baseline["verifications"]
+            if not isinstance(verifications_value, Sequence) or isinstance(
+                verifications_value, (str, bytes, bytearray)
+            ):
+                raise IntegrityError(
+                    "compatible baseline verifications must be an array"
+                )
+            if len(verifications_value) != repetitions:
+                raise IntegrityError(
+                    "compatible baseline verification evidence is incomplete"
+                )
+            for index, value in enumerate(verifications_value):
+                if not isinstance(value, Mapping):
+                    raise IntegrityError(
+                        "compatible baseline verification is not an object"
+                    )
+                expected_fields = {"repetition", "result_digest", "verdict"}
+                if set(value) != expected_fields:
+                    raise IntegrityError(
+                        "compatible baseline verification fields are invalid"
+                    )
+                repetition = value.get("repetition")
+                if (
+                    isinstance(repetition, bool)
+                    or not isinstance(repetition, int)
+                    or repetition != index
+                ):
+                    raise IntegrityError(
+                        "compatible baseline verification repetition is invalid"
+                    )
+                expected_digest = sha256_json(observations[index].to_dict())
+                if value.get("result_digest") != expected_digest:
+                    raise IntegrityError(
+                        "compatible baseline verification result digest is inconsistent"
+                    )
+                verdict_value = value.get("verdict")
+                try:
+                    verdict = VerifyResult.from_dict(verdict_value)
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise IntegrityError(
+                        f"compatible baseline verification verdict is invalid: {exc}"
+                    ) from exc
+                if verdict_value != verdict.to_dict():
+                    raise IntegrityError(
+                        "compatible baseline verification verdict is not portable"
+                    )
+                if not verdict.valid:
+                    raise IntegrityError(
+                        "compatible baseline verification verdict is not positive"
+                    )
+
         metric_names = set(observations[0].metrics)
         if any(set(result.metrics) != metric_names for result in observations[1:]):
             raise IntegrityError("compatible baseline metric sets are inconsistent")
@@ -1026,12 +1953,22 @@ class ResearchService:
             record = ArtifactRecord.from_mapping(value)
             if record.project_id != self.config.project_id:
                 raise IntegrityError("compatible baseline artifact belongs to another project")
-            expected_workspace = stable_id(
-                "baseline",
-                self.config.project_id,
-                compatibility_digest,
-                repetition,
-            )
+            if stored_scope_id is None:
+                expected_workspace = stable_id(
+                    "baseline",
+                    self.config.project_id,
+                    compatibility_digest,
+                    repetition,
+                )
+            else:
+                expected_workspace = stable_id(
+                    "baseline",
+                    self.config.project_id,
+                    compatibility_digest,
+                    baseline["generation_id"],
+                    stored_scope_id,
+                    repetition,
+                )
             if record.experiment_id != expected_workspace:
                 raise IntegrityError("compatible baseline artifact workspace is inconsistent")
             key = (repetition, record.relative_path)
@@ -1070,6 +2007,11 @@ class ResearchService:
         self,
         events: Sequence[Event],
         compatibility_digest: str,
+        *,
+        generation_id: str | None = None,
+        study_contract_digest: str | None = None,
+        evaluation_seal_digest: str | None = None,
+        evaluation_scope: Mapping[str, Any] | None = None,
     ) -> dict[str, Any] | None:
         for event in reversed(events):
             if _normalized_event_type(event.event_type) != "BASELINE_RECORDED":
@@ -1079,16 +2021,66 @@ class ResearchService:
                 continue
             if payload.get("primary_metric") != self.config.primary_metric:
                 continue
+            if evaluation_scope is None:
+                if "evaluation_scope_id" in payload or "evaluation_scope" in payload:
+                    continue
+            else:
+                expected_scope = dict(evaluation_scope)
+                expected_bindings = {
+                    "science_state_version": 1,
+                    "generation_id": generation_id,
+                    "study_contract_digest": study_contract_digest,
+                    "evaluation_seal_digest": evaluation_seal_digest,
+                    "evaluation_scope_id": expected_scope.get("id"),
+                    "evaluation_scope": expected_scope,
+                }
+                if any(
+                    payload.get(key) != value
+                    for key, value in expected_bindings.items()
+                ):
+                    continue
+            # Verification-less baselines remain valid historical replay input,
+            # but they cannot authorize a current-policy candidate comparison.
+            if "verifications" not in payload:
+                self._validate_baseline_payload(
+                    payload,
+                    compatibility_digest,
+                    enforce_current_policy=False,
+                    generation_id=generation_id,
+                    study_contract_digest=study_contract_digest,
+                    evaluation_seal_digest=evaluation_seal_digest,
+                    evaluation_scope=evaluation_scope,
+                )
+                continue
             value = payload.get("primary_value")
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 raise IntegrityError("compatible baseline has an invalid primary value")
-            return self._validate_baseline_payload(payload, compatibility_digest)
+            return self._validate_baseline_payload(
+                payload,
+                compatibility_digest,
+                generation_id=generation_id,
+                study_contract_digest=study_contract_digest,
+                evaluation_seal_digest=evaluation_seal_digest,
+                evaluation_scope=evaluation_scope,
+            )
         return None
 
-    def _compatible_baseline(self, compatibility_digest: str) -> dict[str, Any] | None:
+    def _compatible_baseline(
+        self,
+        compatibility_digest: str,
+        *,
+        generation_id: str | None = None,
+        study_contract_digest: str | None = None,
+        evaluation_seal_digest: str | None = None,
+        evaluation_scope: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         return self._compatible_baseline_from_events(
             self.event_log.read(),
             compatibility_digest,
+            generation_id=generation_id,
+            study_contract_digest=study_contract_digest,
+            evaluation_seal_digest=evaluation_seal_digest,
+            evaluation_scope=evaluation_scope,
         )
 
     def _select_attempt(
@@ -1097,6 +2089,8 @@ class ResearchService:
         parent_id: str | None,
         compatibility_digest: str,
         retry_of: str | None,
+        *,
+        generation_id: str | None = None,
     ) -> tuple[str | None, int, str | None]:
         """Select and validate one explicit attempt without mutating history."""
 
@@ -1106,6 +2100,7 @@ class ResearchService:
                 candidate_digest,
                 parent_id,
                 compatibility_digest,
+                generation_id=generation_id,
             )
             if attempts:
                 raise ConfigurationError(
@@ -1129,15 +2124,17 @@ class ResearchService:
         if (
             prior.get("candidate_digest") != candidate_digest
             or prior.get("compatibility_digest") != compatibility_digest
+            or prior.get("generation_id") != generation_id
         ):
             raise ConfigurationError(
-                "retry_of does not match this candidate and compatibility"
+                "retry_of does not match this candidate, compatibility, and generation"
             )
         attempts = self.projection.candidate_attempts(
             self.config.project_id,
             candidate_digest,
             effective_parent,
             compatibility_digest,
+            generation_id=generation_id,
         )
         if not attempts or attempts[-1].get("experiment_id") != retry_of:
             raise ConfigurationError(
@@ -1772,6 +2769,17 @@ class ResearchService:
         value = self._load_json_object(path, label="candidate")
         return value, sha256_json(value)
 
+    def _load_proposal(
+        self,
+        value: str | Path | Mapping[str, Any],
+    ) -> Proposal:
+        raw = (
+            value
+            if isinstance(value, Mapping)
+            else self._load_json_object(value, label="proposal")
+        )
+        return Proposal.from_mapping(raw)
+
     def _record_stage(
         self,
         experiment_id: str,
@@ -1872,6 +2880,55 @@ class ResearchService:
             "event_sequence": event.sequence,
         }
 
+    def _validate_proposal_mode(
+        self,
+        science_state: Any,
+        *,
+        proposal: str | Path | Mapping[str, Any] | None,
+        parent_id: str | None,
+        retry_of: str | None,
+        graph_action: str | None,
+        scientific_change: str | None,
+    ) -> bool:
+        """Select the v1 or v2 registration contract without mutating state."""
+
+        contract = science_state.contract
+        typed_path = contract is not None and contract.schema_version == 2
+        if not typed_path:
+            if proposal is not None:
+                raise ScientificStateError(
+                    "PROPOSAL_CONTRACT_VERSION_REQUIRED",
+                    "typed Proposal input requires an active StudyContract v2 generation",
+                )
+            return False
+
+        if retry_of is not None and proposal is not None:
+            raise ScientificStateError(
+                "PROPOSAL_RETRY_FORBIDDEN",
+                "a retry must inherit its persisted Proposal and evaluation scope",
+                details={"retry_of": retry_of},
+            )
+        if retry_of is None and proposal is None:
+            raise ScientificStateError(
+                "PROPOSAL_REQUIRED",
+                "StudyContract v2 registrations require a typed Proposal",
+            )
+        legacy_options = [
+            option
+            for option, value in (
+                ("parent_id", parent_id if proposal is not None else None),
+                ("graph_action", graph_action),
+                ("scientific_change", scientific_change),
+            )
+            if value is not None
+        ]
+        if legacy_options:
+            raise ConfigurationError(
+                "typed Proposal registration cannot use legacy graph options: "
+                + ", ".join(legacy_options)
+            )
+        return True
+
     def run_once(
         self,
         candidate_path: str | Path,
@@ -1881,6 +2938,7 @@ class ResearchService:
         context_token: str | None = None,
         graph_action: str | None = None,
         scientific_change: str | None = None,
+        proposal: str | Path | Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         with self._workflow_lock():
             return self._run_once(
@@ -1890,6 +2948,7 @@ class ResearchService:
                 context_token=context_token,
                 graph_action=graph_action,
                 scientific_change=scientific_change,
+                proposal=proposal,
             )
 
     def _run_once(
@@ -1901,8 +2960,63 @@ class ResearchService:
         context_token: str | None = None,
         graph_action: str | None = None,
         scientific_change: str | None = None,
+        proposal: str | Path | Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Run one candidate as a durable node in the experiment DAG."""
+
+        preview_state = reduce_scientific_state(
+            self.event_log.read(),
+            project_id=self.config.project_id,
+        )
+        # State-derived stop and pending obligations outrank request parsing
+        # and must reject without touching the evaluator or projection.  A
+        # second intent-aware pass below adds class and replication-parent
+        # gates once the Proposal lineage is known.
+        validate_registration_preflight(preview_state, {})
+        typed_path = (
+            preview_state.contract is not None
+            and preview_state.contract.schema_version == 2
+        )
+        preview_proposal_raw: Mapping[str, Any] | None = None
+        preview_typed_proposal: Proposal | None = None
+        if typed_path:
+            preflight_payload: dict[str, Any] = {"retry_of": retry_of}
+            if retry_of is None:
+                if proposal is not None:
+                    preview_proposal_raw = (
+                        dict(proposal)
+                        if isinstance(proposal, Mapping)
+                        else self._load_json_object(proposal, label="proposal")
+                    )
+                    preflight_payload.update(
+                        {
+                            "proposal": preview_proposal_raw,
+                            "parent_id": preview_proposal_raw.get(
+                                "parent_experiment_id"
+                            ),
+                        }
+                    )
+            else:
+                prior_registration = preview_state.registration(retry_of)
+                if prior_registration is not None:
+                    preflight_payload.update(
+                        {
+                            "proposal": prior_registration.proposal.to_dict(),
+                            "parent_id": prior_registration.parent_id,
+                        }
+                    )
+            validate_registration_preflight(preview_state, preflight_payload)
+        typed_path = self._validate_proposal_mode(
+            preview_state,
+            proposal=proposal,
+            parent_id=parent_id,
+            retry_of=retry_of,
+            graph_action=graph_action,
+            scientific_change=scientific_change,
+        )
+        if typed_path:
+            if preview_proposal_raw is not None:
+                preview_typed_proposal = Proposal.from_mapping(preview_proposal_raw)
 
         agent_context_snapshot: dict[str, Any] | None = None
         if context_token is not None:
@@ -1914,7 +3028,7 @@ class ResearchService:
             )
 
         graph_metadata: GraphMetadata | None = None
-        if retry_of is None:
+        if not typed_path and retry_of is None:
             graph_metadata = graph_metadata_from_values(
                 graph_action,
                 scientific_change,
@@ -1922,7 +3036,9 @@ class ResearchService:
             )
             if graph_metadata is not None:
                 validate_graph_relationship(graph_metadata, parent_id)
-        elif graph_action is not None or scientific_change is not None:
+        elif not typed_path and (
+            graph_action is not None or scientific_change is not None
+        ):
             # A retry is an execution continuation, never a newly labelled
             # scientific node. Its metadata is inherited below from history.
             inherit_retry_graph_metadata(
@@ -1932,6 +3048,59 @@ class ResearchService:
             )
         report = self._doctor()
         self._recover_incomplete_experiments()
+        science_state = reduce_scientific_state(
+            self.event_log.read(),
+            project_id=self.config.project_id,
+        )
+        validate_registration_preflight(science_state, {})
+        typed_path = (
+            science_state.contract is not None
+            and science_state.contract.schema_version == 2
+        )
+        if typed_path:
+            post_recovery_payload: dict[str, Any] = {"retry_of": retry_of}
+            if retry_of is None:
+                if preview_proposal_raw is not None:
+                    post_recovery_payload.update(
+                        {
+                            "proposal": preview_proposal_raw,
+                            "parent_id": preview_proposal_raw.get(
+                                "parent_experiment_id"
+                            ),
+                        }
+                    )
+            else:
+                prior_registration = science_state.registration(retry_of)
+                if prior_registration is not None:
+                    post_recovery_payload.update(
+                        {
+                            "proposal": prior_registration.proposal.to_dict(),
+                            "parent_id": prior_registration.parent_id,
+                        }
+                    )
+            validate_registration_preflight(science_state, post_recovery_payload)
+        typed_path = self._validate_proposal_mode(
+            science_state,
+            proposal=proposal,
+            parent_id=parent_id,
+            retry_of=retry_of,
+            graph_action=graph_action,
+            scientific_change=scientific_change,
+        )
+        generation_id = science_state.active_generation_id
+        if generation_id is not None:
+            live_seal = self._evaluation_seal_from_report(report)
+            if live_seal.digest != science_state.evaluation_seal_digest:
+                raise ScientificStateError(
+                    "STUDY_EVALUATION_SEAL_MISMATCH",
+                    "the active generation is not bound to the current evaluator seal",
+                    details={
+                        "active_evaluation_seal_digest": (
+                            science_state.evaluation_seal_digest
+                        ),
+                        "current_evaluation_seal_digest": live_seal.digest,
+                    },
+                )
         if context_token is not None:
             agent_context_snapshot, _ = self._validate_agent_context_after_doctor(
                 context_token,
@@ -1939,91 +3108,215 @@ class ResearchService:
             )
         compatibility = str(report.fingerprints["compatibility_digest"])
         candidate, candidate_digest = self._load_candidate(candidate_path)
-        # SQLite is a disposable query accelerator, never decision authority.
-        # Rebuild it from the verified canonical stream before consulting
-        # attempt/retry lineage so local projection drift cannot authorize a
-        # retry or parent that history does not contain.
-        self.projection.rebuild(self.event_log)
-        parent_id, attempt, retry_of = self._select_attempt(
-            candidate_digest,
-            parent_id,
-            compatibility,
-            retry_of,
-        )
-        if retry_of is not None:
-            prior_attempt = self.projection.experiment(
+        typed_proposal: Proposal | None = None
+        evaluation_scope: Any | None = None
+        registration: dict[str, Any] | None = None
+        if typed_path:
+            contract = science_state.contract
+            if contract is None or generation_id is None:  # pragma: no cover
+                raise IntegrityError("typed registration generation is unavailable")
+            self._validate_typed_generation_environment(contract, report)
+            if retry_of is None:
+                if preview_typed_proposal is None:  # pragma: no cover - mode gate above
+                    raise IntegrityError("typed Proposal input is unavailable")
+                typed_proposal = preview_typed_proposal
+                parent_id = typed_proposal.parent_experiment_id
+                attempt = 1
+            else:
+                prior_registration = science_state.registration(retry_of)
+                if prior_registration is None:
+                    raise ScientificStateError(
+                        "PROPOSAL_RETRY_MISMATCH",
+                        "retry_of does not identify a typed registration in the active generation",
+                        details={"retry_of": retry_of},
+                    )
+                if parent_id is not None and parent_id != prior_registration.parent_id:
+                    raise ScientificStateError(
+                        "PROPOSAL_RETRY_MISMATCH",
+                        "a retry must inherit the persisted Proposal parent",
+                        details={"retry_of": retry_of},
+                    )
+                typed_proposal = prior_registration.proposal
+                parent_id = prior_registration.parent_id
+                attempt = prior_registration.attempt + 1
+
+            evaluation_scope_id = typed_proposal.evaluation_scope_id
+            experiment_id = new_experiment_id(
                 self.config.project_id,
-                retry_of,
-            )
-            prior_payload = prior_attempt.get("payload")
-            if not isinstance(prior_payload, Mapping):
-                raise IntegrityError("projected retry registration is invalid")
-            graph_metadata = inherit_retry_graph_metadata(prior_payload)
-
-        parent_row: Mapping[str, Any] | None = None
-        if parent_id is not None:
-            try:
-                parent_row = self.projection.experiment(
-                    self.config.project_id,
-                    parent_id,
-                )
-            except IntegrityError as exc:
-                raise ConfigurationError(
-                    f"unknown parent experiment: {parent_id}"
-                ) from exc
-        if graph_metadata is not None:
-            validate_graph_relationship(
-                graph_metadata,
-                parent_id,
-                parent_is_terminal=(
-                    None
-                    if parent_row is None
-                    else is_terminal(str(parent_row.get("status", "")))
-                ),
+                candidate_digest,
                 compatibility_digest=compatibility,
-                parent_compatibility_digest=(
-                    None
-                    if parent_row is None
-                    else str(parent_row.get("compatibility_digest", ""))
-                ),
+                parent_id=parent_id,
+                generation_id=generation_id,
+                evaluation_scope_id=evaluation_scope_id,
+                attempt=attempt,
             )
-            validate_graph_candidate_change(
-                graph_metadata,
-                candidate_digest=candidate_digest,
-                parent_candidate_digest=(
-                    None
-                    if parent_row is None
-                    else str(parent_row.get("candidate_digest", ""))
-                ),
+            scope_baseline = science_state.baseline_for_scope(evaluation_scope_id)
+            prospective_baseline_id = (
+                scope_baseline.baseline_id
+                if scope_baseline is not None
+                else stable_id(
+                    "baseline",
+                    self.config.project_id,
+                    generation_id,
+                    evaluation_scope_id,
+                    "missing",
+                )
             )
-        self._assert_static_compatibility(report)
+            registration = {
+                "experiment_id": experiment_id,
+                "parent_id": parent_id,
+                "candidate_digest": candidate_digest,
+                "candidate": candidate,
+                "compatibility_digest": compatibility,
+                "source_tree_digest": report.fingerprints["source_tree_digest"],
+                "baseline_id": prospective_baseline_id,
+                "primary_metric": self.config.primary_metric,
+                "attempt": attempt,
+                "retry_of": retry_of,
+                "status": "registered",
+                "authorized_action": None,
+                **registration_payload_fields(
+                    science_state,
+                    retry_of=retry_of,
+                ),
+                "proposal": typed_proposal.to_dict(),
+                "proposal_digest": typed_proposal.digest,
+                "proposal_id": proposal_id(
+                    self.config.project_id,
+                    typed_proposal.digest,
+                ),
+                "evaluation_scope_id": evaluation_scope_id,
+            }
+            # Derive even an early zero-delta rejection from a verified locked
+            # snapshot. The same pure authority runs again under EventLog's
+            # exclusive append lock at the canonical registration boundary.
+            with self.event_log.locked_read() as locked_events:
+                locked_state = reduce_scientific_state(
+                    tuple(locked_events),
+                    project_id=self.config.project_id,
+                )
+                reserve_registration(locked_state, registration)
+            science_state = locked_state
+            evaluation_scope = next(
+                (
+                    scope
+                    for scope in contract.evaluation_scopes
+                    if scope.id == evaluation_scope_id
+                ),
+                None,
+            )
+            if evaluation_scope is None:  # pragma: no cover - validator authority
+                raise IntegrityError("typed Proposal scope is unavailable")
+            baseline = self._compatible_baseline(
+                compatibility,
+                generation_id=generation_id,
+                study_contract_digest=contract.digest,
+                evaluation_seal_digest=science_state.evaluation_seal_digest,
+                evaluation_scope=evaluation_scope.to_dict(),
+            )
+            if (
+                baseline is None
+                or baseline.get("baseline_id") != prospective_baseline_id
+            ):
+                raise ScientificStateError(
+                    "STUDY_SCOPE_BASELINE_REQUIRED",
+                    "typed registration requires a trusted baseline for its exact evaluation scope",
+                    details={"evaluation_scope_id": evaluation_scope_id},
+                )
+        else:
+            # SQLite is a disposable query accelerator, never decision authority.
+            # Rebuild it from the verified canonical stream before consulting
+            # attempt/retry lineage so local projection drift cannot authorize a
+            # retry or parent that history does not contain.
+            self.projection.rebuild(self.event_log)
+            parent_id, attempt, retry_of = self._select_attempt(
+                candidate_digest,
+                parent_id,
+                compatibility,
+                retry_of,
+                generation_id=generation_id,
+            )
+            if retry_of is not None:
+                prior_attempt = self.projection.experiment(
+                    self.config.project_id,
+                    retry_of,
+                )
+                prior_payload = prior_attempt.get("payload")
+                if not isinstance(prior_payload, Mapping):
+                    raise IntegrityError("projected retry registration is invalid")
+                graph_metadata = inherit_retry_graph_metadata(prior_payload)
 
-        baseline = self._compatible_baseline(compatibility)
-        if baseline is None:
-            created_baseline = self._baseline()
-            # _baseline() runs doctor again; the original candidate request is
-            # valid only if the complete immutable compatibility seal survived.
-            if created_baseline["compatibility_digest"] != compatibility:
-                raise IntegrityError(
-                    "project compatibility changed while establishing baseline"
+            parent_row: Mapping[str, Any] | None = None
+            if parent_id is not None:
+                try:
+                    parent_row = self.projection.experiment(
+                        self.config.project_id,
+                        parent_id,
+                    )
+                except IntegrityError as exc:
+                    raise ConfigurationError(
+                        f"unknown parent experiment: {parent_id}"
+                    ) from exc
+                if parent_row.get("generation_id") != generation_id:
+                    raise ConfigurationError(
+                        "parent_id must reference an experiment in the active generation"
+                    )
+            if graph_metadata is not None:
+                validate_graph_relationship(
+                    graph_metadata,
+                    parent_id,
+                    parent_is_terminal=(
+                        None
+                        if parent_row is None
+                        else is_terminal(str(parent_row.get("status", "")))
+                    ),
+                    compatibility_digest=compatibility,
+                    parent_compatibility_digest=(
+                        None
+                        if parent_row is None
+                        else str(parent_row.get("compatibility_digest", ""))
+                    ),
+                )
+                validate_graph_candidate_change(
+                    graph_metadata,
+                    candidate_digest=candidate_digest,
+                    parent_candidate_digest=(
+                        None
+                        if parent_row is None
+                        else str(parent_row.get("candidate_digest", ""))
+                    ),
                 )
             self._assert_static_compatibility(report)
-            baseline = self._compatible_baseline(compatibility)
-            if baseline is None:  # pragma: no cover - defensive invariant
-                raise IntegrityError("newly recorded baseline cannot be reloaded")
-            if context_token is not None:
-                agent_context_snapshot, _ = self._validate_agent_context_after_doctor(
-                    context_token,
-                    report,
-                )
 
-        experiment_id = new_experiment_id(
-            self.config.project_id,
-            candidate_digest,
-            compatibility_digest=compatibility,
-            parent_id=parent_id,
-            attempt=attempt,
-        )
+            baseline = self._compatible_baseline(compatibility)
+            if baseline is None:
+                created_baseline = self._baseline()
+                # _baseline() runs doctor again; the original candidate request is
+                # valid only if the complete immutable compatibility seal survived.
+                if created_baseline["compatibility_digest"] != compatibility:
+                    raise IntegrityError(
+                        "project compatibility changed while establishing baseline"
+                    )
+                self._assert_static_compatibility(report)
+                baseline = self._compatible_baseline(compatibility)
+                if baseline is None:  # pragma: no cover - defensive invariant
+                    raise IntegrityError("newly recorded baseline cannot be reloaded")
+                if context_token is not None:
+                    agent_context_snapshot, _ = (
+                        self._validate_agent_context_after_doctor(
+                            context_token,
+                            report,
+                        )
+                    )
+
+            experiment_id = new_experiment_id(
+                self.config.project_id,
+                candidate_digest,
+                compatibility_digest=compatibility,
+                parent_id=parent_id,
+                generation_id=generation_id,
+                attempt=attempt,
+            )
         manager: WorkspaceManager | None = None
         handle: Any = None
         result: ResultEnvelope | None = None
@@ -2040,6 +3333,7 @@ class ResearchService:
         workspace_detached = False
         recorded_notes: set[tuple[int, str]] = set()
         registered = False
+        registration_event_id: str | None = None
 
         def record_exception_notes(exc: BaseException) -> None:
             notes = getattr(exc, "__notes__", None)
@@ -2079,6 +3373,19 @@ class ResearchService:
                 )
                 return False
 
+        def registration_commit_is_owned() -> bool:
+            """Prove that this invocation, not an ID-identical rival, committed."""
+
+            if registration_event_id is None:
+                return False
+            return any(
+                event.event_id == registration_event_id
+                and _normalized_event_type(event.event_type)
+                == "EXPERIMENT_REGISTERED"
+                and event.payload.get("experiment_id") == experiment_id
+                for event in self.event_log.read()
+            )
+
         try:
             self._assert_static_compatibility(report)
             if context_token is not None:
@@ -2086,36 +3393,47 @@ class ResearchService:
                     context_token,
                     report,
                 )
-            registration = {
-                "experiment_id": experiment_id,
-                "parent_id": parent_id,
-                "candidate_digest": candidate_digest,
-                "candidate": candidate,
-                "compatibility_digest": compatibility,
-                "source_tree_digest": report.fingerprints["source_tree_digest"],
-                "baseline_id": baseline["baseline_id"],
-                "primary_metric": baseline["primary_metric"],
-                "attempt": attempt,
-                "retry_of": retry_of,
-                "status": "registered",
-                "authorized_action": None,
-            }
-            if graph_metadata is not None:
-                registration.update(graph_metadata.to_payload())
+            if registration is None:
+                registration = {
+                    "experiment_id": experiment_id,
+                    "parent_id": parent_id,
+                    "candidate_digest": candidate_digest,
+                    "candidate": candidate,
+                    "compatibility_digest": compatibility,
+                    "source_tree_digest": report.fingerprints[
+                        "source_tree_digest"
+                    ],
+                    "baseline_id": baseline["baseline_id"],
+                    "primary_metric": baseline["primary_metric"],
+                    "attempt": attempt,
+                    "retry_of": retry_of,
+                    "status": "registered",
+                    "authorized_action": None,
+                }
+                if generation_id is not None:
+                    registration.update(
+                        registration_payload_fields(
+                            science_state,
+                            retry_of=retry_of,
+                        )
+                    )
+                if graph_metadata is not None:
+                    registration.update(graph_metadata.to_payload())
             if context_token is not None:
                 registration["agent_context_token"] = context_token
                 registration["agent_context_snapshot"] = agent_context_snapshot
                 if agent_context_snapshot is None:  # pragma: no cover - guarded above
                     raise IntegrityError("agent context snapshot is unavailable")
-                self._append_agent_authorized_event(
-                    "EXPERIMENT_REGISTERED",
-                    registration,
-                    context_token=context_token,
-                    snapshot=agent_context_snapshot,
-                    report=report,
-                )
-            else:
-                self.event_log.append("EXPERIMENT_REGISTERED", registration)
+            if generation_id is not None and not typed_path:
+                reserve_registration(science_state, registration)
+            registration_event_id = new_id("event")
+            self._append_registration_event(
+                registration,
+                report=report,
+                context_token=context_token,
+                snapshot=agent_context_snapshot,
+                event_id=registration_event_id,
+            )
             registered = True
             self._sync()
             self._assert_static_compatibility(report)
@@ -2132,6 +3450,10 @@ class ResearchService:
                 "candidate": candidate,
                 "candidate_digest": candidate_digest,
             }
+            if evaluation_scope is not None:
+                materialize_input["evaluation_scope"] = (
+                    evaluation_scope.to_dict()
+                )
             response = self._call_sealed(
                 report,
                 Operation.MATERIALIZE,
@@ -2152,6 +3474,8 @@ class ResearchService:
                 "candidate_digest": candidate_digest,
                 "baseline_id": baseline["baseline_id"],
             }
+            if evaluation_scope is not None:
+                run_input["evaluation_scope"] = evaluation_scope.to_dict()
             response = self._call_sealed(
                 report,
                 Operation.RUN,
@@ -2170,6 +3494,10 @@ class ResearchService:
             manager.verify_source_unchanged(handle)
 
             evaluate_input = {"candidate_digest": candidate_digest}
+            if evaluation_scope is not None:
+                evaluate_input["evaluation_scope"] = (
+                    evaluation_scope.to_dict()
+                )
             response = self._call_sealed(
                 report,
                 Operation.EVALUATE,
@@ -2198,6 +3526,8 @@ class ResearchService:
             self._publish_artifact_records(experiment_id, captured_records)
 
             verify_input = {"result_digest": sha256_json(result.to_dict())}
+            if evaluation_scope is not None:
+                verify_input["evaluation_scope"] = evaluation_scope.to_dict()
             response = self._call_sealed(
                 report,
                 Operation.VERIFY,
@@ -2211,13 +3541,7 @@ class ResearchService:
                 input_value=verify_input,
                 response=response,
             )
-            _response_payload(response, Operation.VERIFY)
-            try:
-                verify_result = response.verify_result()
-            except (TypeError, ValueError, KeyError) as exc:
-                raise ProtocolError(
-                    f"verify returned an invalid verdict: {exc}"
-                ) from exc
+            verify_result = _verify_result(response)
             manager.verify(handle, allowed_outputs=result.artifacts)
             verified = verify_result.valid
 
@@ -2252,23 +3576,22 @@ class ResearchService:
                 terminal = (category.terminal_status, verify_result.reason_code)
         except KeyboardInterrupt as exc:
             if not registered:
-                registered = any(
-                    event.event_type == "EXPERIMENT_REGISTERED"
-                    and event.payload.get("experiment_id") == experiment_id
-                    for event in self.event_log.read()
-                )
-            if not registered:
-                raise
+                # An interrupt may land after the durable append returns but
+                # before the local assignment above.  A caller-owned event ID
+                # proves that exact commit without mistaking an identical
+                # contender's deterministic experiment ID for our own work.
+                registered = registration_commit_is_owned()
+                if not registered:
+                    raise
             record_interrupt(exc)
         except Exception as exc:
             if not registered:
-                registered = any(
-                    event.event_type == "EXPERIMENT_REGISTERED"
-                    and event.payload.get("experiment_id") == experiment_id
-                    for event in self.event_log.read()
-                )
-            if not registered:
-                raise
+                registered = registration_commit_is_owned()
+                if not registered:
+                    # A raised append did not publish this caller's exact
+                    # registration event.  In particular, do not terminalize
+                    # an ID-identical concurrent winner.
+                    raise
             record_exception_notes(exc)
             failure = exc
             terminal = _classify_failure(exc)
@@ -2439,6 +3762,9 @@ class ResearchService:
                 raise failure
             raise evidence_pending
 
+        if result is not None:
+            result = _bind_captured_result(result, captured_records)
+
         assert terminal is not None
         status, reason_code = terminal
         secondary_errors.extend(cleanup_errors)
@@ -2483,7 +3809,7 @@ class ResearchService:
             if interrupt_error is not None:
                 raise interrupt_error
             raise KeyboardInterrupt  # pragma: no cover - defensive invariant
-        return summary
+        return _legacy_public_run_summary(summary)
 
     def _agent_context_snapshot(
         self,
@@ -2540,6 +3866,43 @@ class ResearchService:
         return inspect_evaluator_certification(
             self.config,
             fingerprints=fingerprints,
+        )
+
+    def _evaluation_seal_from_report(
+        self,
+        report: DoctorReport,
+    ) -> EvaluationSeal:
+        """Derive the exact active-evaluator seal from a fresh doctor report."""
+
+        certification = self._evaluator_certification_summary(
+            fingerprints=report.fingerprints,
+        )
+        if (
+            certification.get("certified") is not True
+            or certification.get("current") is not True
+        ):
+            status = str(certification.get("status", "MISSING"))
+            raise EvaluatorCertificationError(
+                "a current passing evaluator certification is required to bind "
+                "a study generation",
+                reason=status.lower(),
+                details={
+                    "status": status,
+                    "blockers": list(certification.get("blockers", [])),
+                },
+            )
+        return EvaluationSeal.from_mapping(
+            {
+                "compatibility_digest": report.fingerprints[
+                    "compatibility_digest"
+                ],
+                "evaluator_certification_digest": certification[
+                    "certification_digest"
+                ],
+                "evaluator_review_subject_digest": certification[
+                    "review_subject_digest"
+                ],
+            }
         )
 
     def _agent_research_state(
@@ -2673,6 +4036,82 @@ class ResearchService:
             raise IntegrityError("agent context snapshot has an invalid canonical head")
         return sequence, digest
 
+    def _append_registration_event(
+        self,
+        payload: Mapping[str, Any],
+        *,
+        report: DoctorReport,
+        context_token: str | None,
+        snapshot: Mapping[str, Any] | None,
+        event_id: str | None = None,
+    ) -> Event:
+        """Commit one registration through the common locked science gate."""
+
+        if context_token is None:
+            expected_head = None
+        else:
+            if snapshot is None:  # pragma: no cover - guarded by caller
+                raise IntegrityError("agent context snapshot is unavailable")
+            expected_head = self._snapshot_head(snapshot)
+
+        def validate_locked_registration(locked_events: tuple[Event, ...]) -> None:
+            if context_token is not None:
+                self._validate_agent_context_after_doctor(
+                    context_token,
+                    report,
+                    events=locked_events,
+                )
+            locked_state = reduce_scientific_state(
+                locked_events,
+                project_id=self.config.project_id,
+            )
+            if locked_state.active_generation_id is not None:
+                # Keep malformed or incorrectly bound registration evidence
+                # ahead of live environment checks in the stable science error
+                # ordering. Pre-generation registrations intentionally retain
+                # their exact legacy semantics.
+                validate_registration(locked_state, payload)
+                fresh_report = self._doctor_snapshot(
+                    event_count=len(locked_events)
+                )
+                locked_contract = locked_state.contract
+                if locked_contract is None:  # pragma: no cover - reducer invariant
+                    raise IntegrityError(
+                        "active generation omitted its study contract"
+                    )
+                self._validate_typed_generation_environment(
+                    locked_contract,
+                    fresh_report,
+                )
+                live_seal = self._evaluation_seal_from_report(fresh_report)
+                if live_seal.digest != locked_state.evaluation_seal_digest:
+                    raise ScientificStateError(
+                        "STUDY_EVALUATION_SEAL_MISMATCH",
+                        "the active generation is not bound to the current evaluator seal",
+                        details={
+                            "active_evaluation_seal_digest": (
+                                locked_state.evaluation_seal_digest
+                            ),
+                            "current_evaluation_seal_digest": live_seal.digest,
+                        },
+                    )
+                reserve_registration(locked_state, payload)
+
+        try:
+            with evaluator_certification_read_lock(self.config):
+                return self.event_log.append(
+                    "EXPERIMENT_REGISTERED",
+                    payload,
+                    event_id=event_id,
+                    expected_head=expected_head,
+                    precondition=validate_locked_registration,
+                    postcondition=validate_locked_registration,
+                )
+        except EventHeadMismatchError as exc:
+            raise StaleAgentContextError(
+                "agent context is stale; refresh agent-context before proposing"
+            ) from exc
+
     def _append_agent_authorized_event(
         self,
         event_type: str,
@@ -2717,14 +4156,27 @@ class ResearchService:
                 "agent context is stale; refresh agent-context before proposing"
             ) from exc
 
-    def agent_context(self, *, limit: int = 20) -> dict[str, Any]:
+    def agent_context(
+        self,
+        *,
+        limit: int = 20,
+        schema_version: int = 3,
+    ) -> dict[str, Any]:
         """Return one bounded evidence packet for Codex or Claude Code."""
 
         if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 100:
             raise ValueError("agent context limit must be an integer from 1 to 100")
+        if (
+            isinstance(schema_version, bool)
+            or not isinstance(schema_version, int)
+            or schema_version not in {2, 3}
+        ):
+            raise ValueError("agent context schema version must be 2 or 3")
         with self._workflow_lock():
             self._assert_config_unchanged()
             self.event_log.verify()
+            if schema_version == 3:
+                return self._agent_context_v3_read_only(limit=limit)
             self._recover_incomplete_experiments()
             for _ in range(3):
                 events_before = self.event_log.read()
@@ -2787,6 +4239,95 @@ class ResearchService:
             raise IntegrityError(
                 "canonical history changed repeatedly while building agent context"
             )
+
+    def _agent_context_v3_read_only(self, *, limit: int) -> dict[str, Any]:
+        """Build Context v3 without recovery or writes to the project cache."""
+
+        for _ in range(3):
+            events_before = tuple(self.event_log.read())
+            head_before = (
+                (events_before[-1].sequence, events_before[-1].hash)
+                if events_before
+                else (0, None)
+            )
+            science = reduce_scientific_state(
+                events_before,
+                project_id=self.config.project_id,
+            )
+            with tempfile.TemporaryDirectory(
+                prefix="research-os-context-v3-"
+            ) as temporary:
+                temporary_root = Path(temporary)
+                temporary_log = EventLog(
+                    temporary_root / "events.jsonl",
+                    self.config.project_id,
+                )
+                for event in events_before:
+                    copied = temporary_log.append(
+                        event.event_type,
+                        event.payload,
+                        event_id=event.event_id,
+                        occurred_at=event.occurred_at,
+                    )
+                    if copied.to_dict() != event.to_dict():
+                        raise IntegrityError(
+                            "Context v3 temporary replay changed a canonical event"
+                        )
+                projection = ProjectionStore(temporary_root / "state.db")
+                projection.rebuild(temporary_log)
+                status = projection.project_status(self.config.project_id)
+                lineage = projection.lineage(self.config.project_id)
+                findings = projection.findings(project_id=self.config.project_id)
+                artifacts = projection.artifacts(self.config.project_id)
+            for record in artifacts:
+                self._verify_projected_artifact(record)
+            events_after = tuple(self.event_log.read())
+            head_after = (
+                (events_after[-1].sequence, events_after[-1].hash)
+                if events_after
+                else (0, None)
+            )
+            if head_before != head_after:
+                continue
+            snapshot, agent_spec, certification = self._agent_research_state(
+                events=events_after
+            )
+            bindings = certification.get("bindings")
+            effective_compatibility = (
+                bindings.get("effective_compatibility")
+                if isinstance(bindings, Mapping)
+                else None
+            )
+            baseline_ready = bool(
+                isinstance(effective_compatibility, str)
+                and effective_compatibility
+                and self._compatible_baseline_from_events(
+                    events_after,
+                    effective_compatibility,
+                )
+                is not None
+            )
+            return build_agent_context_v3(
+                project=self.inspect(),
+                status=status,
+                lineage=lineage,
+                findings=findings,
+                artifacts=artifacts,
+                agent_spec=agent_spec,
+                snapshot=snapshot,
+                scientific_state=science.to_dict(),
+                limit=limit,
+                current_compatibility_digest=(
+                    effective_compatibility
+                    if isinstance(effective_compatibility, str)
+                    and effective_compatibility
+                    else None
+                ),
+                compatible_baseline_ready=baseline_ready,
+            )
+        raise IntegrityError(
+            "canonical history changed repeatedly while building agent context"
+        )
 
     def conclude_branch(
         self,
@@ -3025,47 +4566,93 @@ class ResearchService:
         with self._workflow_lock():
             self._assert_config_unchanged()
             self.event_log.verify()
+            reduce_scientific_state(
+                self.event_log.read(),
+                project_id=self.config.project_id,
+            )
             self.projection.rebuild(self.event_log)
             self._recover_incomplete_experiments()
-            count = self.projection.rebuild(self.event_log)
-            artifact_ids: set[str] = set()
-            projected_records: list[
-                tuple[Mapping[str, Any], ArtifactRecord]
-            ] = []
-            for record in self.projection.artifacts(self.config.project_id):
-                stored = self._verify_projected_artifact(record)
-                artifact_ids.add(stored.artifact_id)
-                projected_records.append((record, stored))
-            self._verify_terminal_artifact_bindings(projected_records)
-            for event in self.event_log.read():
-                if _normalized_event_type(event.event_type) != "BASELINE_RECORDED":
-                    continue
-                compatibility = event.payload.get("compatibility_digest")
-                if not isinstance(compatibility, str) or not compatibility:
-                    raise IntegrityError(
-                        "historical baseline compatibility digest is invalid"
+            # A Diagnosis or generation append does not take the workflow lock.
+            # Rebuild first, then retain one verified shared log snapshot while
+            # every returned projection/science/evidence surface is read.  If
+            # an append linearized between rebuild and the shared snapshot,
+            # retry the rebuild rather than combining two canonical heads.
+            for _ in range(8):
+                count = self.projection.rebuild(self.event_log)
+                with self.event_log.locked_read() as replay_events:
+                    if count != len(replay_events):
+                        continue
+                    science_state = reduce_scientific_state(
+                        replay_events,
+                        project_id=self.config.project_id,
                     )
-                baseline = self._validate_baseline_payload(
-                    event.payload,
-                    compatibility,
-                    enforce_current_policy=False,
-                )
-                baseline_artifacts = cast(
-                    Sequence[Mapping[str, Any]], baseline["artifacts"]
-                )
-                for record in baseline_artifacts:
-                    expected = ArtifactRecord.from_mapping(
-                        record
+                    status = self.projection.project_status(
+                        self.config.project_id
                     )
-                    artifact_ids.add(expected.artifact_id)
-            for artifact_id in sorted(artifact_ids):
-                self.catalog.get(artifact_id)
-            return {
-                "project_id": self.config.project_id,
-                "events_replayed": count,
-                "artifacts_verified": len(artifact_ids),
-                "status": self.projection.project_status(self.config.project_id),
-            }
+                    expected_hash = replay_events[-1].hash if replay_events else None
+                    if (
+                        status["last_sequence"] != count
+                        or status["last_hash"] != expected_hash
+                    ):
+                        continue
+                    artifact_ids: set[str] = set()
+                    projected_records: list[
+                        tuple[Mapping[str, Any], ArtifactRecord]
+                    ] = []
+                    for record in self.projection.artifacts(
+                        self.config.project_id
+                    ):
+                        stored = self._verify_projected_artifact(record)
+                        artifact_ids.add(stored.artifact_id)
+                        projected_records.append((record, stored))
+                    self._verify_terminal_artifact_bindings(
+                        projected_records,
+                        events=replay_events,
+                    )
+                    for event in replay_events:
+                        if (
+                            _normalized_event_type(event.event_type)
+                            != "BASELINE_RECORDED"
+                        ):
+                            continue
+                        compatibility = event.payload.get("compatibility_digest")
+                        if not isinstance(compatibility, str) or not compatibility:
+                            raise IntegrityError(
+                                "historical baseline compatibility digest is invalid"
+                            )
+                        baseline = self._validate_baseline_payload(
+                            event.payload,
+                            compatibility,
+                            enforce_current_policy=False,
+                        )
+                        baseline_artifacts = cast(
+                            Sequence[Mapping[str, Any]], baseline["artifacts"]
+                        )
+                        for record in baseline_artifacts:
+                            expected = ArtifactRecord.from_mapping(record)
+                            artifact_ids.add(expected.artifact_id)
+                    for artifact_id in sorted(artifact_ids):
+                        self.catalog.get(artifact_id)
+                    # Direct ProjectionStore.apply() writers do not acquire the
+                    # canonical EventLog lock retained above.  Recheck the full
+                    # projection observation after every independent query so
+                    # this result linearizes before such a writer or retries
+                    # after rebuilding its non-canonical cache mutation away.
+                    if self.projection.project_status(
+                        self.config.project_id
+                    ) != status:
+                        continue
+                    return {
+                        "project_id": self.config.project_id,
+                        "events_replayed": count,
+                        "artifacts_verified": len(artifact_ids),
+                        "status": status,
+                        "science": science_state.to_dict(),
+                        "authorized_action": None,
+                    }
+            raise IntegrityError(
+                "canonical history changed too frequently for a coherent replay"
+            )
 
 
 DESIGN_PROVENANCE = {
@@ -3075,6 +4662,10 @@ DESIGN_PROVENANCE = {
         "Bounded mutable surface",
         "Reversible ratchet",
         "Experiment DAG",
+        "Typed provenance",
+    ),
+    "ResearchService.record_diagnosis": (
+        "Durable graph memory",
         "Typed provenance",
     ),
     "ResearchService.replay": ("Durable graph memory",),

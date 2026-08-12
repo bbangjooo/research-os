@@ -1,0 +1,41 @@
+{
+  "experiment": {
+    "attempt": 1,
+    "candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "compatibility_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "created_sequence": 2,
+    "experiment_id": "exp_9c077608f342414ce35c5dec5d7aa07b",
+    "parent_id": null,
+    "payload": {
+      "attempt": 1,
+      "authorized_action": null,
+      "candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "compatibility_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "experiment_id": "exp_9c077608f342414ce35c5dec5d7aa07b",
+      "parent_id": null,
+      "retry_of": null,
+      "status": "registered"
+    },
+    "project_id": "fixture-legacy-v1",
+    "registered_at": "2026-01-02T03:04:06.000000Z",
+    "retry_of": null,
+    "retryable": false,
+    "status": "REGISTERED",
+    "terminated_at": null,
+    "updated_sequence": 2
+  },
+  "status": {
+    "artifacts": 0,
+    "baselines": 0,
+    "experiments": 1,
+    "experiments_by_status": {
+      "REGISTERED": 1
+    },
+    "findings": 0,
+    "initialized": true,
+    "last_hash": "3b3fcaa193ac3af814a67c605c253d86b5d993b4e277ceed78b7b97ed367d901",
+    "last_sequence": 2,
+    "project_id": "fixture-legacy-v1",
+    "status": "active"
+  }
+}

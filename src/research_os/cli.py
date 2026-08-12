@@ -109,6 +109,13 @@ def _parser() -> argparse.ArgumentParser:
         default=20,
         help="maximum recent records per context section (1-100)",
     )
+    agent_context.add_argument(
+        "--schema-version",
+        type=int,
+        choices=(2, 3),
+        default=3,
+        help="agent context packet schema (default: 3; use 2 for compatibility)",
+    )
 
     baseline = subparsers.add_parser(
         "baseline", help="measure and seal a reproducible baseline"
@@ -118,11 +125,23 @@ def _parser() -> argparse.ArgumentParser:
         type=int,
         help="must equal the immutable constitution repetition count",
     )
+    baseline.add_argument(
+        "--evaluation-scope-id",
+        dest="evaluation_scope_id",
+        action=_SingleValue,
+        help="preregistered StudyContract v2 evaluation scope",
+    )
 
     run_once = subparsers.add_parser(
         "run-once", help="evaluate one candidate JSON object"
     )
     run_once.add_argument("candidate", type=Path)
+    run_once.add_argument(
+        "--proposal",
+        type=Path,
+        action=_SingleValue,
+        help="strict StudyContract v2 Proposal JSON",
+    )
     run_once.add_argument("--parent", dest="parent_id")
     run_once.add_argument(
         "--retry-of",
@@ -158,6 +177,55 @@ def _parser() -> argparse.ArgumentParser:
         help="require the canonical agent-context snapshot to still be current",
     )
 
+    diagnose = subparsers.add_parser(
+        "diagnose",
+        help="record one evidence-bound Diagnosis for a terminal experiment",
+    )
+    diagnose.add_argument(
+        "diagnosis",
+        type=Path,
+        help="strict Diagnosis JSON",
+    )
+
+    diagnosis_template = subparsers.add_parser(
+        "diagnosis-template",
+        help="emit a no-write Diagnosis body with exact kernel evidence",
+    )
+    diagnosis_template.add_argument(
+        "--experiment",
+        dest="experiment_id",
+        help="pending terminal experiment (optional when exactly one is pending)",
+    )
+
+    open_generation = subparsers.add_parser(
+        "open-generation",
+        help="open an evaluation-sealed study generation from a strict contract",
+    )
+    open_generation.add_argument(
+        "contract",
+        type=Path,
+        help="strict StudyContract JSON",
+    )
+    open_generation.add_argument(
+        "--predecessor-generation-id",
+        "--predecessor",
+        dest="predecessor_generation_id",
+        action=_SingleValue,
+        help="active generation being explicitly superseded",
+    )
+    open_generation.add_argument(
+        "--change-reason",
+        "--reason",
+        dest="change_reason",
+        action=_SingleValue,
+        help="non-empty reason required for a successor generation",
+    )
+
+    subparsers.add_parser(
+        "study-status",
+        help="show the replay-derived active study generation and reserved budget",
+    )
+
     subparsers.add_parser("status", help="show projected project status")
 
     lineage = subparsers.add_parser(
@@ -181,13 +249,27 @@ def _parser() -> argparse.ArgumentParser:
 
 def _print(value: Any, *, stream: Any | None = None) -> None:
     stream = sys.stdout if stream is None else stream
-    json.dump(
-        value, stream, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False
+    rendered = json.dumps(
+        value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False
     )
-    stream.write("\n")
+    stream.write(rendered + "\n")
 
 
 def _dispatch(args: argparse.Namespace) -> Any:
+    if args.command == "run-once" and args.proposal is not None:
+        conflicts = [
+            option
+            for option, value in (
+                ("--parent", args.parent_id),
+                ("--graph-action", args.graph_action),
+                ("--scientific-change", args.scientific_change),
+            )
+            if value is not None
+        ]
+        if conflicts:
+            raise CLIUsageError(
+                "--proposal cannot be combined with " + ", ".join(conflicts)
+            )
     if args.command == "init":
         created = initialize_project(args.path, args.project_id, args.name)
         return {
@@ -219,7 +301,10 @@ def _dispatch(args: argparse.Namespace) -> Any:
     if args.command == "certify-evaluator":
         return service.certify_evaluator(args.review, replace=args.replace)
     if args.command == "agent-context":
-        return service.agent_context(limit=args.limit)
+        return service.agent_context(
+            limit=args.limit,
+            schema_version=args.schema_version,
+        )
     if args.command == "baseline":
         if (
             args.repeats is not None
@@ -229,21 +314,37 @@ def _dispatch(args: argparse.Namespace) -> Any:
                 "--repeats must equal the immutable constitution repetition count "
                 f"({service.config.baseline_repeats})"
             )
-        return service.baseline()
+        if args.evaluation_scope_id is None:
+            return service.baseline()
+        return service.baseline(evaluation_scope_id=args.evaluation_scope_id)
     if args.command == "run-once":
-        return service.run_once(
-            args.candidate,
-            parent_id=args.parent_id,
-            retry_of=args.retry_of,
-            context_token=args.context_token,
-            graph_action=args.graph_action,
-            scientific_change=args.scientific_change,
-        )
+        run_arguments: dict[str, Any] = {
+            "parent_id": args.parent_id,
+            "retry_of": args.retry_of,
+            "context_token": args.context_token,
+            "graph_action": args.graph_action,
+            "scientific_change": args.scientific_change,
+        }
+        if args.proposal is not None:
+            run_arguments["proposal"] = args.proposal
+        return service.run_once(args.candidate, **run_arguments)
     if args.command == "conclude-branch":
         return service.conclude_branch(
             args.conclusion,
             context_token=args.context_token,
         )
+    if args.command == "diagnose":
+        return service.record_diagnosis(args.diagnosis)
+    if args.command == "diagnosis-template":
+        return service.diagnosis_template(args.experiment_id)
+    if args.command == "open-generation":
+        return service.open_generation(
+            args.contract,
+            predecessor_generation_id=args.predecessor_generation_id,
+            change_reason=args.change_reason,
+        )
+    if args.command == "study-status":
+        return service.study_status()
     if args.command == "status":
         return service.status()
     if args.command == "lineage":

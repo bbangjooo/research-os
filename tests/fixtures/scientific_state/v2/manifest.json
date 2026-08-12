@@ -1,0 +1,439 @@
+{
+  "schema_version": 1,
+  "kind": "research_os.typed_proposal_replication_oracle",
+  "covered_capabilities": [
+    "typed_proposal",
+    "evaluation_scope_identity",
+    "scientific_replication"
+  ],
+  "fixtures": {
+    "project_id": "fixture-m1c",
+    "candidate_schema": "m1c-candidate-schema.json",
+    "candidate_schema_raw_sha256": "7d63f64f8551a209e9ed1629511f1227bd71d88695b24fa6e0064c23ac6b70d5",
+    "candidate_schema_digest": "1b49c8af8a9bcedd3127d75592e80b8bf8ad2bd7b28391056160f80dce2f1d33",
+    "contract": "m1c-contract.json",
+    "contract_raw_sha256": "43108703cba7b8feaad967b4c7d5db17f97ed0de2a3bb9b249a312cf2d4f8403",
+    "contract_digest": "7f66d3bc702d112197de6649cf7555b5a086f43768723dc346ad150a8bf9e184",
+    "proposal_explore": "m1c-proposal-explore.json",
+    "proposal_explore_raw_sha256": "5932b1dcd39bdd1d88fb67a14f5a8de3cc7df0264368aa0ec5a9dfd37b79598b",
+    "proposal_explore_digest": "edc12b16a1f6419c575d44a5be47352e24d49570533939ed09726fa6e493ba09",
+    "proposal_explore_id": "proposal_202fd99acdfc63371bff7e748e3d758d",
+    "proposal_replicate": "m1c-proposal-replicate.json",
+    "proposal_replicate_raw_sha256": "bd829aa2b1e1ff7af14e9a9b7f6da976b9c3565765c8b09a6efe86bf5fa900a5",
+    "proposal_replicate_digest": "e83e7e5639fb3350972190d14b799d8f27c966809966d6a834ef13e7635d10b8",
+    "proposal_replicate_id": "proposal_9e0889d18ae1a62227b0563f733b000b",
+    "proposal_negative_matrix": "m1c-proposal-negative-matrix.json",
+    "proposal_negative_matrix_raw_sha256": "418ecde928d308d04453a5e3d8906bb57139ae80ef2a6c11a71d7a77f7be294a",
+    "transition_negative_matrix": "m1c-transition-negative-matrix.json",
+    "transition_negative_matrix_raw_sha256": "76524d0629f909c1f5ee1eabe0ad297463f2f1e7bb7685230e2c6c5b5317288c",
+    "m1b_v1_generation_events": "m1b-v1-generation-events.jsonl",
+    "m1b_v1_generation_events_raw_sha256": "9624d76d3d95c02b50fb4f4aeecff97de4bb7e86333ec5630b0aedf42b2f4c13",
+    "m1b_v1_compat_oracle": "m1b-v1-compat-oracle.json",
+    "m1b_v1_compat_oracle_raw_sha256": "b8a607aef238c8cc9f462fdd7b63e9a16002fbb8fbb3d8ded077267ecc9f43bb",
+    "evaluation_seal": {
+      "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "evaluator_certification_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "evaluator_review_subject_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
+    "generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54",
+    "candidate_digest": "8c056c3399fce447330a0e90971addc793e4171b16f384a70db3519e0ad4958c",
+    "explore_experiment_id": "exp_14dab599bb9be91cbac8751a5c0da192",
+    "explore_retry_experiment_id": "exp_536ca19ec4feb680afd4e58f95ffb4d9",
+    "replication_1_experiment_id": "exp_6de5a6123dad0a28f3bb630f11db9af4",
+    "replication_1_retry_experiment_id": "exp_af80ae6bf6acc4b7d0a604f1683daf86",
+    "replication_2_experiment_id": "exp_3c757d5fc62c10a52b741759acdf377b",
+    "development_baseline_workspace_id": "base_884a47b6d0b959cb1a077a25407c0ee6",
+    "replication_1_baseline_workspace_id": "base_a15f407510085a86aa5ae078ec652873",
+    "legacy_v1_events_raw_sha256": "b35e9d74a64c729ceea3c5ca66303a7f4e14043129d4e4686741c5939cf178d6",
+    "legacy_v1_projection_canonical_digest": "9acf4e08a01756d39e4789a7e13f635d891cb426c183abcbfc4793c53d472e88",
+    "legacy_v1_experiment_id": "exp_9c077608f342414ce35c5dec5d7aa07b",
+    "m1b_contract_digest": "00029b4eae18e71513001bdee36bd8a3333b58720b1f27f78b1ab80d68ca1320",
+    "m1b_generation_id": "generation_b87daa35b5f8e5593fe0c4f5d245f8a6"
+  },
+  "cases": [
+    {
+      "id": "fixture-integrity",
+      "operation": "verify_fixture_integrity",
+      "input": {"fixture_directory": "."},
+      "expected": {
+        "fixture_count": 8,
+        "proposal_negative_cases": 25,
+        "transition_negative_cases": 53,
+        "manifest_cases": 20,
+        "raw_digest_matches": 8
+      }
+    },
+    {
+      "id": "v2-contract-generation",
+      "operation": "parse_v2_contract",
+      "input": {"fixture": "m1c-contract.json"},
+      "expected": {
+        "schema_version": 2,
+        "contract_digest": "7f66d3bc702d112197de6649cf7555b5a086f43768723dc346ad150a8bf9e184",
+        "candidate_schema_digest": "1b49c8af8a9bcedd3127d75592e80b8bf8ad2bd7b28391056160f80dce2f1d33",
+        "generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54",
+        "evaluation_scope_ids": [
+          "development",
+          "diagnostic-1",
+          "holdout-1",
+          "replication-1",
+          "replication-2"
+        ],
+        "scope_manifest_digests_unique": true,
+        "required_adapter_capability": "evaluation_scope_v1"
+      }
+    },
+    {
+      "id": "legacy-v1-and-m1b-parity",
+      "operation": "verify_legacy_parity",
+      "input": {
+        "v1_manifest": "../v1/manifest.json",
+        "legacy_events": "../v1/legacy-v1-events.jsonl",
+        "m1b_generation_events": "m1b-v1-generation-events.jsonl",
+        "compatibility_oracle": "m1b-v1-compat-oracle.json"
+      },
+      "expected": {
+        "legacy_event_bytes_sha256": "b35e9d74a64c729ceea3c5ca66303a7f4e14043129d4e4686741c5939cf178d6",
+        "legacy_experiment_id": "exp_9c077608f342414ce35c5dec5d7aa07b",
+        "legacy_projection_canonical_digest": "9acf4e08a01756d39e4789a7e13f635d891cb426c183abcbfc4793c53d472e88",
+        "m1b_contract_digest": "00029b4eae18e71513001bdee36bd8a3333b58720b1f27f78b1ab80d68ca1320",
+        "m1b_generation_id": "generation_b87daa35b5f8e5593fe0c4f5d245f8a6",
+        "m1b_generation_event_count": 8,
+        "m1b_generation_event_bytes": 8098,
+        "m1b_generation_event_bytes_sha256": "9624d76d3d95c02b50fb4f4aeecff97de4bb7e86333ec5630b0aedf42b2f4c13",
+        "m1b_generation_event_head": "c70c0e8dbdc17e108357c44582a49497bf451675eda837cb1deed9b03f0221dc",
+        "m1b_fixture_generation_id": "generation_dd2834318e9de5dafd17f21d28b4e6fa",
+        "m1b_fixture_experiment_ids": [
+          "exp_c24bad54f95357a70ee722c5cb77a899",
+          "exp_ac28d4e3e372d77d825aabc6d123d0a6"
+        ],
+        "m1b_fixture_finding_ids": [
+          "find_5129e34bc44ba6a331444a70fb932a95",
+          "find_bb9d4012ecb1a26c183487d717bb7d2f"
+        ],
+        "m1b_science_state_digest": "caf38dffc747818dd1d04e80e3bf65e69dd76d18532deb6f35a64ac02ccb5942",
+        "m1b_projection_digest": "a7efa9d03083f3c865633fa08258630bada7376c6add9d9d6c5864349d0e8439",
+        "m1b_study_status_digest": "0bf1f7557e1655c0e59873923845d82d088341f92a3a7098934c8c65a740da99",
+        "m1b_replay_digest": "ba6e97c9993c6c2bdfd3482c50b4f9ed9ee4eeb2d7cad185c07739bf7ecd088f",
+        "m1b_replay_events": 8,
+        "m1b_replay_findings": 2,
+        "m1b_event_bytes_preserved_after_replay": true,
+        "m1b_event_head_preserved_after_replay": true,
+        "m1b_manifest_exact_matches": 29,
+        "m1b_exact_registration_keys": 17,
+        "m1b_public_surface_keysets_exact": 9,
+        "m1b_public_surface_shape_digests_exact": 7,
+        "nullable_scope_api_keys_added": 0,
+        "typed_key_occurrences": 0
+      }
+    },
+    {
+      "id": "proposal-explore-canonical",
+      "operation": "parse_proposal",
+      "input": {"fixture": "m1c-proposal-explore.json"},
+      "expected": {
+        "proposal_digest": "edc12b16a1f6419c575d44a5be47352e24d49570533939ed09726fa6e493ba09",
+        "proposal_id": "proposal_202fd99acdfc63371bff7e748e3d758d",
+        "action": "explore",
+        "evaluation_scope_id": "development",
+        "intervention_json_pointers": ["/x"],
+        "authorized_action": null
+      }
+    },
+    {
+      "id": "proposal-replicate-canonical",
+      "operation": "parse_proposal",
+      "input": {"fixture": "m1c-proposal-replicate.json"},
+      "expected": {
+        "proposal_digest": "e83e7e5639fb3350972190d14b799d8f27c966809966d6a834ef13e7635d10b8",
+        "proposal_id": "proposal_9e0889d18ae1a62227b0563f733b000b",
+        "action": "replicate",
+        "evaluation_scope_id": "replication-1",
+        "intervention_json_pointers": [],
+        "authorized_action": null
+      }
+    },
+    {
+      "id": "proposal-pointer-order-normalization",
+      "operation": "parse_proposal",
+      "input": {
+        "fixture": "m1c-proposal-explore.json",
+        "replace": {"/intervention_json_pointers": ["/y", "/x"]}
+      },
+      "expected": {
+        "intervention_json_pointers": ["/x", "/y"],
+        "input_order_preserved": false,
+        "authorized_action": null
+      }
+    },
+    {
+      "id": "proposal-narrative-utf8-boundary",
+      "operation": "parse_proposal_generated_text",
+      "input": {
+        "fixture": "m1c-proposal-explore.json",
+        "replace_generated": {
+          "pointer": "/mechanism",
+          "generator": {"kind": "repeat_text", "text": "é", "count": 8192}
+        }
+      },
+      "expected": {
+        "accepted": true,
+        "mechanism_code_points": 8192,
+        "mechanism_utf8_bytes": 16384,
+        "authorized_action": null
+      }
+    },
+    {
+      "id": "proposal-schema-negative-matrix",
+      "operation": "parse_proposal_negative_matrix",
+      "input": {"fixture": "m1c-proposal-negative-matrix.json"},
+      "expected": {"cases": 25, "rejections": 25, "error_code": "PROPOSAL_INVALID"}
+    },
+    {
+      "id": "proposal-transition-negative-matrix",
+      "operation": "execute_transition_negative_matrix",
+      "input": {"fixture": "m1c-transition-negative-matrix.json"},
+      "expected": {
+        "cases": 53,
+        "case_rejections": 53,
+        "declared_error_detail_subset_matches": 53,
+        "direct_replay_path_matches": 72,
+        "event_delta_zero_cases": 53,
+        "budget_delta_zero_cases": 53,
+        "case_id_dispatches": 0
+      }
+    },
+    {
+      "id": "scope-bound-baselines",
+      "operation": "seal_scope_baselines",
+      "input": {"scope_ids": ["development", "replication-1"], "repetitions": 1},
+      "expected": {
+        "baseline_events": 2,
+        "development_workspace_id": "base_884a47b6d0b959cb1a077a25407c0ee6",
+        "replication_workspace_id": "base_a15f407510085a86aa5ae078ec652873",
+        "scope_bound_baseline_calls": 2,
+        "scope_bound_verify_calls": 2,
+        "unscoped_baseline_authorizes_typed_run": false,
+        "typed_run_auto_creates_baseline": false,
+        "baseline_repetitions": [1, 1],
+        "baseline_event_scope_fields": [
+          "science_state_version",
+          "generation_id",
+          "study_contract_digest",
+          "evaluation_seal_digest",
+          "evaluation_scope_id",
+          "evaluation_scope"
+        ],
+        "baseline_event_scope_bindings": [
+          {
+            "science_state_version": 1,
+            "generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54",
+            "study_contract_digest": "7f66d3bc702d112197de6649cf7555b5a086f43768723dc346ad150a8bf9e184",
+            "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
+            "evaluation_scope_id": "development",
+            "evaluation_scope": {
+              "id": "development",
+              "role": "development",
+              "manifest_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            }
+          },
+          {
+            "science_state_version": 1,
+            "generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54",
+            "study_contract_digest": "7f66d3bc702d112197de6649cf7555b5a086f43768723dc346ad150a8bf9e184",
+            "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
+            "evaluation_scope_id": "replication-1",
+            "evaluation_scope": {
+              "id": "replication-1",
+              "role": "replication",
+              "manifest_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "valid-explore-lifecycle",
+      "operation": "run_typed_proposal",
+      "input": {"proposal": "m1c-proposal-explore.json", "candidate": {"x": 2.0, "y": 1.0}},
+      "expected": {
+        "experiment_id": "exp_14dab599bb9be91cbac8751a5c0da192",
+        "proposal_id": "proposal_202fd99acdfc63371bff7e748e3d758d",
+        "evaluation_scope_id": "development",
+        "attempt": 1,
+        "retry_of": null,
+        "registration_events": 1,
+        "proposal_only_events": 0,
+        "typed_sibling_keys": [
+          "evaluation_scope_id",
+          "proposal",
+          "proposal_digest",
+          "proposal_id"
+        ],
+        "registration_payload_keys": [
+          "attempt",
+          "authorized_action",
+          "baseline_id",
+          "budget_debit",
+          "candidate",
+          "candidate_digest",
+          "compatibility_digest",
+          "evaluation_scope_id",
+          "evaluation_seal_digest",
+          "experiment_id",
+          "generation_id",
+          "parent_id",
+          "primary_metric",
+          "proposal",
+          "proposal_digest",
+          "proposal_id",
+          "retry_of",
+          "science_state_version",
+          "source_tree_digest",
+          "status",
+          "study_contract_digest"
+        ],
+        "typed_sibling_bundle_complete": true,
+        "typed_keys_in_candidate": 0,
+        "budget_attempt_delta": 1
+      }
+    },
+    {
+      "id": "valid-frozen-candidate-replication",
+      "operation": "run_typed_replication",
+      "input": {"proposal": "m1c-proposal-replicate.json", "candidate": {"x": 2.0, "y": 1.0}},
+      "expected": {
+        "experiment_id": "exp_6de5a6123dad0a28f3bb630f11db9af4",
+        "proposal_id": "proposal_9e0889d18ae1a62227b0563f733b000b",
+        "candidate_digest_equal_to_parent": true,
+        "evaluation_scope_id": "replication-1",
+        "evaluation_scope_changed": true,
+        "attempt": 1,
+        "retry_of": null,
+        "replication_count": 1
+      }
+    },
+    {
+      "id": "retry-inherits-proposal-not-replication",
+      "operation": "retry_typed_proposal",
+      "input": {"retry_of": "exp_14dab599bb9be91cbac8751a5c0da192"},
+      "expected": {
+        "experiment_id": "exp_536ca19ec4feb680afd4e58f95ffb4d9",
+        "proposal_id": "proposal_202fd99acdfc63371bff7e748e3d758d",
+        "evaluation_scope_id": "development",
+        "attempt": 2,
+        "proposal_unique_count": 1,
+        "replication_count": 0
+      }
+    },
+    {
+      "id": "retry-failed-replication-not-new-replication",
+      "operation": "retry_typed_replication",
+      "input": {
+        "retry_of": "exp_6de5a6123dad0a28f3bb630f11db9af4",
+        "terminal_status": "TIMED_OUT",
+        "retryable": true
+      },
+      "expected": {
+        "experiment_id": "exp_af80ae6bf6acc4b7d0a604f1683daf86",
+        "proposal_id": "proposal_9e0889d18ae1a62227b0563f733b000b",
+        "evaluation_scope_id": "replication-1",
+        "attempt": 2,
+        "proposal_unique_count": 2,
+        "replication_count": 1,
+        "used_candidate_scope_pairs": 2,
+        "budget_attempt_delta": 1,
+        "budget_retry_delta": 1
+      }
+    },
+    {
+      "id": "evaluation-scope-identity-axis",
+      "operation": "derive_scope_bound_ids",
+      "input": {"scope_ids": ["development", "replication-1", "replication-2"]},
+      "expected": {
+        "experiment_ids": [
+          "exp_14dab599bb9be91cbac8751a5c0da192",
+          "exp_6de5a6123dad0a28f3bb630f11db9af4",
+          "exp_3c757d5fc62c10a52b741759acdf377b"
+        ],
+        "unique_experiment_ids": 3,
+        "legacy_experiment_id": "exp_9c077608f342414ce35c5dec5d7aa07b"
+      }
+    },
+    {
+      "id": "candidate-orchestration-separation",
+      "operation": "inspect_adapter_requests",
+      "input": {"proposal": "m1c-proposal-explore.json", "candidate": {"x": 2.0, "y": 1.0}},
+      "expected": {
+        "candidate_keys": ["x", "y"],
+        "proposal_keys_in_candidate": 0,
+        "scope_bound_candidate_operations": ["materialize", "run", "evaluate", "verify"],
+        "evaluation_scope": {
+          "id": "development",
+          "role": "development",
+          "manifest_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      }
+    },
+    {
+      "id": "live-cold-rebuild-proposal-parity",
+      "operation": "compare_proposal_state_paths",
+      "input": {"sequence": ["explore", "replicate"]},
+      "expected": {
+        "paths_equal": 4,
+        "proposal_count": 2,
+        "replication_count": 1,
+        "used_candidate_scope_pairs": 2,
+        "active_generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54"
+      }
+    },
+    {
+      "id": "concurrent-evaluation-scope-reuse",
+      "operation": "race_scope_registration",
+      "input": {"workers": 2, "scope_id": "replication-1"},
+      "expected": {
+        "winner_count": 1,
+        "rejection_count": 1,
+        "rejection_code": "PROPOSAL_EVALUATION_SCOPE_REUSED",
+        "registration_event_delta": 1,
+        "budget_attempt_delta": 1
+      }
+    },
+    {
+      "id": "proposal-authority-null-surfaces",
+      "operation": "inspect_authority_surfaces",
+      "input": {
+        "surfaces": [
+          "proposal_input",
+          "proposal_registration",
+          "experiment_registration",
+          "baseline_service_result",
+          "baseline_cli_json",
+          "run_once_service_result",
+          "run_once_cli_json",
+          "study_status_cli_json",
+          "replay_cli_json"
+        ]
+      },
+      "expected": {
+        "surface_count": 9,
+        "top_level_authorized_action_key_count": 9,
+        "top_level_authorized_action_non_null_count": 0,
+        "recursive_authorized_action_non_null_count": 0
+      }
+    },
+    {
+      "id": "m1c-regression-floor",
+      "operation": "verify_regression_floor",
+      "input": {"python": "3.12"},
+      "expected": {
+        "tests_minimum": 371,
+        "subtests_minimum": 104,
+        "ruff": "PASS",
+        "ty_src": "PASS",
+        "diff_check": "PASS"
+      }
+    }
+  ]
+}

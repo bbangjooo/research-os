@@ -1,5 +1,9 @@
 """Stable error types used across the Research OS boundary."""
 
+from __future__ import annotations
+
+from collections.abc import Mapping
+
 
 class ResearchOSError(Exception):
     """Base error for expected Research OS failures."""
@@ -41,6 +45,40 @@ class GraphPolicyError(ConfigurationError):
     """A proposed experiment violates the scientific graph contract."""
 
     code = "GRAPH_POLICY_VIOLATION"
+
+
+class ScientificStateError(ConfigurationError):
+    """A versioned study contract or scientific-state transition was rejected."""
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        details: Mapping[str, object] | None = None,
+    ):
+        if not isinstance(code, str) or not code:
+            raise ValueError("scientific-state error code must be a non-empty string")
+        self.code = code
+        self.details = dict(details or {})
+        super().__init__(message)
+
+
+class ProgramMemoryError(ConfigurationError):
+    """A versioned program-memory contract or transition was rejected."""
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        details: Mapping[str, object] | None = None,
+    ):
+        if not isinstance(code, str) or not code:
+            raise ValueError("program-memory error code must be a non-empty string")
+        self.code = code
+        self.details = dict(details or {})
+        super().__init__(message)
 
 
 class StaleAgentContextError(ConfigurationError):

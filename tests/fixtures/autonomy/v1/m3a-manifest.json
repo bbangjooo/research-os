@@ -1,0 +1,96 @@
+{
+  "kind": "research_os.m3a_decision_packet_contract",
+  "schema_version": 1,
+  "packet": {
+    "schema_version": 1,
+    "required_fields": [
+      "authorized_action",
+      "candidate",
+      "context_token",
+      "decision_packet_schema_version",
+      "knowledge_disposition",
+      "packet_id",
+      "program_snapshot",
+      "program_snapshot_digest",
+      "project_id",
+      "proposal",
+      "provider_request_id",
+      "retrieval_manifest"
+    ],
+    "retrieval_manifest_fields": [
+      "authorized_action",
+      "query_digest",
+      "retrieval_result_digest",
+      "returned_claims"
+    ],
+    "returned_claim_fields": [
+      "authorized_action",
+      "claim_digest",
+      "claim_id",
+      "reasons",
+      "relation_ids",
+      "retrieval_role"
+    ],
+    "maximum_packet_bytes": 2097152,
+    "authorized_action": null
+  },
+  "provider": {
+    "request_schema_version": 1,
+    "ports": ["python_protocol", "json_subprocess"],
+    "input_capabilities": ["provider_request_id", "context", "program_snapshot"],
+    "forbidden_input_capabilities": [
+      "event_log",
+      "program_store",
+      "research_service",
+      "workspace_manager"
+    ],
+    "shell": false,
+    "authorized_action": null
+  },
+  "case_groups": {
+    "conformance": 8,
+    "rejection": 24,
+    "total": 32
+  },
+  "cases": [
+    {"id":"python-provider-valid","operation":"invoke_python_provider","expected":{"accepted":true,"write_delta":0}},
+    {"id":"subprocess-provider-valid","operation":"invoke_subprocess_provider","expected":{"accepted":true,"write_delta":0}},
+    {"id":"provider-port-canonical-parity","operation":"compare_provider_ports","expected":{"packets_equal":true}},
+    {"id":"packet-current-context-program-binding","operation":"validate_current_read_set","expected":{"accepted":true,"program_head_current":true}},
+    {"id":"packet-retrieved-ids-reasons-binding","operation":"validate_retrieval_manifest","expected":{"accepted":true,"coverage":"exact"}},
+    {"id":"packet-proposal-disposition-binding","operation":"validate_proposal_disposition","expected":{"accepted":true,"disposition_coverage":"exact"}},
+    {"id":"packet-validation-no-write","operation":"measure_validation_writes","expected":{"project_log_delta":0,"program_log_delta":0}},
+    {"id":"provider-no-direct-capability","operation":"inspect_provider_input","expected":{"forbidden_capability_count":0,"authorized_action":null}},
+
+    {"id":"reject-wrong-packet-version","operation":"reject_packet","mutation":"wrong_version","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-bool-packet-version","operation":"reject_packet","mutation":"bool_version","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-extra-packet-key","operation":"reject_packet","mutation":"extra_key","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-forged-packet-id","operation":"reject_packet","mutation":"packet_id","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-request-id-mismatch","operation":"reject_packet","mutation":"provider_request_id","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-stale-context-token","operation":"reject_packet","mutation":"context_token","expected":{"error_code":"DECISION_PACKET_STALE","write_delta":0}},
+    {"id":"reject-forged-program-snapshot-digest","operation":"reject_packet","mutation":"program_snapshot_digest","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-forged-program-snapshot","operation":"reject_packet","mutation":"program_snapshot","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-stale-program-head","operation":"reject_packet","mutation":"program_head","expected":{"error_code":"DECISION_PACKET_STALE","write_delta":0}},
+    {"id":"reject-forged-query-digest","operation":"reject_packet","mutation":"query_digest","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-forged-result-digest","operation":"reject_packet","mutation":"retrieval_result_digest","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-missing-returned-claim","operation":"reject_packet","mutation":"missing_claim","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-duplicate-returned-claim","operation":"reject_packet","mutation":"duplicate_claim","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-forged-retrieval-reason","operation":"reject_packet","mutation":"reason","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-candidate-digest-mismatch","operation":"reject_packet","mutation":"candidate","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-proposal-generation-mismatch","operation":"reject_packet","mutation":"generation_id","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-proposal-class-mismatch","operation":"reject_packet","mutation":"hypothesis_class_id","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-proposal-scope-mismatch","operation":"reject_packet","mutation":"evaluation_scope_id","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-disposition-mismatch","operation":"reject_packet","mutation":"knowledge_disposition","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-non-null-authority","operation":"reject_packet","mutation":"authorized_action","expected":{"error_code":"DECISION_PACKET_INVALID","write_delta":0}},
+    {"id":"reject-subprocess-duplicate-key","operation":"reject_subprocess","mutation":"duplicate_key","expected":{"error_code":"PROVIDER_PROTOCOL_INVALID","write_delta":0}},
+    {"id":"reject-subprocess-extra-stdout","operation":"reject_subprocess","mutation":"extra_stdout","expected":{"error_code":"PROVIDER_PROTOCOL_INVALID","write_delta":0}},
+    {"id":"reject-subprocess-timeout","operation":"reject_subprocess","mutation":"timeout","expected":{"error_code":"PROVIDER_TIMEOUT","write_delta":0}},
+    {"id":"reject-subprocess-output-limit","operation":"reject_subprocess","mutation":"output_limit","expected":{"error_code":"PROVIDER_OUTPUT_LIMIT","write_delta":0}}
+  ],
+  "regression": {
+    "minimum_tests": 713,
+    "minimum_subtests": 115,
+    "authorized_action_non_null": 0,
+    "product_multi_agent": false
+  }
+}

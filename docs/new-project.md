@@ -135,7 +135,8 @@ Every adapter implements protocol version 1 operations:
 4. `materialize`: translate candidate JSON into declared mutable surfaces.
 5. `run`: execute the bounded experiment.
 6. `evaluate`: return finite metrics, constraints, provenance, resource usage, and artifact refs.
-7. `verify`: perform domain-specific result validity checks.
+7. `verify`: perform domain-specific result validity checks for every baseline
+   and candidate result digest.
 8. `cleanup`: remove adapter-owned transient state inside the disposable workspace.
 
 Each process receives one JSON request on stdin and must emit one JSON response
@@ -207,6 +208,29 @@ from the final result.
 
 Choose one scalar primary metric. It should answer whether a candidate is better than a compatible baseline; secondary metrics and hard constraints can remain multidimensional.
 
+Prefer kernel-owned typed gates for promotion-critical secondary metrics. The
+adapter returns only observations in `ResultEnvelope.metrics`; the constitution
+owns the comparison:
+
+```toml
+[[promotion.gates]]
+id = "latency-budget"
+metric = "latency_ms"
+role = "hard"       # hard | support
+operator = "lte"    # gte | lte
+threshold = 50.0
+unit = "ms"
+scale = 50.0
+```
+
+Gate IDs must be unique after trimming. Thresholds are finite, scales are
+finite and positive, and every configured metric must be present in the result.
+`hard` failure rejects the candidate; `support` failure records insufficient
+evidence. Equality passes a gate, while primary promotion still requires strict
+improvement beyond `minimum_improvement`. Existing arbitrary `constraints`
+remain compatible legacy hard vetoes but do not carry operator/threshold/slack
+evidence.
+
 `[baseline].repeats` is the single authoritative repetition count. Research OS
 uses exactly that value both when sealing and when revalidating a baseline. The
 optional `baseline --repeats N` argument is only an equality assertion for
@@ -230,11 +254,21 @@ Project code and agents must use a different key for their own findings.
 ## First integration run
 
 Create at least one candidate JSON object according to the project-owned schema,
-then run the gates explicitly:
+prepare a strict `StudyContract` JSON for versioned research, then run the gates
+explicitly:
 
 ```bash
+RESEARCH_REVIEW_DIR="$(mktemp -d)"
 research-os --project /path/to/your-project inspect
 research-os --project /path/to/your-project doctor
+research-os --project /path/to/your-project evaluator-review-subject \
+  > "$RESEARCH_REVIEW_DIR/review-subject.json"
+# After the independent critic writes "$RESEARCH_REVIEW_DIR/review.json":
+research-os --project /path/to/your-project certify-evaluator \
+  "$RESEARCH_REVIEW_DIR/review.json"
+research-os --project /path/to/your-project open-generation \
+  /absolute/path/to/study-contract.json
+research-os --project /path/to/your-project study-status
 research-os --project /path/to/your-project baseline
 research-os --project /path/to/your-project run-once \
   /path/to/your-project/candidates/first.json
@@ -245,12 +279,77 @@ research-os --project /path/to/your-project findings
 research-os --project /path/to/your-project replay
 ```
 
-The legacy/manual tokenless `run-once` path establishes a compatible repeated
+For StudyContract v2, the adapter first advertises
+`evaluation_scope_v1`, and the execution portion becomes:
+
+```bash
+research-os --project /path/to/your-project baseline \
+  --evaluation-scope-id development
+research-os --project /path/to/your-project run-once \
+  /path/to/your-project/candidates/first.json \
+  --proposal /absolute/path/to/proposal.json
+```
+
+`StudyContract` versions 1 and 2 have the same exact-key shape and contain:
+
+- `schema_version` and a stable `study_id`;
+- unique `hypothesis_classes` with conclusive-rejection limits;
+- an `intervention_surface` binding the candidate-schema digest, allowed RFC-6901
+  pointers, and maximum changes;
+- unique `evaluation_scopes`, including at least one `development` scope, each
+  bound to a manifest digest;
+- finite `frontier`, literal fail-closed `stop_policy`, and mandatory
+  new-generation `change_control`;
+- a `budget` for attempts, retries, elapsed reservation per attempt, and either a
+  complete cost-unit/limit/reservation triple or three nulls.
+
+Version 2 additionally rejects two scope IDs that alias the same
+`manifest_digest`, requires the adapter capability `evaluation_scope_v1`, and
+requires the contract candidate-schema digest to match the current certified
+project schema. It activates the exact 12-field Proposal contract:
+
+```json
+{
+  "proposal_schema_version": 1,
+  "generation_id": "generation_...",
+  "candidate_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+  "hypothesis_class_id": "class-a",
+  "action": "explore",
+  "mechanism": "Why this intervention could affect the metric.",
+  "predicted_effect": "A falsifiable directional prediction.",
+  "falsifier": "The observation that would reject the mechanism.",
+  "parent_experiment_id": null,
+  "evaluation_scope_id": "development",
+  "intervention_json_pointers": ["/x"],
+  "authorized_action": null
+}
+```
+
+`explore` has no parent. `exploit` and `ablate` require a terminal parent, a
+changed candidate, and declared pointers exactly equal to the canonical
+parent-to-candidate diff. `replicate` requires the parent's exact frozen
+candidate and hypothesis class, an empty pointer list, and a different unused
+preregistered replication scope. A retry supplies only `--retry-of` and the
+same candidate; it inherits the persisted Proposal and scope and is not counted
+as a new scientific replication. Proposal fields remain sibling evidence on
+the registration event and never become candidate fields.
+
+The opened generation binds this normalized contract to a separate evaluation
+seal. Each later registration receives the contract-fixed debit inside the
+canonical append lock. `study-status` reports reserved allocations; it does not
+claim actual elapsed time or cost. Limits are per generation, and a changed
+successor requires both the exact predecessor ID and a reason. An identical
+successor is rejected instead of resetting the ledger.
+
+Before the first generation, the legacy/manual tokenless `run-once` path
+establishes a compatible repeated
 baseline when none exists. Codex and Claude Code must use `--context-token` and
 must run `baseline` explicitly before obtaining that context; an implicit
 baseline changes canonical state and correctly makes an older token stale. The
 tokenless path is retained only for direct API/CLI compatibility and does not
-enforce the agent certification gate. Explicit baseline setup also isolates
+enforce the agent certification gate. After a generation opens, tokenless and
+context-token registrations share the same generation binding, typed Proposal,
+pending Diagnosis, class-closure, and atomic budget gates. Explicit baseline setup also isolates
 reproducibility and cleanup failures before candidate work.
 Baseline artifacts are captured into the same content-addressed catalog as
 candidate artifacts and embedded in `BASELINE_RECORDED`. The `artifacts`
@@ -267,8 +366,9 @@ instance intentionally fails closed on configuration drift.
 The installed Research OS skill makes Codex or Claude Code the sole user-facing
 researcher. It runs the following loop:
 
-1. Run `doctor`, `replay`, and `agent-context`; read the bounded graph, brief,
-   schema, findings, artifacts, and snapshot token.
+1. Run `doctor`, `replay`, and `agent-context`; Context v3 is the default. Read
+   the bounded scientific state, graph, brief, schema, findings, artifacts, and
+   snapshot token. Use explicit `--schema-version 2` only for compatibility.
 2. Explore independent pre-registered hypothesis classes as root nodes.
 3. After every terminal node, diagnose the exact status, constraints, and
    relevant artifacts without running another experiment.
@@ -281,6 +381,14 @@ researcher. It runs the following loop:
    `exploit`, and `replicate`.
 7. Continue until the finite budget, a safety gate, or a pre-registered
    repeated-class failure threshold stops the loop.
+
+For Research OS 0.4.0 Program memory integrations, bind retrieval to Context v3
+before proposing, disposition every returned Claim exactly once, and append the
+companion only after the typed Proposal is present in canonical project replay.
+Treat old notes, findings, or branch text without a typed schema as
+`legacy_unstructured`: retain only source metadata plus content digest/size,
+never infer Claims and never store raw legacy content in ProgramLog. This setup
+does not authorize migrating an existing project or taking any live action.
 
 For example:
 
@@ -379,6 +487,17 @@ durable untrusted outcome is not the temporary pending-publication state above.
 After recovery, `replay` rebuilds SQLite again and verifies every canonical
 baseline and candidate artifact record, manifest, and blob. A successful replay
 returns `events_replayed`, `artifacts_verified`, and current projected `status`.
+
+## Optional v0.5.0 autonomy integration
+
+Treat the v0.5.0 finite loop as an optional controller above an already working
+ResearchService and ProgramStore. First establish Context v3, typed Proposal and
+Diagnosis/ClassState, Claim retrieval/disposition, and exact replay. Then bind a
+provider-neutral decision port and explicit provider-retry, experiment, and stop
+budgets. Preserve separate append-only Project, Program, and autonomy logs; never
+copy Project or Program truth into controller-owned mutable state. Crash resume
+must revalidate all referenced heads before continuing. New-project setup does
+not authorize deployment or a live external-project migration.
 
 ## Production separation
 

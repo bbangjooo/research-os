@@ -56,13 +56,20 @@ def new_experiment_id(
     *,
     parent_id: str | None = None,
     compatibility_digest: str | None = None,
+    generation_id: str | None = None,
+    evaluation_scope_id: str | None = None,
     attempt: int = 1,
 ) -> str:
-    """Derive a stable ID for one candidate attempt at one DAG parent.
+    """Derive a stable ID for one candidate attempt in one study generation.
 
     The two-argument form represents a root experiment.  Supplying
     ``parent_id`` aligns ID identity with :meth:`ProjectionStore.candidate_exists`.
-    Retry attempts deliberately receive distinct deterministic IDs.
+    Retry attempts deliberately receive distinct deterministic IDs.  A missing
+    ``generation_id`` uses the original component sequence byte-for-byte so
+    legacy experiment IDs remain stable; a present generation is an orthogonal
+    identity axis for versioned studies.  A present evaluation scope adds the
+    final v2 identity axis, while a null scope retains every prior component
+    sequence exactly.
     """
 
     project_id = require_text(project_id, "project_id")
@@ -73,8 +80,49 @@ def new_experiment_id(
         compatibility_digest = require_text(
             compatibility_digest, "compatibility_digest"
         )
+    if generation_id is not None:
+        generation_id = require_text(generation_id, "generation_id")
+    if evaluation_scope_id is not None:
+        evaluation_scope_id = require_text(
+            evaluation_scope_id,
+            "evaluation_scope_id",
+        )
     if isinstance(attempt, bool) or not isinstance(attempt, int) or attempt < 1:
         raise ValueError("attempt must be a positive integer")
+    if evaluation_scope_id is not None:
+        if generation_id is None or compatibility_digest is None:
+            raise ValueError(
+                "evaluation_scope_id requires generation_id and compatibility_digest"
+            )
+        return stable_id(
+            "experiment",
+            project_id,
+            generation_id,
+            compatibility_digest,
+            parent_id,
+            candidate_digest,
+            evaluation_scope_id,
+            attempt,
+        )
+    if generation_id is not None:
+        if compatibility_digest is None:
+            return stable_id(
+                "experiment",
+                project_id,
+                generation_id,
+                parent_id,
+                candidate_digest,
+                attempt,
+            )
+        return stable_id(
+            "experiment",
+            project_id,
+            generation_id,
+            compatibility_digest,
+            parent_id,
+            candidate_digest,
+            attempt,
+        )
     if compatibility_digest is None:
         return stable_id(
             "experiment", project_id, parent_id, candidate_digest, attempt

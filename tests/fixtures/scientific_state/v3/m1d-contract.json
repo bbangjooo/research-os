@@ -1,0 +1,64 @@
+{
+  "schema_version": 2,
+  "study_id": "m1d-diagnosis-frontier-study",
+  "hypothesis_classes": [
+    {
+      "id": "class-a",
+      "description": "Test one declared primary mechanism at a time.",
+      "conclusive_rejection_limit": 2
+    },
+    {
+      "id": "class-b",
+      "description": "Test a distinct preregistered mechanism family.",
+      "conclusive_rejection_limit": 3
+    }
+  ],
+  "intervention_surface": {
+    "candidate_schema_digest": "1b49c8af8a9bcedd3127d75592e80b8bf8ad2bd7b28391056160f80dce2f1d33",
+    "allowed_json_pointers": ["/x", "/y"],
+    "max_changes": 1
+  },
+  "evaluation_scopes": [
+    {
+      "id": "development",
+      "role": "development",
+      "manifest_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "id": "diagnostic-1",
+      "role": "diagnostic",
+      "manifest_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    {
+      "id": "holdout-1",
+      "role": "holdout",
+      "manifest_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    {
+      "id": "replication-1",
+      "role": "replication",
+      "manifest_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "id": "replication-2",
+      "role": "replication",
+      "manifest_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    }
+  ],
+  "frontier": {"max_active_branches": 3},
+  "stop_policy": {
+    "on_untrusted": "stop",
+    "on_budget_exhausted": "stop",
+    "when_all_classes_closed": "stop"
+  },
+  "change_control": {"require_new_generation": true},
+  "budget": {
+    "max_attempts": 40,
+    "max_retries": 8,
+    "max_elapsed_milliseconds": 40000,
+    "elapsed_reservation_per_attempt_milliseconds": 1000,
+    "cost_unit": "credits",
+    "max_cost_microunits": 100000,
+    "cost_reservation_per_attempt_microunits": 2500
+  }
+}

@@ -1,0 +1,246 @@
+{
+  "schema_version": 1,
+  "manifest_id": "research-os-m3d-unseen-generator-v1",
+  "status": "precommitted-spec-only-no-acceptance-bodies",
+  "suite": {
+    "episode_count": 36,
+    "family_count": 6,
+    "episodes_per_family": 6,
+    "experiment_budget_per_episode": 4,
+    "candidate_language_version": 1,
+    "candidate_fields": [
+      "candidate_id",
+      "hypothesis_class",
+      "action",
+      "experiment_cost",
+      "prerequisite_tags"
+    ],
+    "actions": [
+      "test_mechanism",
+      "replicate",
+      "falsify",
+      "resolve_gate",
+      "repair_packet",
+      "use_memory",
+      "refresh_context",
+      "resume",
+      "stop_success",
+      "stop_failure"
+    ],
+    "canonical_tie_break": [
+      "typed_rule_score",
+      "action_priority",
+      "hypothesis_class",
+      "candidate_id"
+    ]
+  },
+  "custody": {
+    "nonce_bits": 256,
+    "nonce_encoding": "64 lowercase hexadecimal characters",
+    "nonce_creation": "exactly one secrets.token_hex(32) after an atomic reserved-before-nonce record in ~/.research-os-custody/m3d-v05/<clean-code-commit>",
+    "derivation": "SHA256(nonce || manifest_sha256 || family_id || zero_based_episode_index || field_label)",
+    "body_generation_time": "after generator, comparator, oracle, tests, and M3 product code are frozen",
+    "seal_before_arms": [
+      "code_commit",
+      "generator_manifest_sha256",
+      "generator_source_sha256",
+      "nonce_commitment_sha256",
+      "suite_sha256",
+      "race_suite_sha256",
+      "v0.2_agent_source_sha256",
+      "v0.2_skill_sha256",
+      "arm_order"
+    ],
+    "invalidating_change": "any product, selector, oracle, metric, generator, attack, or release-policy byte change after suite digest is exposed",
+    "rerun_semantics": "an invalidated or failed receipt is never overwritten; a new result requires a new pre-spec cycle and nonce"
+  },
+  "arms": {
+    "common": {
+      "selector": "one deterministic candidate selector implementation whose policy digest binds the byte-fixed v0.2 packaged skill plus identical candidate list, action priority, tie break, and experiment budget",
+      "world": "identical hidden transition body and terminal oracle",
+      "difference_allowed": "context surface only",
+      "forbidden": [
+        "arm-specific candidate ordering",
+        "arm-specific budget",
+        "v0.2 access to v0.5 typed memory or oracle fields",
+        "v0.5 access to hidden truth or oracle fields"
+      ]
+    },
+    "v0.2": {
+      "release_commit": "6f36a1b97cf8bc3c5925a3b35f0b189d82f6bcb6",
+      "fixture": "git-archive the release commit and execute its byte-fixed Context v2 builder in an isolated subprocess; bind the exact packaged research-os skill into the selector-policy digest",
+      "agent_source_sha256": "743fe1b60665d512585f4115f8a6f1f4bfa55bce7fef72c55c9a6098a2cb1278",
+      "packaged_skill_sha256": "0cab9ff5279b7715c02688d4e26c4c745200400fb2ffad657924a6cec1a59a9f",
+      "visible_fields": [
+        "schema_version=2",
+        "snapshot",
+        "project",
+        "agent",
+        "state",
+        "graph.compatibility_digest/recent/frontier/retryable/counts",
+        "proposal_contract",
+        "evidence.recent_findings/recent_artifacts/counts",
+        "allowed_agent_actions",
+        "authority",
+        "packet_size_bytes",
+        "common candidate_list outside the historical packet"
+      ],
+      "forbidden_fields": [
+        "class_state",
+        "pending_diagnosis",
+        "semantic_frontier",
+        "retrieved_claims",
+        "claim_relations",
+        "program_head",
+        "knowledge_disposition",
+        "recovery_state"
+      ]
+    },
+    "v0.5": {
+      "release_commit": "bound by the post-harness code-freeze receipt",
+      "fixture": "current build_agent_context_v3 fed by actual ClassState.to_dict, retrieve_claims over ClaimSnapshot, ProposalKnowledgeDisposition.to_dict, and AutonomyEpisodeState.to_dict public serializers",
+      "visible_fields": [
+        "all v0.2 visible fields",
+        "class_state",
+        "pending_diagnosis",
+        "semantic_frontier",
+        "retrieved_claims",
+        "claim_relations",
+        "program_head",
+        "knowledge_disposition",
+        "recovery_state"
+      ],
+      "forbidden_fields": [
+        "hidden_world",
+        "oracle_choices",
+        "oracle_terminal",
+        "minimum_attempts"
+      ]
+    }
+  },
+  "families": [
+    {
+      "id": "mechanism-replication",
+      "count": 6,
+      "nonce_variants": ["supported mechanism slot", "candidate permutation", "replication threshold"],
+      "world_rule": "one of three mechanism classes is evidence-supported; a positive first test must be replicated before success",
+      "observable_v0.5_signal": "retrieve_claims active Claim plus actual ClassState provisional/replicated serialization",
+      "oracle_rule": "choose test_mechanism for the supported open class, then replicate that class, then stop_success",
+      "terminal_rule": "success only after supported mechanism and independent replication",
+      "minimum_experiment_attempts": 2
+    },
+    {
+      "id": "falsification-closure",
+      "count": 6,
+      "nonce_variants": ["contradicted class slot", "falsifier slot", "closure threshold"],
+      "world_rule": "one open class has a material contradiction and a unique discriminating falsifier; conclusive failure closes it",
+      "observable_v0.5_signal": "ClaimSnapshot contradiction edge through retrieve_claims and actual ClassState closure",
+      "oracle_rule": "choose falsify for the contradicted class, then stop_failure after conclusive closure",
+      "terminal_rule": "failure is correct only with exact falsifying evidence and closed class",
+      "minimum_experiment_attempts": 1
+    },
+    {
+      "id": "gate-conflict",
+      "count": 6,
+      "nonce_variants": ["hard gate slot", "direction", "repair candidate slot"],
+      "world_rule": "the apparent best candidate violates one hard gate; exactly one resolve_gate action produces a valid candidate",
+      "observable_v0.5_signal": "actual ClassState closure_evidence hard-gate fact",
+      "oracle_rule": "choose resolve_gate before any experiment, then test the repaired class, then stop_success",
+      "terminal_rule": "success requires all hard gates and evidence-bound terminal",
+      "minimum_experiment_attempts": 1
+    },
+    {
+      "id": "invalid-retry-budget",
+      "count": 6,
+      "nonce_variants": ["invalid field slot", "retryable code", "remaining budget"],
+      "world_rule": "one packet is invalid but repairable once; other retries exhaust invalid/provider or experiment budget",
+      "observable_v0.5_signal": "actual AutonomyEpisodeState pending output, stable rejection code, and invalid-packet budget",
+      "oracle_rule": "choose repair_packet once, test the repaired class, then stop at the oracle terminal",
+      "terminal_rule": "no unbounded retry; invalid work never becomes scientific evidence",
+      "minimum_experiment_attempts": 1
+    },
+    {
+      "id": "memory-relation-contamination",
+      "count": 6,
+      "nonce_variants": ["active claim slot", "relation type", "irrelevant and superseded count"],
+      "world_rule": "candidate memory contains one active relevant Claim, one contradiction, and shuffled irrelevant/superseded distractors",
+      "observable_v0.5_signal": "actual RetrievalResult reason/status plus ProposalKnowledgeDisposition used entry",
+      "oracle_rule": "choose use_memory bound to the active relevant Claim, reject the contradiction when resolved, then test its class",
+      "terminal_rule": "conclusion cites exact active evidence and never a superseded or irrelevant Claim",
+      "minimum_experiment_attempts": 1
+    },
+    {
+      "id": "crash-drift-exhaustion",
+      "count": 6,
+      "nonce_variants": ["pending seam", "head drift bit", "remaining stop budget"],
+      "world_rule": "an episode resumes at a pending seam; either exact state permits resume or a one-factor head drift requires refresh_context; exhaustion must stop",
+      "observable_v0.5_signal": "actual AutonomyEpisodeState stored query head versus current RetrievalResult query head",
+      "oracle_rule": "choose resume only on exact heads, otherwise refresh_context; stop_failure on deterministic exhaustion",
+      "terminal_rule": "no duplicate truth, stale laundering, or budget recharge",
+      "minimum_experiment_attempts": 0
+    }
+  ],
+  "oracle": {
+    "construction_separation": "hidden decision states, public observation rendering, and oracle-choice derivation are separate functions; mutating oracle choices cannot change selector bytes",
+    "decision_points": "every non-terminal state before a required selector response",
+    "choice_set": "all and only (hypothesis_class, action) pairs satisfying the family oracle rule at that state",
+    "choice_error": "selection outside the set, closed/duplicate class selection, or omitted required decision",
+    "terminal_correct": "terminal kind and evidence IDs exactly equal the generated family terminal rule",
+    "evidence_bound": "every scientific conclusion cites generated terminal evidence and, when applicable, exact active Claim IDs",
+    "closed_class_retry": "any experiment action for a class already closed before the decision",
+    "wasted_attempt": "an executed experiment not on an oracle-minimal path; blocked invalid packets are choice errors but not executed experiments"
+  },
+  "metrics": {
+    "protocol_block_rate": {
+      "formula": "blocked attack rows / all rows in tests/fixtures/protocol_attacks/v1/manifest.json",
+      "v0.5_threshold": 1.0
+    },
+    "evidence_bound_conclusion_rate": {
+      "formula": "v0.5 episodes with exact evidence-bound terminal / 36",
+      "v0.5_threshold": 1.0
+    },
+    "closed_class_retry_count": {
+      "formula": "sum of v0.5 closed-class experiment actions",
+      "v0.5_threshold": 0
+    },
+    "next_hypothesis_choice_accuracy": {
+      "formula": "correct choices / all non-terminal decision points",
+      "denominator_rule": "the body-fixed required decision points are the common denominator for both arms; an early terminal or omitted response makes every skipped required point incorrect",
+      "v0.5_threshold": "at least max(v0.2 accuracy, min(0.90, v0.2 accuracy + 0.20))"
+    },
+    "correct_terminal_decision_rate": {
+      "formula": "correct terminal episodes / 36",
+      "v0.5_threshold": "at least max(v0.2 rate, min(0.90, v0.2 rate + 0.20))"
+    },
+    "positive_waste_aggregate": {
+      "formula": "sum v0.5 wasted attempts over episodes where v0.2 waste is positive / corresponding v0.2 sum",
+      "v0.5_threshold": "at most 0.70",
+      "baseline_zero_rule": "for every episode where v0.2 waste is zero, v0.5 waste must also be zero",
+      "anti_vacuity_rule": "if aggregate v0.2 positive waste is zero the release gate fails and the requirement is reviewed as REQUIREMENT-WRONG; no 0/0 pass"
+    }
+  },
+  "required_companion_gates": {
+    "protocol_attack_manifest": "M3-D-owned literal 24-row handler table frozen before unseen nonce; every row binds stable code and exact Project/Program/actual AutonomyEpisodeLog no-write invariant",
+    "research_service_e2e": "tests/fixtures/meta_evaluation/v1/public-boundary-manifest.json binds one generated episode per family to actual ClassState, retrieve_claims, ProposalKnowledgeDisposition, AutonomyEpisodeState, and Context v3 nearest public boundaries",
+    "external_read_only": [
+      "/Users/bbangjo/crypto-new/.research-os",
+      "/Users/bbangjo/manager/.research-os",
+      "/Users/bbangjo/BinancePredictionStrategy/research/research-os/polymarket-profit-g2/.research-os"
+    ],
+    "external_selection_rule": "for each named top-level project use its root .research-os when non-empty; when only nested Research OS roots exist, choose the lexicographically stable path among those with the maximum pre-result complete event count, requiring count > 0",
+    "external_requirements": "complete event bytes/hash/derived state replay 3/3, opaque classification 3/3, writer bytes/mode/symlink delta zero",
+    "release": "version/docs/skill/lock 0.5.0, exact managed 0.2/0.3/0.4 to 0.5 upgrade and rollback, wheel/install, full suite"
+  },
+  "race_confirmation_v1": {
+    "count": 12,
+    "schedules_per_boundary": 4,
+    "boundaries": [
+      "experiment_lookup_to_service",
+      "disposition_lookup_to_append",
+      "claim_lookup_to_append"
+    ],
+    "nonce_source": "same post-freeze nonce with domain-separated derivation label race-confirmation-v1",
+    "pass": "12/12 stable stale code, restarted call zero, controller Project/Program delta 0/0, truth counts unchanged"
+  },
+  "authorized_action": null
+}

@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "manifest_id": "research-os-m3d-public-boundary-v1",
+  "case_count": 6,
+  "cases": [
+    {
+      "family": "mechanism-replication",
+      "nodeid": "tests/test_m3d_meta_evaluation.py::test_generated_family_uses_real_public_serializers_and_external_oracle[mechanism-replication]",
+      "boundary": "ClassState.to_dict plus retrieve_claims to Context v3",
+      "expected": "generated trajectory, replicated terminal, evidence ref, and isolated oracle exact"
+    },
+    {
+      "family": "falsification-closure",
+      "nodeid": "tests/test_m3d_meta_evaluation.py::test_generated_family_uses_real_public_serializers_and_external_oracle[falsification-closure]",
+      "boundary": "ClaimSnapshot contradiction through retrieve_claims plus ClassState.to_dict",
+      "expected": "generated contradiction choice, closed terminal, evidence ref, and isolated oracle exact"
+    },
+    {
+      "family": "gate-conflict",
+      "nodeid": "tests/test_m3d_meta_evaluation.py::test_generated_family_uses_real_public_serializers_and_external_oracle[gate-conflict]",
+      "boundary": "ClassState closure evidence through public Context v3",
+      "expected": "generated hard-gate repair, terminal, evidence ref, and isolated oracle exact"
+    },
+    {
+      "family": "invalid-retry-budget",
+      "nodeid": "tests/test_m3d_meta_evaluation.py::test_generated_family_uses_real_public_serializers_and_external_oracle[invalid-retry-budget]",
+      "boundary": "AutonomyEpisodeState.to_dict invalid-packet budget through Context v3",
+      "expected": "generated retry repair, terminal, evidence ref, and isolated oracle exact"
+    },
+    {
+      "family": "memory-relation-contamination",
+      "nodeid": "tests/test_m3d_meta_evaluation.py::test_generated_family_uses_real_public_serializers_and_external_oracle[memory-relation-contamination]",
+      "boundary": "ClaimSnapshot and retrieve_claims relation/status through Context v3",
+      "expected": "generated memory choice, terminal, evidence ref, and isolated oracle exact"
+    },
+    {
+      "family": "crash-drift-exhaustion",
+      "nodeid": "tests/test_m3d_meta_evaluation.py::test_generated_family_uses_real_public_serializers_and_external_oracle[crash-drift-exhaustion]",
+      "boundary": "AutonomyEpisodeState.to_dict stored head versus RetrievalResult current head",
+      "expected": "generated recovery choice, terminal, evidence ref, and isolated oracle exact"
+    }
+  ],
+  "authorized_action": null
+}

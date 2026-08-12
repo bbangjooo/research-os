@@ -1,0 +1,112 @@
+# Critic — Phase 06 (2026-08-11) — m1-e-release-close
+
+영향 §북극성 행: NS1, NS2, NS3, NS5
+
+## Q1 [milestone-positioning]
+
+Cycle 05의 첫 conjunct를 재검증하고 §9.4 M1-E의 기존 5개 AND-conjunct를
+재정의·삭제 없이 모두 독립 증거로 충족할 때만 `CLOSE`하며, 하나라도 실패하면
+M1-E를 open으로 유지하도록 §06.6.4에 고정했는가?
+
+**Response:**
+
+DIRECT after correction. §06.6.4가 five conjunct를 유지하고 explicit decision을 `ADVANCE
+(5/5 verified; independent re-audit pending)`로 고정한다. Re-audit PASS 전에는 CLOSE가 아니다.
+
+## Q2 [boundary]
+
+NS2·NS3에 대해 active v2-generation의 모든 tokenless
+registration·retry·successor write path가 Proposal, pending Diagnosis, class closure,
+locked budget gate를 우회하지 못하고 거절 시 event·budget delta가 0이며,
+pre-generation legacy record는 typed state로 자동 승격되지 않음을 하나의 고정
+manifest가 증명하는가?
+
+**Response:**
+
+DIRECT after second correction, pending independent re-audit. Manifest 일곱 case의 literal row가
+실제 source operation을 실행하고 observer의 normalized `executed_path`를 각 expected `path`와
+exact 비교한다. Legacy replay observer는 active generation/legacy count뿐 아니라 typed
+registration/Proposal/Diagnosis/ClassState count가 모두 `0`임을 manifest expected와 직접 비교한다.
+
+## Q3 [measurement-gap]
+
+NS1의 하위호환 청구는 default Context v3와 explicit v3의 exact 일치뿐 아니라
+explicit Context v2, context-token/snapshot v2, branch conclusion v1, v1 event의
+CLI·service·cold-replay bytes와 digest가 사전 동결 fixture 그대로임을 측정하는가?
+
+**Response:**
+
+DIRECT. §06.6.2와 §06.6.4가 default v3=explicit v3, explicit Context v2, snapshot v2,
+branch conclusion v1, frozen v1 bytes/digest와 cold replay를 분리해 기록한다. Initial full은
+legacy observer가 explicit v2를 누락해 RESULT-INVALID였고 `888cd96` 뒤 새 full이 PASS했다.
+
+## Q4 [boundary]
+
+Compatibility/authority 영역의 upgrade manifest는 byte-exact managed 0.2.0 tree만
+0.3.0으로 바꾸고 drifted·unknown·unmanaged tree는 writer delta 0으로 거절하며,
+각 transactional failure 지점에서 원본 tree와 recovery state를 exact 복구함을 모두
+포함하는가?
+
+**Response:**
+
+DIRECT after third correction, pending independent re-audit. Source commit `6f36a1b`의
+five-file/two-directory signature는 product classifier에 bind되고, structured
+`id/operation/expected` six-case denominator는 literal pytest node마다 actual outcome을 canonical
+exact 비교한다. Verifier가 exact six node를 별도로 실행해 receipt `e120292`에 IDs와 `passed=6`을
+기록했다. Drift/unknown은 no-write, two-target failure는 both exact restore, publish-then-fail은
+prior restore + current-tree recovery retain을 직접 관찰한다.
+
+## Q5 [external-validation]
+
+NS1 release gate는 `pyproject.toml`, `__version__`, `uv.lock`, package metadata와
+문서의 0.3.0 동기화, 전체 Python 3.12 suite, release manifest, recursive
+`authorized_action=null`을 단일 fail-closed 검증으로 묶어 stale lockfile·누락
+suite·부분 문서 sync가 green이 되지 못하게 하는가?
+
+**Response:**
+
+DIRECT after second correction, pending independent re-audit. Single verifier는 four docs의 exact
+`0.3.0`, three version surfaces, full/authority/static/wheel을 한 경로에서 실행한다. Manifest에
+고정한 세 sibling project의 실제 `.research-os` tree를 pre/post exact byte snapshot해 변경을
+fail-closed로 거절하고, reviewed product Python tree `37` files / `52cbf8…277d`를 exact 비교해
+keyword 우회와 equivalent orchestration drift를 함께 차단한다. Current receipt `e120292`는
+`609+115`, installer `6/6`, external snapshots 3/3 unchanged, authority non-null 0,
+wheel/install 0.3.0을 기록한다.
+
+## Q6 [end-state-positioning]
+
+이번 phase의 §06.6.5는 Context와 Compatibility/authority의 before/after만
+구체화하되 Claim/retrieval reason은 M2에 남기고, 세 외부 프로젝트의 live
+migration과 제품 multi-agent를 계속 제외하며, 이를 숨기려고 §8.2 행동이나 §8.3
+경계를 축소하지 않는가?
+
+**Response:**
+
+DIRECT after documentation correction. §06.6.5는 Context와 Compatibility/authority의
+before/after만 구체화하고 Claim/retrieval은 M2에 남긴다. 외부 프로젝트 접근은 actual
+`.research-os` pre/post **read-only snapshot**뿐이고 writer delta 0이며, live migration 유예와
+제품 multi-agent 0/NS6 이후 조건을 그대로 유지한다. §8.2/§8.3 경계를 축소하지 않는다.
+
+## Q7 [proxy-vs-real]
+
+NS5는 Context v3 default와 수동 diagnosis 경로가 편해져도 canonical
+FSM·crash-resume 7개 transition을 만들지 않으므로 계속 `0/7`이며, 이 UX 개선을
+autonomous-loop 진척으로 대리 청구하지 않는가?
+
+**Response:**
+
+DIRECT. §06.6.9가 NS5를 `0/7`로 유지하며 finite FSM과 crash-resume 부재를 limitation으로
+명시한다. Context/Diagnosis UX를 autonomy 분자로 세지 않는다.
+
+## Q8 [claim-mode-discipline]
+
+Acceptance, fixture denominator, upgrade failure matrix, release-manifest 판정값을
+구현·테스트 결과 전에 pre-spec commit으로 고정하고 first-data commit과 timestamp를
+남기며, 결과 노출 후 어느 기준이라도 바뀌면 해당 결과를 `RESULT-INVALID` 또는
+`EXPLORATORY`로 낮추고 M1-E `CLOSE`를 금지하는가?
+
+**Response:**
+
+DIRECT after third correction. §06.6.7은 explicit `CONFIRMATORY`이고 third-correction pre-spec
+`b70a98f`가 implementation `e120292`의 direct parent다. Earlier receipts는 history로 남기고
+clean `e120292`에서 처음 얻은 `609+115`/installer `6/6` receipt만 current close 분자로 사용한다.

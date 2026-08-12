@@ -33,19 +33,19 @@ From the Research OS checkout:
 ~/research-os/.venv/bin/research-os install-agent-skill --target all
 ```
 
-Existing exact 0.1.0 installations require the explicit recognized-release
-upgrade:
+Existing exact 0.1.0 installations and byte-exact managed 0.2.0 installations
+require the explicit recognized-release upgrade:
 
 ```bash
 ~/research-os/.venv/bin/research-os install-agent-skill --target all --upgrade
 ```
 
-A successful legacy upgrade reports `recovery_backup` and retains the original
-0.1.0 inode tree there. The installer never deletes that backup automatically,
+A successful upgrade reports `from_release`, `to_release`, and `recovery_backup`,
+and retains the original inode tree there. The installer never deletes that backup automatically,
 because another process may still hold an open descriptor to an old skill file.
 Before any manual deletion, inspect and diff the retained tree against the new
 installation, preserve or merge every late write, and verify its provenance.
-Writer shutdown and a working 0.2.0 installation are necessary but not
+Writer shutdown and a working 0.4.0 installation are necessary but not
 sufficient: retention exists specifically so edits through an already-open old
 descriptor are not silently discarded.
 
@@ -95,9 +95,23 @@ The skill makes the agent resolve the project, run the required gates, call the
 CLI, parse JSON, and report in natural language. Raw JSON is shown only on
 request.
 
+## Program memory in 0.4.0
+
+Context v3 may be opt-in bound to a Program Claim retrieval result. The binding
+includes the exact query/result digests and Program head. Before a registered
+Proposal's knowledge disposition is appended, Research OS recomputes that read
+set and requires every returned active or contradiction Claim exactly once.
+`used`, `rejected`, and `not_applicable` entries carry canonical Claim digests,
+relation IDs, Proposal field references, and null authority; rationale text
+cannot replace those references. Legacy free text is importable only as
+digest/size metadata classified `legacy_unstructured`. It produces no typed
+Claim or relation and stores no raw body. External project migration remains
+outside this release.
+
 ## Agent context and stale-proposal protection
 
-`agent-context` is a bounded read model containing:
+`agent-context` emits Context v3 by default. Explicit `--schema-version 2`
+preserves the prior packet for compatibility. The bounded read model contains:
 
 - the resolved scientific contract and authority boundary;
 - the research brief and candidate JSON Schema;
@@ -172,6 +186,82 @@ actual byte absence or a separate account, container/mount, or custodian. Final
 holdout evaluation occurs once after the candidate and implementation are frozen
 and does not feed another tuning iteration.
 
+## Study generation and cumulative reservation
+
+For versioned research, setup produces a strict `StudyContract` JSON after the
+scientific inputs are fixed and the evaluator certificate is current. Open it
+before obtaining the agent context used for the first proposal:
+
+```text
+research-os --project PATH open-generation /ABS/PATH/study-contract.json
+research-os --project PATH study-status
+research-os --project PATH baseline
+research-os --project PATH agent-context
+```
+
+The contract pre-registers hypothesis classes, allowed candidate JSON pointers,
+evaluation scopes, frontier/stop policy, and fixed per-registration reservations.
+All objects use exact version-one keys; unknown, missing, duplicate, unsafe, or
+semantically inconsistent values fail closed. The generation event binds the
+normalized contract separately from the current compatibility and evaluator
+certification seal.
+
+Every registration after that event atomically reserves one attempt, an optional
+retry, elapsed allocation, and optional cost allocation. A failed, invalid,
+cancelled, timed-out, untrusted, rejected, or validated terminal outcome consumes
+the same reservation; there is no refund. These are conservative allocations,
+not actual usage telemetry. `study-status` is replay-derived and is the operator's
+current budget view.
+
+A scientific or evaluation change opens an explicit successor only after the
+normal change-control and re-certification work:
+
+```text
+research-os --project PATH open-generation NEW-CONTRACT.json \
+  --predecessor-generation-id generation_CURRENT \
+  --change-reason "state the preregistered change"
+```
+
+The same contract and seal cannot be used to reset a generation. A genuinely
+changed successor receives a fresh per-generation budget; repeated successors
+are auditable but there is not yet a study-lifetime cap.
+
+## Terminal Diagnosis gate
+
+After every terminal experiment in a version-two generation, stop proposing
+experiments and prepare one strict Diagnosis bound to the returned experiment,
+terminal event ID/hash, persisted Proposal and scope, Decision observation, and
+verified artifacts. Record it before any next registration, retry, or successor:
+
+```text
+research-os --project PATH diagnose /ABS/PATH/diagnosis.json
+research-os --project PATH study-status
+research-os --project PATH replay
+```
+
+Research OS derives `ClassState`, immutable class closure, and the
+semantic/retry frontiers from verified evidence. Treat the agent's
+interpretation, falsifier, and recommendation as bounded research provenance,
+not as execution or closure authority. Current `agent-context` v2 does not
+expose these fields or generate the strict JSON, so the caller must preserve the
+exact IDs until context v3 and the Diagnosis authoring template land.
+
+The opt-in M1-E preview removes that manual evidence copying while preserving
+context v2 as the default:
+
+```text
+research-os --project PATH agent-context --schema-version 3
+research-os --project PATH diagnosis-template > /ABS/PATH/diagnosis.json
+# If several terminal experiments are pending:
+research-os --project PATH diagnosis-template --experiment exp_ID \
+  > /ABS/PATH/diagnosis.json
+```
+
+Replace only the four `REPLACE_ME` fields (`interpretation`, `failure_type`,
+`falsifier`, and `recommendation`), then call `diagnose`. The template command
+is read-only and derives every identity, artifact reference, and quantitative
+observation from canonical replay.
+
 ## Scientific graph workflow
 
 Research follows a phase machine rather than unconstrained sequential parameter
@@ -228,6 +318,18 @@ research-os --project PATH conclude-branch \
 
 The command binds the finding to the named terminal events. It authorizes no
 production action, and the agent refreshes `agent-context` afterward.
+
+## Running a v0.5.0 finite research episode
+
+The 0.5.0 autonomy API is a bounded orchestration surface, not an open-ended
+agent permission. Start only from a fresh Context v3 and current Program head.
+The provider response must satisfy the DecisionPacket schema exactly; invalid
+responses consume only the fixed provider-retry allowance and create no
+scientific evidence. Refresh on a stale Project or Program head, never edit the
+packet around the validator, and resume a crash only through replay of the
+recorded pending seam. Stop when the episode reaches its terminal state or any
+budget/class gate closes. Existing projects are not upgraded or written by the
+0.5.0 release gate; live pilot and migration remain separate reviewed work.
 
 ## Authority
 

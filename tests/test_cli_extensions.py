@@ -17,7 +17,7 @@ class CLIExtensionTests(unittest.TestCase):
             "destination": "/tmp/.agents/skills/research-os",
             "status": "upgraded",
             "from_release": "0.1.0",
-            "to_release": "0.2.0",
+            "to_release": "0.3.0",
         }
         stdout = io.StringIO()
         with (

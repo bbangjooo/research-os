@@ -72,6 +72,89 @@ policy. A `ResearchService` instance caches its validated `ProjectConfig`; if
 either TOML contract changes, callers must create a new instance. Public methods
 fail closed on a stale cached configuration.
 
+Every baseline repetition is normalized and hashed, then passed to the same
+adapter `verify` operation used after candidate evaluation. Research OS checks
+the immutable workspace before and after that call and re-captures artifacts
+against their first digest/size declarations. `BASELINE_RECORDED` binds each
+repetition to its result digest and positive typed verdict. A legacy event that
+predates this evidence remains replayable, but it cannot authorize a current
+comparison; the service seals a new verified baseline instead.
+
+The constitution may also declare exact `[[promotion.gates]]`. Each definition
+owns an ID, metric name, `hard|support` role, `gte|lte` operator, finite
+threshold, unit, and positive normalization scale. The adapter supplies only the
+finite observation in `ResultEnvelope.metrics`; it does not choose the threshold
+or declare the gate pass. The kernel computes signed slack (`observed-threshold`
+for `gte`, `threshold-observed` for `lte`) and normalized slack before applying
+any veto. Directional primary-metric improvement and promotion margin are also
+computed first, so a hard failure cannot erase evidence of an otherwise useful
+effect.
+
+## Study generations and budget authority
+
+A versioned research run may open one canonical study generation from a strict
+`StudyContract`. The contract fixes hypothesis classes, candidate intervention
+pointers, evaluation-scope identities, frontier and stop policy, change control,
+and the generation's attempt, retry, elapsed-allocation, and optional
+cost-allocation limits. Its canonical digest is independent from the evaluation
+seal, which binds the current effective compatibility, evaluator certificate,
+and review subject.
+
+`research.study_generation_opened.v1` records both digests and the full normalized
+contract. The generation ID is deterministic over project, predecessor, contract,
+and evaluation-seal identity. Repeating the active contract and seal is
+idempotent. A changed successor must name the exact active predecessor and a
+non-empty reason; an unchanged successor is rejected so it cannot reset a spent
+budget.
+
+Once a generation exists, every experiment registration must carry its generation
+ID, contract and seal digests, the full version-one science bundle, and
+`authorized_action: null`. The registration's debit is derived from the contract:
+one attempt, zero or one retry, and fixed elapsed/cost reservations. The caller
+cannot choose these values. Terminal status does not refund them, and a null cost
+contract remains unknown rather than becoming zero.
+
+The canonical event stream, not SQLite, is the budget authority. Immediately
+before append, `EventLog`'s exclusive-lock precondition replays the supplied
+locked events and reserves the debit, preventing two processes from spending the
+last slot. `study-status` and `replay` use the same pure reducer, so live state,
+cold replay, and projection rebuild produce the same generation binding and
+ledger or the same stable failure code.
+
+These limits are conservative reserved allocations, not actual elapsed/cost
+telemetry, and they apply per generation. Explicitly opening changed successors
+can increase the total study allocation; Research OS preserves that change
+history but does not yet impose a lifetime cap. Registrations before the first
+generation remain readable as `legacy_unstructured`; after a generation opens,
+an unbound or partial registration fails closed.
+
+## Diagnosis, class state, and semantic frontier
+
+Every terminal experiment registered under `StudyContract` v2 creates a pending
+Diagnosis obligation. Until one strict `research.experiment_diagnosed.v1` event
+is appended, the service rejects a new registration, retry, or successor
+generation. The Diagnosis is not another experiment: it has
+`authorized_action: null` and binds the exact terminal event ID/hash, persisted
+Proposal and scope, kernel-reconstructed Decision observation, and verified
+artifact references. Retrying the same canonical Diagnosis is idempotent;
+conflicting or late diagnoses fail closed in locked live append, cold replay,
+and projection rebuild.
+
+`ClassState` is a pure replay-derived view, not a second canonical table.
+Conclusive class rejections count once per causal chain; operational,
+insufficient-evidence, hard-gate-only, and agent-labelled control outcomes do
+not close a class. Kernel evidence determines provisional support, replication
+requirements, replication, falsification, inconclusive state, and immutable
+closure. Agent-written interpretation and recommendation remain provenance and
+retrieval input, never disposition or execution authority.
+
+The semantic frontier returns only open, contract-compatible, scientifically
+eligible classes and parents. A separate retry frontier preserves eligible
+operational retries. Both are deterministic replay outputs; their ordering is a
+policy, not a claim that Research OS has learned the scientifically optimal next
+hypothesis. `agent-context` v2 does not yet expose these views or help author the
+strict Diagnosis; that compatibility surface is context v3 work.
+
 ## Scientific correctness boundary
 
 Research OS proves that configured bytes and protocol results are bounded,
@@ -100,7 +183,25 @@ that exact digest, preventing a PASS review from being replayed after drift.
 
 Certification enforcement is the context-token-backed Codex/Claude boundary.
 The tokenless direct service/CLI path remains available for legacy integrations
-and intentionally does not claim agent research readiness.
+and intentionally does not claim agent research readiness. Before a generation it
+remains untyped; inside a version-two generation it cannot bypass typed Proposal,
+pending Diagnosis, class-closure, or locked budget gates. Default Context v3 is
+the agent-facing path, while explicit Context v2 preserves the prior packet contract.
+
+Agent-skill publication is a separate managed boundary. An existing byte-exact
+managed 0.2.0 or 0.3.0 tree moves to 0.4.0 only through explicit `install-agent-skill
+--upgrade`; unknown, drifted, or unmanaged trees are rejected without writes.
+The transaction retains the prior tree at the reported `recovery_backup` so an
+interrupted multi-target publication can be inspected or rolled back.
+
+Program memory is a second canonical append-only stream, distinct from the
+project EventLog. Its Claim graph and retrieval projections are rebuildable from
+ProgramLog. A knowledge-disposition event stores the exact registered Proposal,
+retrieval query, full returned-Claim coverage, Claim/relation digests, and the
+combined Context v3 token. Replay recomputes retrieval at the referenced Program
+prefix before accepting it. Legacy text never enters that graph: only bounded
+digest/size metadata is recorded as `legacy_unstructured`, with an empty typed
+Claim list and no raw content. All memory records retain `authorized_action=null`.
 
 The evaluation universe, selection cutoff, development/replication splits, and
 holdout boundary are similarly pre-registered before the first baseline. Locked
@@ -114,10 +215,12 @@ implementation are frozen.
 - A wall-clock process timeout becomes `TIMED_OUT`.
 - Spawn, process, output-limit, or protocol failures become `INFRA_FAILED`.
 - Protected/source/mutation-boundary drift becomes `UNTRUSTED`.
-- Missing evidence becomes `INSUFFICIENT_EVIDENCE`.
+- Missing primary/gate evidence or a failed support gate becomes
+  `INSUFFICIENT_EVIDENCE`.
 - A user interrupt becomes `CANCELLED` after its terminal event is recorded.
-- A valid non-improvement becomes `REJECTED`.
-- A verified improvement satisfying constraints becomes `VALIDATED`.
+- A valid non-improvement or failed legacy/typed hard gate becomes `REJECTED`.
+- A verified strict improvement satisfying every hard and support gate becomes
+  `VALIDATED`.
 
 Every registered attempt eventually receives exactly one durable terminal event.
 If a worker disappears between registration and termination, the next
@@ -213,7 +316,8 @@ a clean projection, and repopulates it from canonical events on the next
 service operation.
 
 Both baseline and candidate artifacts are captured before their disposable
-workspaces are deleted. Baseline artifact records live in `BASELINE_RECORDED`;
+workspaces are deleted and are content-bound across the adapter `verify` call.
+Baseline artifact and per-repeat verification records live in `BASELINE_RECORDED`;
 candidate artifact records also project into the `artifacts` query. `replay`
 collects both sets, validates each immutable catalog record, and re-hashes its
 SHA-256 blob. Its `artifacts_verified` result counts unique artifact records,
@@ -258,6 +362,22 @@ compatibility digest. The finding binds the agent's hypothesis class, failure
 signature, conclusion, confidence, and next step to the canonical terminal event
 IDs and hashes. This makes class closure and materially supported replicated
 branches durable without promoting agent interpretation to deployment authority.
+
+## Autonomous single-researcher loop (v0.5.0)
+
+The v0.5.0 controller composes the existing public boundaries instead of
+creating a second source of scientific truth. A finite episode reads Context
+v3 and Program retrieval, validates a provider-neutral DecisionPacket, then
+routes at most the precommitted retry and experiment budgets through the
+canonical ResearchService and ProgramStore. Its separate autonomy log records
+only orchestration state and exact references to Project/Program events.
+
+Every continuation replays all three logs, verifies bound heads and referenced
+event hashes, and resumes the one pending seam. A concurrent write between
+lookup and append returns a stable stale-context result with controller writer
+delta zero. Terminal episodes are idempotent and cannot recharge a budget or
+append a second conclusion. This is local single-worker orchestration; it adds
+no deployment, migration, trading, or multi-agent authority.
 
 ## Authority boundary
 

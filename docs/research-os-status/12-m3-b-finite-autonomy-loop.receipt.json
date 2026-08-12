@@ -1,0 +1,81 @@
+{
+  "receipt_schema_version": 1,
+  "phase": "M3-B",
+  "pre_spec_commit": "9069cbda63e38c86b23f79afa85d1173ad5b52b8",
+  "critic_questions_commit": "acc7ea9",
+  "first_product_and_data_commit": "ede020caa57cc87edc5579f87c3c82bc96f35b79",
+  "critic_attempt_1": "FAIL (Q3/Q4/Q5/Q6/Q8)",
+  "critic_correction_commit": "f53e37c468d1ba45b2156d02b0605486593f5035",
+  "critic_attempt_2": "PASS (Q1-Q8 8/8; focused 60; adjacent 125)",
+  "audit_attempt_1": "FAIL (evidence-doc consistency; engineering evidence reproduced)",
+  "audit_attempt_2": "FAIL (checkpoint attribution and MIXED per-row schema)",
+  "audit_attempt_3": "FAIL (final LOC and sole-next-action synchronization)",
+  "audit_attempt_4": "PASS (29/29 reproducibility; Severity-1/2 0/0)",
+  "frozen_manifest": {
+    "path": "tests/fixtures/autonomy/v1/m3b-manifest.json",
+    "sha256": "29684ed79c0dcf224a3959753f324f6f55f261e696b5c366218b48ef2dc99bc1",
+    "cases": 43,
+    "passed": 43,
+    "groups": {
+      "transitions": "7/7",
+      "memory_writeback": "6/6",
+      "idempotency": "7/7",
+      "closed_class": "4/4",
+      "budget_stop": "5/5",
+      "sealed_evidence": "6/6",
+      "rejection": "8/8"
+    }
+  },
+  "focused_command": ".venv/bin/pytest -q tests/test_m3b_finite_autonomy.py",
+  "focused_result": "60 passed in 83.08s",
+  "adjacent_command": ".venv/bin/pytest -q tests/test_m2d_knowledge_disposition.py tests/test_m3a_decision_packet.py tests/test_m3b_finite_autonomy.py",
+  "adjacent_result": "125 passed in 87.82s",
+  "actual_service_slice_command": ".venv/bin/pytest -q tests/test_service_e2e.py tests/test_service_release_regressions.py tests/test_m1c_service_cli.py -k 'full_lifecycle_and_replay or typed_service_binds_scope or terminal_artifact or artifact'",
+  "actual_service_slice_result": "12 passed, 45 deselected in 21.49s",
+  "audit_correction_result": "9 passed, 51 deselected in 21.92s",
+  "exact_witnesses": {
+    "nominal_committed_transitions": "7/7",
+    "cold_replay_state_and_summary": "PASS",
+    "truth_owner_source_reconciliation": "PASS (ProjectLog terminal/Diagnosis and ProgramLog disposition/origin/Claim plus ClassState prefix)",
+    "one_factor_reference_tamper": "AUTONOMY_EVIDENCE_INVALID",
+    "next_context_current_program_head_and_packet_revalidation": "PASS (tests/test_m3b_finite_autonomy.py::test_m3b_next_context_revalidates_a_fresh_packet_on_current_program_head)",
+    "program_log_writes_per_complete_episode": {
+      "disposition": 1,
+      "origin": 1,
+      "claim": 1
+    },
+    "repeated_transition_deltas": "project/program/autonomy 0/0/0 for 7/7",
+    "closed_class_registrations": 0,
+    "budget_stop_precedence": "5/5",
+    "actual_research_service_calls_per_episode": 1,
+    "actual_research_service_type": "research_os.service.ResearchService",
+    "actual_terminal_artifact_digest_and_size_bound": true,
+    "direct_adapter_calls": 0,
+    "direct_workspace_calls": 0,
+    "non_null_authority": 0,
+    "post_terminal_invalid_evaluator_reruns": 0,
+    "post_terminal_invalid_claim_writes": 0,
+    "post_terminal_invalid_summary_status": "incomplete"
+    ,"post_terminal_retry_stop_reasons": "invalid/provider/token/time exact; diagnosis/synthesis invalid+transport",
+    "post_terminal_truth_owner_write_delta": "project/program 0/0",
+    "post_terminal_evaluator_reruns": 0
+    ,"static_checks": "ruff PASS; ty PASS (0 diagnostics)"
+  },
+  "m3a_manifest": {
+    "path": "tests/fixtures/autonomy/v1/m3a-manifest.json",
+    "sha256_before_and_after": "a43ba5980c257706fe49f0c5107b520683f85ff46b3d7d9848071a0382d747a2"
+  },
+  "loc": {
+    "product_additions": 2035,
+    "product_deletions": 8,
+    "product_churn": 2043,
+    "product_target": 1600,
+    "tests_and_fixture": 1384,
+    "tests_and_fixture_target": 1700,
+    "inclusive_exact_with_audit_slots": 3900,
+    "inclusive_target": 3900,
+    "product_subtarget_met": false,
+    "inclusive_target_met": true
+  },
+  "authorized_action": null
+}

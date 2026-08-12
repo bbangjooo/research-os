@@ -145,6 +145,23 @@ class ExampleAdapterTests(unittest.TestCase):
             self.assertEqual(
                 baseline_result.metrics[primary_metric], baseline_value
             )
+            baseline_result_digest = sha256_json(baseline_result.to_dict())
+            baseline_verify_request, baseline_verification = self.invoke(
+                project,
+                command,
+                Operation.VERIFY,
+                payload={"result_digest": baseline_result_digest},
+                workspace=baseline_workspace,
+                experiment_id="base_reference",
+            )
+            self.assertEqual(
+                baseline_verify_request["payload"],
+                {"result_digest": baseline_result_digest},
+            )
+            baseline_verdict = baseline_verification.verify_result()
+            self.assertIsInstance(baseline_verdict, VerifyResult)
+            self.assertTrue(baseline_verdict.valid)
+            self.assertIsNone(baseline_verdict.category)
             _, baseline_cleanup = self.invoke(
                 project,
                 command,

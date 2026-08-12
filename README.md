@@ -37,14 +37,16 @@ uv pip install --python .venv/bin/python -e .
 .venv/bin/research-os install-agent-skill --target all
 ```
 
-To replace an exact, unmodified Research OS 0.1.0 skill installation, use the
-explicit safe-upgrade path:
+To replace an exact, unmodified Research OS 0.1.0 installation or a byte-exact
+managed Research OS 0.2.0 skill, use the explicit safe-upgrade path:
 
 ```bash
 .venv/bin/research-os install-agent-skill --target all --upgrade
 ```
 
-Unknown or locally modified skill trees are never overwritten.
+Unknown or locally modified skill trees are never overwritten. A successful
+upgrade retains the prior inode tree in the reported `recovery_backup`; inspect
+that recovery before deleting it manually.
 
 This installs the skill at:
 
@@ -88,7 +90,12 @@ raw event records.
 - isolated, disposable experiment workspaces;
 - immutable evaluator, evidence, and protected paths during a run;
 - finite experiment, time, output, input, and artifact budgets;
-- compatible repeated baselines and deterministic promotion thresholds;
+- strict, versioned study contracts whose generation-wide attempt, retry,
+  elapsed-allocation, and optional cost-allocation budgets are reserved atomically;
+- compatible repeated baselines verified through the same digest-bound adapter
+  boundary as candidates;
+- constitution-owned typed `gte`/`lte` hard and support gates with numeric
+  signed/normalized slack in every promotion decision;
 - pre-registered universes, selection/split policy, and holdout boundaries;
 - hand-derived golden cases and independent evaluator certification;
 - explicit graph actions, scientific changes, ancestry, ablations, replications,
@@ -136,11 +143,17 @@ research-os --project /path/to/project evaluator-review-subject \
 # The critic writes "$RESEARCH_REVIEW_DIR/review.json".
 research-os --project /path/to/project certify-evaluator \
   "$RESEARCH_REVIEW_DIR/review.json"
+research-os --project /path/to/project open-generation study-contract.json
+research-os --project /path/to/project study-status
 research-os --project /path/to/project baseline
 research-os --project /path/to/project agent-context
+research-os --project /path/to/project agent-context --schema-version 3
 research-os --project /path/to/project run-once candidate.json \
   --graph-action explore --scientific-change "CLASS: ...; CHANGE: ..." \
   --context-token TOKEN
+research-os --project /path/to/project diagnose diagnosis.json
+research-os --project /path/to/project diagnosis-template \
+  > diagnosis.json
 research-os --project /path/to/project conclude-branch conclusion.json \
   --context-token TOKEN
 research-os --project /path/to/project status
@@ -148,6 +161,63 @@ research-os --project /path/to/project lineage
 research-os --project /path/to/project findings
 research-os --project /path/to/project replay
 ```
+
+StudyContract v2 uses a typed Proposal and a preregistered evaluation scope
+instead of the legacy graph flags:
+
+```bash
+research-os --project /path/to/project baseline \
+  --evaluation-scope-id development
+research-os --project /path/to/project run-once candidate.json \
+  --proposal proposal.json
+# A retry inherits the persisted candidate, Proposal, parent, and scope.
+research-os --project /path/to/project run-once candidate.json \
+  --retry-of exp_PRIOR
+```
+
+The adapter must advertise `evaluation_scope_v1` before a v2 generation can
+open. Research OS binds the full declared scope to the baseline, all four
+candidate operations, experiment identity, and replay; it does not infer that
+two datasets are scientifically independent merely because their scope IDs
+differ.
+
+Every terminal experiment in a version-two generation leaves one pending
+Diagnosis. Before another registration, retry, or successor generation can be
+accepted, the agent must submit a strict `Diagnosis` JSON with `diagnose`. The
+object binds the exact terminal event and hash, Proposal, evaluation scope,
+Decision observation, and artifact evidence. The kernel—not the agent's
+narrative—derives class status, immutable closure, and the semantic/retry
+frontier. Context v3 and the Diagnosis template expose that state without
+changing the canonical event contract.
+
+Research OS 0.4.0 emits Context v3 by default. After a typed terminal result, run
+`agent-context`, then `diagnosis-template`
+(add `--experiment ID` if more than one is pending). The generated body is
+fail-closed until the agent replaces only `interpretation`, `failure_type`,
+`falsifier`, and `recommendation`, after which it can be submitted to
+`diagnose`. Use `agent-context --schema-version 2` only for explicit compatibility;
+its packet and context-token snapshot schema remain unchanged.
+
+Version 0.4.0 adds a separate append-only ProgramLog for conditional Claims.
+An opt-in Context v3 memory binding carries the exact retrieval query, result,
+Program head, contradictions, and reasons. A registered typed Proposal may then
+record one immutable `ProposalKnowledgeDisposition` covering every returned
+Claim exactly once as `used`, `rejected`, or `not_applicable`; canonical Claim
+digests, relation IDs, and Proposal field references—not its narrative—are the
+auditable authority. Legacy free text is stored only as a digest/size
+`legacy_unstructured` record with zero inferred typed Claims and no raw body.
+These records authorize no deployment, merge, model release, capital allocation,
+or live trade.
+
+Research OS 0.5.0 adds a finite, restartable single-researcher loop over those
+scientific and Program-memory contracts. Each provider decision is a strict
+DecisionPacket bound to the current Context, retrieval result, Program head,
+candidate budget, and literal-null authority. Invalid provider output has a
+bounded retry path; closed classes, stale heads, exhausted budgets, and
+post-terminal calls fail closed. Pending seams resume from append-only Project,
+Program, and autonomy logs without duplicating scientific truth. The release
+does not enable live migration or product multi-agent behavior: existing
+projects remain read-only compatibility targets until a separate pilot.
 
 Codex and Claude Code use `agent-context` plus `--context-token`; that guarded
 path requires a current independent evaluator certificate and an already sealed
@@ -160,8 +230,25 @@ an old review cannot certify changed inputs.
 Both subject and review JSON belong in a private temporary directory outside
 the project root; certification rejects an in-project review path.
 
+`open-generation` requires a current evaluator certificate and records an exact
+`StudyContract` plus a separate evaluation seal in the canonical event log.
+Every later registration in that generation receives a contract-fixed,
+non-refundable budget reservation under the same event-log lock; `study-status`
+derives the remaining allocation by replay. Elapsed and cost values are reserved
+allocations, not measured usage. The limit is per generation rather than a study
+lifetime cap. Replacing the contract or seal therefore requires an explicit
+successor with `--predecessor-generation-id` and `--change-reason`; reopening the
+same contract cannot reset its budget.
+
 See [agent usage](docs/agent-usage.md) and
 [architecture](docs/architecture.md) for the complete contract.
+
+To preview the opt-in Context v3 and Diagnosis authoring path without touching
+another project, run the disposable local example:
+
+```bash
+.venv/bin/python examples/m1e_context_v3_demo.py
+```
 
 ## Development
 

@@ -242,6 +242,47 @@ class ServiceEndToEndTests(unittest.TestCase):
         ]
         self.assertEqual(len(terminal_events), 1)
 
+    def test_keyboard_interrupt_after_registration_append_uses_owned_event_id(self):
+        temporary, project = self.copy_example("toy_optimization")
+        self.addCleanup(temporary.cleanup)
+        service = ResearchService(project)
+        service.baseline()
+        original_append_registration = service._append_registration_event
+
+        def interrupt_after_durable_append(*args, **kwargs):
+            original_append_registration(*args, **kwargs)
+            raise KeyboardInterrupt
+
+        with patch.object(
+            service,
+            "_append_registration_event",
+            side_effect=interrupt_after_durable_append,
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                service.run_once(project / "candidates" / "improve.json")
+
+        events = service.event_log.read()
+        registrations = [
+            event
+            for event in events
+            if event.event_type == "EXPERIMENT_REGISTERED"
+        ]
+        terminals = [
+            event
+            for event in events
+            if event.event_type == "EXPERIMENT_TERMINATED"
+        ]
+        self.assertEqual(len(registrations), 1)
+        self.assertEqual(len(terminals), 1)
+        self.assertEqual(
+            terminals[0].payload["status"],
+            TerminalStatus.CANCELLED.value,
+        )
+        self.assertEqual(
+            terminals[0].payload["experiment_id"],
+            registrations[0].payload["experiment_id"],
+        )
+
     def test_missing_outcome_finding_is_repaired_idempotently(self):
         temporary, project = self.copy_example("toy_optimization")
         self.addCleanup(temporary.cleanup)

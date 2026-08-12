@@ -19,7 +19,12 @@ from typing import Any, Callable, Final, Iterator
 
 from research_os.agent import load_agent_spec
 from research_os.config import ProjectConfig, ensure_runtime_directory
-from research_os.contracts import canonical_json_bytes, decode_json_object, sha256_json
+from research_os.contracts import (
+    canonical_json_bytes,
+    decode_json_object,
+    normalize_json_object,
+    sha256_json,
+)
 from research_os.errors import (
     ConfigurationError,
     EvaluatorCertificationError,
@@ -1194,7 +1199,10 @@ def _doctor_binding_snapshot(
         "project_digest": project_digest,
         "adapter_digest": adapter_digest,
     }
-    return bindings
+    return normalize_json_object(
+        bindings,
+        field_name="doctor evaluator certification bindings",
+    )
 
 
 def _review_subject_from_bindings(
@@ -1293,7 +1301,11 @@ def _build_artifact(
         "review_digest": sha256_json(normalized_review),
         "bindings": dict(bindings),
     }
-    return {**unsigned, "digest": sha256_json(unsigned)}
+    normalized_unsigned = normalize_json_object(
+        unsigned,
+        field_name="evaluator certification",
+    )
+    return {**normalized_unsigned, "digest": sha256_json(normalized_unsigned)}
 
 
 def _parse_artifact(data: bytes, config: ProjectConfig) -> dict[str, Any]:
@@ -1467,6 +1479,10 @@ def _inspect_evaluator_certification_unlocked(
         current_source = project_fingerprints(config)
         _assert_source_snapshot_matches_live(config, fingerprints, current_source)
         current_bindings = _source_only_binding_snapshot(config, current_source, bindings)
+    current_bindings = normalize_json_object(
+        current_bindings,
+        field_name="current evaluator certification bindings",
+    )
     stale_keys = [
         key for key in CERTIFICATION_BINDING_KEYS if bindings.get(key) != current_bindings.get(key)
     ]

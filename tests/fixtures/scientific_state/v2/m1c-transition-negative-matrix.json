@@ -1,0 +1,323 @@
+{
+  "schema_version": 2,
+  "kind": "research_os.proposal_transition_negative_matrix",
+  "observer_contract": {
+    "case_id_is_display_only": true,
+    "dispatch_fields": [
+      "project_profiles.*.extends",
+      "scenarios.*.extends",
+      "documents.*.$doc",
+      "documents.*.ref",
+      "documents.*.derive.operation",
+      "documents.*.control_assertions.observer",
+      "documents.*.patches[].op",
+      "scenarios.*.steps[].driver",
+      "scenarios.*.steps[].proposal.patches[].op",
+      "invoke.driver",
+      "invoke.arguments.proposal.patches[].op",
+      "invoke.arguments.mutations[].op",
+      "invoke.arguments.recompute[]",
+      "invoke.paths[]"
+    ],
+    "allowed_patch_operations": ["add", "remove", "replace"],
+    "forbidden_dispatch": ["case.id", "case.id prefix", "named Python case helper"],
+    "assert_scenario_state_before_invoke": true,
+    "resolution_order": [
+      "project_profile_extends",
+      "scenario_extends",
+      "document_ref_or_literal_or_derive",
+      "document_and_inline_patches",
+      "document_recompute",
+      "doc_ref_and_capture_ref",
+      "invoke_mutations",
+      "invoke_recompute",
+      "path_ref_expansion"
+    ],
+    "resolution_semantics": {
+      "extends": "Recursively resolve one named parent; deep-merge objects, append scenario steps, replace every other array, and reject cycles or unknown parents.",
+      "$doc": "Resolve a named document to a deep copy; recursively resolve nested $doc values before applying local patches.",
+      "$ref": "Resolve an exact dotted path from the matrix root to a deep copy and reject an unknown path.",
+      "$capture": "Resolve an exact dotted path from a previously declared capture and reject forward or unknown references.",
+      "patches": "Apply RFC-6901 add/remove/replace operations in listed order to a deep copy; never dispatch on case id.",
+      "derive": "Execute only the declared generic operation and arguments after scenario materialization in an isolated non-persisting branch; select the declared payload and verify assert_derived before patches.",
+      "mutations": "Apply the same RFC-6901 patch engine to the canonical base payload in listed order.",
+      "recompute": "Recompute named canonical derived fields in listed dependency order, using the fully mutated payload; fields not listed remain byte-for-byte unchanged.",
+      "control_assertions": "Evaluate the unpatched source document through the named production observer before using the derived or mutated document; assertion metadata is not part of the resolved payload."
+    }
+  },
+  "defaults": {
+    "zero_deltas": {
+      "canonical_events": 0,
+      "generation_events": 0,
+      "baseline_events": 0,
+      "registration_events": 0,
+      "budget_attempts": 0,
+      "budget_retries": 0
+    },
+    "direct_replay_paths": [
+      "locked_registration_append",
+      "cold_science_reduce",
+      "projection_rebuild",
+      "research_service_replay"
+    ]
+  },
+  "project_profiles": {
+    "v2-ready": {
+      "candidate_schema_fixture": "m1c-candidate-schema.json",
+      "candidate_schema_digest": "1b49c8af8a9bcedd3127d75592e80b8bf8ad2bd7b28391056160f80dce2f1d33",
+      "adapter_capabilities": [
+        "baseline",
+        "cleanup",
+        "describe",
+        "evaluate",
+        "evaluation_scope_v1",
+        "fingerprint",
+        "materialize",
+        "run",
+        "verify"
+      ],
+      "certified": true,
+      "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    "v2-no-scope-capability": {
+      "extends": "v2-ready",
+      "remove_capabilities": ["evaluation_scope_v1"]
+    }
+  },
+  "documents": {
+    "contract-v2": {"fixture": "m1c-contract.json"},
+    "contract-v1": {"fixture": "../v1/m1b-contract.json"},
+    "proposal-explore": {"fixture": "m1c-proposal-explore.json"},
+    "proposal-replicate": {"fixture": "m1c-proposal-replicate.json"},
+    "candidate-root": {
+      "literal": {"x": 2.0, "y": 1.0},
+      "digest": "8c056c3399fce447330a0e90971addc793e4171b16f384a70db3519e0ad4958c"
+    },
+    "candidate-x": {
+      "literal": {"x": 3.0, "y": 1.0},
+      "digest": "0379bede8097f1d71adf4a6a2fd9bec5fefce42bcf096af5be2aa85b097b5b04"
+    },
+    "candidate-y": {
+      "literal": {"x": 2.0, "y": 2.0},
+      "digest": "2fdd38bbc53c3b4d4c037ee5a7f71670c42b9bb74a308dac495a3185a18ed3f3"
+    },
+    "candidate-xy": {
+      "literal": {"x": 3.0, "y": 2.0},
+      "digest": "c0d1420f4fb46a6920484a107ea6affe1f6c22546757ea971e20d84514e08ee2"
+    },
+    "baseline-development-control": {
+      "derive": {
+        "operation": "service.baseline_event_payload",
+        "arguments": {"evaluation_scope_id": "development", "persist": false},
+        "select": "/payload"
+      },
+      "assert_derived": {
+        "science_state_version": 1,
+        "generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54",
+        "study_contract_digest": "7f66d3bc702d112197de6649cf7555b5a086f43768723dc346ad150a8bf9e184",
+        "evaluation_seal_digest": "4e010f28e4ab80204f67a5cc6724001d231055687dff8f59d2f2d6fd7c3015d9",
+        "evaluation_scope_id": "development",
+        "evaluation_scope": {
+          "id": "development",
+          "role": "development",
+          "manifest_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      },
+      "control_assertions": {
+        "observer": "service.current_baseline_validation",
+        "accepted": true,
+        "trusted": true
+      }
+    },
+    "baseline-legacy-unscoped": {
+      "ref": "baseline-development-control",
+      "patches": [
+        {"op": "remove", "path": "/evaluation_scope_id"},
+        {"op": "remove", "path": "/evaluation_scope"}
+      ],
+      "recompute": ["digest"],
+      "assert_only_changed_json_pointers": ["/digest", "/evaluation_scope", "/evaluation_scope_id"],
+      "assert_absent_json_pointers": ["/evaluation_scope", "/evaluation_scope_id"]
+    },
+    "registration-legacy-no-generation": {
+      "literal": {
+        "attempt": 1,
+        "authorized_action": null,
+        "candidate_digest": "8c056c3399fce447330a0e90971addc793e4171b16f384a70db3519e0ad4958c",
+        "compatibility_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "experiment_id": "exp_87265a651c32894a32d3e647feb47402",
+        "parent_id": null,
+        "retry_of": null,
+        "status": "registered"
+      },
+      "control_assertions": {
+        "observer": "reduce_scientific_state",
+        "accepted": true,
+        "legacy_unstructured_registrations": 1,
+        "active_generation_id": null
+      }
+    }
+  },
+  "captures": {
+    "generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54",
+    "root_experiment_id": "exp_14dab599bb9be91cbac8751a5c0da192",
+    "replication_1_experiment_id": "exp_6de5a6123dad0a28f3bb630f11db9af4",
+    "replication_2_experiment_id": "exp_3c757d5fc62c10a52b741759acdf377b"
+  },
+  "scenarios": {
+    "certified-ready": {
+      "project_profile": "v2-ready",
+      "steps": [],
+      "expected_state_subset": {"active_generation_id": null, "baseline_scope_ids": [], "attempts_used": 0, "retries_used": 0, "registrations": [], "terminal_experiment_ids": [], "replication_count": 0}
+    },
+    "certified-no-scope-capability": {
+      "project_profile": "v2-no-scope-capability",
+      "steps": [],
+      "expected_state_subset": {"active_generation_id": null, "baseline_scope_ids": [], "attempts_used": 0, "retries_used": 0, "registrations": [], "terminal_experiment_ids": [], "replication_count": 0}
+    },
+    "v2-open": {
+      "extends": "certified-ready",
+      "steps": [{"driver": "generation.open", "contract": {"$doc": "contract-v2"}}],
+      "expected_state_subset": {"active_generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54", "baseline_scope_ids": [], "attempts_used": 0, "retries_used": 0, "registrations": [], "terminal_experiment_ids": [], "replication_count": 0}
+    },
+    "v2-dev-baseline": {
+      "extends": "v2-open",
+      "steps": [{"driver": "baseline.record", "evaluation_scope_id": "development"}],
+      "expected_state_subset": {"active_generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54", "baseline_scope_ids": ["development"], "attempts_used": 0, "retries_used": 0, "registrations": [], "terminal_experiment_ids": [], "replication_count": 0}
+    },
+    "v1-open-baseline": {
+      "extends": "certified-ready",
+      "steps": [
+        {"driver": "generation.open", "contract": {"$doc": "contract-v1"}},
+        {"driver": "baseline.record", "evaluation_scope_id": null}
+      ],
+      "expected_state_subset": {"active_generation_id": "generation_08f733649223ece73cbf47eb3b734e0d", "contract_schema_version": 1, "baseline_scope_ids": [null], "attempts_used": 0, "retries_used": 0, "registrations": [], "terminal_experiment_ids": [], "replication_count": 0}
+    },
+    "root-running": {
+      "extends": "v2-dev-baseline",
+      "steps": [
+        {"driver": "baseline.record", "evaluation_scope_id": "diagnostic-1"},
+        {"driver": "registration.append", "candidate": {"$doc": "candidate-root"}, "proposal": {"$doc": "proposal-explore"}, "capture": "root"}
+      ],
+      "expected_state_subset": {"active_generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54", "baseline_scope_ids": ["development", "diagnostic-1"], "attempts_used": 1, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192"], "terminal_experiment_ids": [], "replication_count": 0}
+    },
+    "root-terminal": {
+      "extends": "root-running",
+      "steps": [{"driver": "experiment.terminate", "experiment_id": "exp_14dab599bb9be91cbac8751a5c0da192", "status": "VALIDATED", "retryable": false}],
+      "expected_state_subset": {"attempts_used": 1, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192"], "terminal_experiment_ids": ["exp_14dab599bb9be91cbac8751a5c0da192"], "replication_count": 0}
+    },
+    "root-retryable": {
+      "extends": "root-running",
+      "steps": [{"driver": "experiment.terminate", "experiment_id": "exp_14dab599bb9be91cbac8751a5c0da192", "status": "TIMED_OUT", "retryable": true}],
+      "expected_state_subset": {"attempts_used": 1, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192"], "terminal_experiment_ids": ["exp_14dab599bb9be91cbac8751a5c0da192"], "replication_count": 0}
+    },
+    "diagnostic-root-terminal": {
+      "extends": "v2-dev-baseline",
+      "steps": [
+        {"driver": "baseline.record", "evaluation_scope_id": "diagnostic-1"},
+        {"driver": "registration.append", "candidate": {"$doc": "candidate-root"}, "proposal": {"$doc": "proposal-explore", "patches": [{"op": "replace", "path": "/evaluation_scope_id", "value": "diagnostic-1"}]}, "capture": "diagnostic-root"},
+        {"driver": "experiment.terminate", "experiment_id": {"$capture": "diagnostic-root.experiment_id"}, "status": "VALIDATED", "retryable": false}
+      ],
+      "expected_state_subset": {"baseline_scope_ids": ["development", "diagnostic-1"], "attempts_used": 1, "retries_used": 0, "registrations": ["exp_c7d45c0c88065c8525c7e3d4f0ab06b1"], "terminal_experiment_ids": ["exp_c7d45c0c88065c8525c7e3d4f0ab06b1"], "terminal_count": 1, "replication_count": 0}
+    },
+    "rep1-terminal": {
+      "extends": "root-terminal",
+      "steps": [
+        {"driver": "baseline.record", "evaluation_scope_id": "replication-1"},
+        {"driver": "registration.append", "candidate": {"$doc": "candidate-root"}, "proposal": {"$doc": "proposal-replicate"}, "capture": "replication-1"},
+        {"driver": "experiment.terminate", "experiment_id": "exp_6de5a6123dad0a28f3bb630f11db9af4", "status": "VALIDATED", "retryable": false}
+      ],
+      "expected_state_subset": {"baseline_scope_ids": ["development", "diagnostic-1", "replication-1"], "attempts_used": 2, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192", "exp_6de5a6123dad0a28f3bb630f11db9af4"], "terminal_experiment_ids": ["exp_14dab599bb9be91cbac8751a5c0da192", "exp_6de5a6123dad0a28f3bb630f11db9af4"], "terminal_count": 2, "replication_count": 1, "used_candidate_scope_pairs": 2}
+    },
+    "rep12-terminal": {
+      "extends": "rep1-terminal",
+      "steps": [
+        {"driver": "baseline.record", "evaluation_scope_id": "replication-2"},
+        {"driver": "registration.append", "candidate": {"$doc": "candidate-root"}, "proposal": {"$doc": "proposal-replicate", "patches": [{"op": "replace", "path": "/evaluation_scope_id", "value": "replication-2"}]}, "capture": "replication-2"},
+        {"driver": "experiment.terminate", "experiment_id": "exp_3c757d5fc62c10a52b741759acdf377b", "status": "VALIDATED", "retryable": false}
+      ],
+      "expected_state_subset": {"baseline_scope_ids": ["development", "diagnostic-1", "replication-1", "replication-2"], "attempts_used": 3, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192", "exp_6de5a6123dad0a28f3bb630f11db9af4", "exp_3c757d5fc62c10a52b741759acdf377b"], "terminal_experiment_ids": ["exp_14dab599bb9be91cbac8751a5c0da192", "exp_6de5a6123dad0a28f3bb630f11db9af4", "exp_3c757d5fc62c10a52b741759acdf377b"], "terminal_count": 3, "replication_count": 2, "used_candidate_scope_pairs": 3}
+    },
+    "root-dev-only": {
+      "extends": "v2-dev-baseline",
+      "steps": [
+        {"driver": "registration.append", "candidate": {"$doc": "candidate-root"}, "proposal": {"$doc": "proposal-explore"}, "capture": "root"},
+        {"driver": "experiment.terminate", "experiment_id": "exp_14dab599bb9be91cbac8751a5c0da192", "status": "VALIDATED", "retryable": false}
+      ],
+      "expected_state_subset": {"baseline_scope_ids": ["development"], "attempts_used": 1, "retries_used": 0, "registrations": ["exp_14dab599bb9be91cbac8751a5c0da192"], "terminal_experiment_ids": ["exp_14dab599bb9be91cbac8751a5c0da192"], "terminal_count": 1, "replication_count": 0}
+    },
+    "wrong-scope-baseline": {
+      "extends": "v2-open",
+      "steps": [{"driver": "baseline.record", "evaluation_scope_id": "diagnostic-1"}],
+      "expected_state_subset": {"baseline_scope_ids": ["diagnostic-1"], "attempts_used": 0, "retries_used": 0, "replication_count": 0}
+    },
+    "unscoped-baseline-v2": {
+      "extends": "v2-open",
+      "steps": [{"driver": "event.append", "event_type": "BASELINE_RECORDED", "payload": {"$doc": "baseline-legacy-unscoped"}}],
+      "expected_state_subset": {"baseline_scope_ids": [null], "attempts_used": 0, "retries_used": 0, "replication_count": 0}
+    },
+    "incompatible-parent-view": {
+      "extends": "v2-open",
+      "steps": [{"driver": "parent_view.inject", "experiment_id": "exp_10ef269d91d8cd540bc2ddcb5c840672", "candidate": {"$doc": "candidate-root"}, "evaluation_scope_id": "development", "hypothesis_class_id": "class-a", "generation_id": "generation_060e0d7cee268537dbf49de5fb9b5d54", "compatibility_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "terminal": true, "capture": "incompatible-parent"}],
+      "expected_state_subset": {"parent_view_count": 1, "attempts_used": 0, "retries_used": 0, "replication_count": 0}
+    }
+  },
+  "cases": [
+    {"id":"v2-duplicate-scope-manifest","scenario":"certified-ready","documents":{"contract":{"ref":"contract-v2","patches":[{"op":"replace","path":"/evaluation_scopes/4/manifest_digest","value":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}]}},"invoke":{"driver":"generation.open","arguments":{"contract":{"$doc":"contract"}}},"expected":{"error_code":"STUDY_CONTRACT_INVALID","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"missing-scope-capability","scenario":"certified-no-scope-capability","invoke":{"driver":"generation.open","arguments":{"contract":{"$doc":"contract-v2"}}},"expected":{"error_code":"STUDY_SCOPE_CAPABILITY_REQUIRED","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"candidate-schema-mismatch","scenario":"certified-ready","documents":{"contract":{"ref":"contract-v2","patches":[{"op":"replace","path":"/intervention_surface/candidate_schema_digest","value":"0000000000000000000000000000000000000000000000000000000000000000"}]}},"invoke":{"driver":"generation.open","arguments":{"contract":{"$doc":"contract"}}},"expected":{"error_code":"STUDY_CANDIDATE_SCHEMA_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"v2-missing-proposal","scenario":"v2-dev-baseline","invoke":{"driver":"service.run_once","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":null}},"expected":{"error_code":"PROPOSAL_REQUIRED","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"v1-unexpected-proposal","scenario":"v1-open-baseline","invoke":{"driver":"service.run_once","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"}}},"expected":{"error_code":"PROPOSAL_CONTRACT_VERSION_REQUIRED","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"v2-baseline-missing-scope","scenario":"v2-open","invoke":{"driver":"service.baseline","arguments":{"evaluation_scope_id":null}},"expected":{"error_code":"STUDY_EVALUATION_SCOPE_REQUIRED","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"v2-baseline-unknown-scope","scenario":"v2-open","invoke":{"driver":"service.baseline","arguments":{"evaluation_scope_id":"scope-unknown"}},"expected":{"error_code":"STUDY_EVALUATION_SCOPE_UNKNOWN","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"v2-holdout-baseline-forbidden","scenario":"v2-open","invoke":{"driver":"service.baseline","arguments":{"evaluation_scope_id":"holdout-1"}},"expected":{"error_code":"STUDY_SCOPE_BASELINE_FORBIDDEN","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"v1-baseline-with-scope","scenario":"v1-open-baseline","invoke":{"driver":"service.baseline","arguments":{"evaluation_scope_id":"development"}},"expected":{"error_code":"STUDY_SCOPE_CONTRACT_VERSION_REQUIRED","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"no-generation-baseline-with-scope","scenario":"certified-ready","invoke":{"driver":"service.baseline","arguments":{"evaluation_scope_id":"development"}},"expected":{"error_code":"STUDY_GENERATION_REQUIRED","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"unscoped-baseline-cannot-authorize","scenario":"unscoped-baseline-v2","invoke":{"driver":"service.run_once","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"}}},"expected":{"error_code":"STUDY_SCOPE_BASELINE_REQUIRED","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"wrong-scope-baseline-cannot-authorize","scenario":"wrong-scope-baseline","invoke":{"driver":"service.run_once","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"}}},"expected":{"error_code":"STUDY_SCOPE_BASELINE_REQUIRED","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"missing-same-scope-baseline","scenario":"root-dev-only","invoke":{"driver":"service.run_once","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-replicate"}}},"expected":{"error_code":"STUDY_SCOPE_BASELINE_REQUIRED","deltas":{"$ref":"defaults.zero_deltas"}}},
+
+    {"id":"generation-mismatch","scenario":"v2-dev-baseline","documents":{"proposal":{"ref":"proposal-explore","patches":[{"op":"replace","path":"/generation_id","value":"generation_00000000000000000000000000000000"}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_GENERATION_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"candidate-mismatch","scenario":"v2-dev-baseline","documents":{"proposal":{"ref":"proposal-explore","patches":[{"op":"replace","path":"/candidate_digest","value":"0000000000000000000000000000000000000000000000000000000000000000"}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_CANDIDATE_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"unknown-hypothesis-class","scenario":"v2-dev-baseline","documents":{"proposal":{"ref":"proposal-explore","patches":[{"op":"replace","path":"/hypothesis_class_id","value":"class-z"}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_HYPOTHESIS_CLASS_UNKNOWN","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"unknown-evaluation-scope","scenario":"v2-dev-baseline","documents":{"proposal":{"ref":"proposal-explore","patches":[{"op":"replace","path":"/evaluation_scope_id","value":"scope-unknown"}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_EVALUATION_SCOPE_UNKNOWN","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"explore-on-replication-role","scenario":"v2-dev-baseline","documents":{"proposal":{"ref":"proposal-explore","patches":[{"op":"replace","path":"/evaluation_scope_id","value":"replication-1"}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_SCOPE_ROLE_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"replicate-on-development-role","scenario":"diagnostic-root-terminal","documents":{"proposal":{"ref":"proposal-replicate","patches":[{"op":"replace","path":"/parent_experiment_id","value":{"$capture":"diagnostic-root.experiment_id"}},{"op":"replace","path":"/evaluation_scope_id","value":"development"}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_SCOPE_ROLE_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"iterative-holdout-forbidden","scenario":"v2-dev-baseline","documents":{"proposal":{"ref":"proposal-explore","patches":[{"op":"replace","path":"/evaluation_scope_id","value":"holdout-1"}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_SCOPE_ROLE_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"pointer-outside-surface","scenario":"v2-dev-baseline","documents":{"proposal":{"ref":"proposal-explore","patches":[{"op":"replace","path":"/intervention_json_pointers","value":["/z"]}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_INTERVENTION_INVALID","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"intervention-over-max","scenario":"root-terminal","documents":{"proposal":{"ref":"proposal-explore","patches":[{"op":"replace","path":"/action","value":"exploit"},{"op":"replace","path":"/candidate_digest","value":"c0d1420f4fb46a6920484a107ea6affe1f6c22546757ea971e20d84514e08ee2"},{"op":"replace","path":"/parent_experiment_id","value":"exp_14dab599bb9be91cbac8751a5c0da192"},{"op":"replace","path":"/evaluation_scope_id","value":"diagnostic-1"},{"op":"replace","path":"/intervention_json_pointers","value":["/x","/y"]}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-xy"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_INTERVENTION_INVALID","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"actual-intervention-diff-mismatch","scenario":"root-terminal","documents":{"proposal":{"ref":"proposal-explore","patches":[{"op":"replace","path":"/action","value":"exploit"},{"op":"replace","path":"/candidate_digest","value":"2fdd38bbc53c3b4d4c037ee5a7f71670c42b9bb74a308dac495a3185a18ed3f3"},{"op":"replace","path":"/parent_experiment_id","value":"exp_14dab599bb9be91cbac8751a5c0da192"},{"op":"replace","path":"/evaluation_scope_id","value":"diagnostic-1"},{"op":"replace","path":"/intervention_json_pointers","value":["/x"]}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-y"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_INTERVENTION_MISMATCH","error_details":{"declared_json_pointers":["/x"],"observed_json_pointers":["/y"]},"deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"iterative-empty-intervention","scenario":"root-terminal","documents":{"proposal":{"ref":"proposal-explore","patches":[{"op":"replace","path":"/action","value":"exploit"},{"op":"replace","path":"/candidate_digest","value":"0379bede8097f1d71adf4a6a2fd9bec5fefce42bcf096af5be2aa85b097b5b04"},{"op":"replace","path":"/parent_experiment_id","value":"exp_14dab599bb9be91cbac8751a5c0da192"},{"op":"replace","path":"/evaluation_scope_id","value":"diagnostic-1"},{"op":"replace","path":"/intervention_json_pointers","value":[]}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-x"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_INTERVENTION_INVALID","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"replicate-nonempty-intervention","scenario":"root-terminal","documents":{"proposal":{"ref":"proposal-replicate","patches":[{"op":"replace","path":"/intervention_json_pointers","value":["/x"]}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_INTERVENTION_INVALID","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"explore-with-parent","scenario":"root-terminal","documents":{"proposal":{"ref":"proposal-explore","patches":[{"op":"replace","path":"/candidate_digest","value":"0379bede8097f1d71adf4a6a2fd9bec5fefce42bcf096af5be2aa85b097b5b04"},{"op":"replace","path":"/parent_experiment_id","value":"exp_14dab599bb9be91cbac8751a5c0da192"},{"op":"replace","path":"/evaluation_scope_id","value":"diagnostic-1"}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-x"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_PARENT_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"child-without-parent","scenario":"v2-dev-baseline","documents":{"proposal":{"ref":"proposal-explore","patches":[{"op":"replace","path":"/action","value":"exploit"},{"op":"replace","path":"/candidate_digest","value":"0379bede8097f1d71adf4a6a2fd9bec5fefce42bcf096af5be2aa85b097b5b04"},{"op":"replace","path":"/evaluation_scope_id","value":"diagnostic-1"}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-x"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_PARENT_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"nonterminal-parent","scenario":"root-running","documents":{"proposal":{"ref":"proposal-explore","patches":[{"op":"replace","path":"/action","value":"exploit"},{"op":"replace","path":"/candidate_digest","value":"0379bede8097f1d71adf4a6a2fd9bec5fefce42bcf096af5be2aa85b097b5b04"},{"op":"replace","path":"/parent_experiment_id","value":"exp_14dab599bb9be91cbac8751a5c0da192"},{"op":"replace","path":"/evaluation_scope_id","value":"diagnostic-1"}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-x"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_PARENT_NOT_TERMINAL","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"incompatible-parent","scenario":"incompatible-parent-view","documents":{"proposal":{"ref":"proposal-explore","patches":[{"op":"replace","path":"/action","value":"exploit"},{"op":"replace","path":"/candidate_digest","value":"0379bede8097f1d71adf4a6a2fd9bec5fefce42bcf096af5be2aa85b097b5b04"},{"op":"replace","path":"/parent_experiment_id","value":"exp_10ef269d91d8cd540bc2ddcb5c840672"},{"op":"replace","path":"/evaluation_scope_id","value":"diagnostic-1"}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-x"},"proposal":{"$doc":"proposal"},"parent_view":{"$capture":"incompatible-parent"}}},"expected":{"error_code":"PROPOSAL_PARENT_COMPATIBILITY_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"exploit-same-candidate","scenario":"root-terminal","documents":{"proposal":{"ref":"proposal-explore","patches":[{"op":"replace","path":"/action","value":"exploit"},{"op":"replace","path":"/parent_experiment_id","value":"exp_14dab599bb9be91cbac8751a5c0da192"},{"op":"replace","path":"/evaluation_scope_id","value":"diagnostic-1"}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_CANDIDATE_CHANGE_REQUIRED","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"replication-changed-candidate","scenario":"root-terminal","documents":{"proposal":{"ref":"proposal-replicate","patches":[{"op":"replace","path":"/candidate_digest","value":"0379bede8097f1d71adf4a6a2fd9bec5fefce42bcf096af5be2aa85b097b5b04"}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-x"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_REPLICATION_CANDIDATE_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"replication-same-scope","scenario":"rep1-terminal","documents":{"proposal":{"ref":"proposal-replicate","patches":[{"op":"replace","path":"/parent_experiment_id","value":"exp_6de5a6123dad0a28f3bb630f11db9af4"}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_REPLICATION_SCOPE_UNCHANGED","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"replication-reused-scope","scenario":"rep12-terminal","documents":{"proposal":{"ref":"proposal-replicate","patches":[{"op":"replace","path":"/parent_experiment_id","value":"exp_3c757d5fc62c10a52b741759acdf377b"}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_EVALUATION_SCOPE_REUSED","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"replication-class-mismatch","scenario":"root-terminal","documents":{"proposal":{"ref":"proposal-replicate","patches":[{"op":"replace","path":"/hypothesis_class_id","value":"class-b"}]}},"invoke":{"driver":"science.preflight_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal"}}},"expected":{"error_code":"PROPOSAL_REPLICATION_CLASS_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+
+    {"id":"retry-with-new-proposal","scenario":"root-retryable","invoke":{"driver":"service.retry","arguments":{"retry_of":"exp_14dab599bb9be91cbac8751a5c0da192","candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"}}},"expected":{"error_code":"PROPOSAL_RETRY_FORBIDDEN","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"retry-mutated-scope","scenario":"root-retryable","invoke":{"driver":"replay.mutated_retry","arguments":{"retry_of":"exp_14dab599bb9be91cbac8751a5c0da192","mutations":[{"op":"replace","path":"/proposal/evaluation_scope_id","value":"diagnostic-1"},{"op":"replace","path":"/evaluation_scope_id","value":"diagnostic-1"}],"recompute":["proposal_digest","proposal_id","experiment_id"],"assert_recomputed":{"proposal_digest":"c32f77bfa587cf71dd0c35269e551933fb1522412114b24647febf73f00d3823","proposal_id":"proposal_e17619b258b2d7ee70da7018fe2a414f","experiment_id":"exp_467f7de4e02c242792874827918e2b57"}},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"PROPOSAL_RETRY_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"retry-mutated-proposal","scenario":"root-retryable","invoke":{"driver":"replay.mutated_retry","arguments":{"retry_of":"exp_14dab599bb9be91cbac8751a5c0da192","mutations":[{"op":"replace","path":"/proposal/mechanism","value":"Mutated retry mechanism."}],"recompute":["proposal_digest","proposal_id"],"assert_recomputed":{"proposal_digest":"ddc2af01a149da39f9a53ae1c02373bb23729bafa658542e3f39ff98eb6845d8","proposal_id":"proposal_1f365b4debf908e7f691a52d13a93d9a","experiment_id":"exp_536ca19ec4feb680afd4e58f95ffb4d9"}},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"PROPOSAL_RETRY_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+
+    {"id":"direct-v2-missing-proposal","scenario":"v2-dev-baseline","invoke":{"driver":"replay.mutated_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"},"mutations":[{"op":"remove","path":"/proposal"},{"op":"remove","path":"/proposal_digest"},{"op":"remove","path":"/proposal_id"},{"op":"remove","path":"/evaluation_scope_id"}]},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"PROPOSAL_REQUIRED","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"forged-candidate-body","scenario":"v2-dev-baseline","invoke":{"driver":"replay.mutated_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"},"mutations":[{"op":"replace","path":"/candidate/x","value":3.0}]},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"CANDIDATE_DIGEST_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"forged-proposal-body","scenario":"v2-dev-baseline","invoke":{"driver":"replay.mutated_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"},"mutations":[{"op":"replace","path":"/proposal/mechanism","value":"Forged mechanism."}]},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"PROPOSAL_DIGEST_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"forged-proposal-digest","scenario":"v2-dev-baseline","invoke":{"driver":"replay.mutated_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"},"mutations":[{"op":"replace","path":"/proposal_digest","value":"0000000000000000000000000000000000000000000000000000000000000000"}]},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"PROPOSAL_DIGEST_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"forged-proposal-id","scenario":"v2-dev-baseline","invoke":{"driver":"replay.mutated_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"},"mutations":[{"op":"replace","path":"/proposal_id","value":"proposal_00000000000000000000000000000000"}]},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"PROPOSAL_ID_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"forged-experiment-id","scenario":"v2-dev-baseline","invoke":{"driver":"replay.mutated_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"},"mutations":[{"op":"replace","path":"/experiment_id","value":"exp_00000000000000000000000000000000"}]},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"EXPERIMENT_ID_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"proposal-generation-sibling-mismatch","scenario":"v2-dev-baseline","invoke":{"driver":"replay.mutated_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"},"mutations":[{"op":"replace","path":"/proposal/generation_id","value":"generation_00000000000000000000000000000000"}],"recompute":["proposal_digest","proposal_id"]},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"PROPOSAL_GENERATION_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"proposal-candidate-sibling-mismatch","scenario":"v2-dev-baseline","invoke":{"driver":"replay.mutated_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"},"mutations":[{"op":"replace","path":"/proposal/candidate_digest","value":"0379bede8097f1d71adf4a6a2fd9bec5fefce42bcf096af5be2aa85b097b5b04"}],"recompute":["proposal_digest","proposal_id"]},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"PROPOSAL_CANDIDATE_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"flat-parent-proposal-mismatch","scenario":"root-terminal","invoke":{"driver":"replay.mutated_registration","arguments":{"candidate":{"$doc":"candidate-x"},"proposal":{"$doc":"proposal-explore","patches":[{"op":"replace","path":"/action","value":"exploit"},{"op":"replace","path":"/candidate_digest","value":"0379bede8097f1d71adf4a6a2fd9bec5fefce42bcf096af5be2aa85b097b5b04"},{"op":"replace","path":"/parent_experiment_id","value":"exp_14dab599bb9be91cbac8751a5c0da192"},{"op":"replace","path":"/evaluation_scope_id","value":"diagnostic-1"}]},"mutations":[{"op":"replace","path":"/parent_id","value":null}],"recompute":["experiment_id"]},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"PROPOSAL_PARENT_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"flat-scope-proposal-mismatch","scenario":"v2-dev-baseline","invoke":{"driver":"replay.mutated_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"},"mutations":[{"op":"replace","path":"/evaluation_scope_id","value":"diagnostic-1"}],"recompute":["experiment_id"]},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"PROPOSAL_EVALUATION_SCOPE_MISMATCH","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"scope-without-generation","scenario":"certified-ready","invoke":{"driver":"replay.mutated_registration","arguments":{"base_payload":{"$doc":"registration-legacy-no-generation"},"mutations":[{"op":"add","path":"/evaluation_scope_id","value":"development"},{"op":"add","path":"/proposal_id","value":"proposal_202fd99acdfc63371bff7e748e3d758d"}]},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"STUDY_REGISTRATION_INVALID","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"partial-typed-bundle-missing-proposal-digest","scenario":"v2-dev-baseline","invoke":{"driver":"replay.mutated_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"},"mutations":[{"op":"remove","path":"/proposal_digest"}]},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"STUDY_REGISTRATION_INVALID","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"partial-typed-bundle-missing-proposal","scenario":"v2-dev-baseline","invoke":{"driver":"replay.mutated_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"},"mutations":[{"op":"remove","path":"/proposal"}]},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"STUDY_REGISTRATION_INVALID","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"partial-typed-bundle-missing-proposal-id","scenario":"v2-dev-baseline","invoke":{"driver":"replay.mutated_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"},"mutations":[{"op":"remove","path":"/proposal_id"}]},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"STUDY_REGISTRATION_INVALID","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"partial-typed-bundle-missing-evaluation-scope-id","scenario":"v2-dev-baseline","invoke":{"driver":"replay.mutated_registration","arguments":{"candidate":{"$doc":"candidate-root"},"proposal":{"$doc":"proposal-explore"},"mutations":[{"op":"remove","path":"/evaluation_scope_id"}]},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"STUDY_REGISTRATION_INVALID","deltas":{"$ref":"defaults.zero_deltas"}}},
+    {"id":"direct-actual-intervention-diff-mismatch","scenario":"root-terminal","invoke":{"driver":"replay.mutated_registration","arguments":{"candidate":{"$doc":"candidate-y"},"proposal":{"$doc":"proposal-explore","patches":[{"op":"replace","path":"/action","value":"exploit"},{"op":"replace","path":"/candidate_digest","value":"2fdd38bbc53c3b4d4c037ee5a7f71670c42b9bb74a308dac495a3185a18ed3f3"},{"op":"replace","path":"/parent_experiment_id","value":"exp_14dab599bb9be91cbac8751a5c0da192"},{"op":"replace","path":"/evaluation_scope_id","value":"diagnostic-1"},{"op":"replace","path":"/intervention_json_pointers","value":["/x"]}]},"mutations":[],"recompute":["candidate_digest","proposal_digest","proposal_id","experiment_id"],"assert_recomputed":{"candidate_digest":"2fdd38bbc53c3b4d4c037ee5a7f71670c42b9bb74a308dac495a3185a18ed3f3","proposal_digest":"10faa71224d593089204496375064b8494eaf3b4c9fe2792f80d282752db00d4","proposal_id":"proposal_d549ad1d7c83a918a6a9dfa3658d2a8e","experiment_id":"exp_ae89ed5078f064c520d435eb849e13c9"}},"paths":{"$ref":"defaults.direct_replay_paths"}},"expected":{"error_code":"PROPOSAL_INTERVENTION_MISMATCH","error_details":{"declared_json_pointers":["/x"],"observed_json_pointers":["/y"]},"deltas":{"$ref":"defaults.zero_deltas"}}}
+  ]
+}
