@@ -232,3 +232,53 @@ At Attempt 3 review time the five checked-in acceptance artifact paths were abse
 custody transcript, pre-arm seal, and v0.5 final receipt. This review did not invoke the real custodian, preparation,
 acceptance runner, or any external custody path, and generated no nonce or acceptance artifact. The only custody
 execution was the existing unit test with a mocked nonce and pytest-owned temporary directory.
+
+## Verify Attempt 4 — 2026-08-12
+
+**VERDICT: FAIL**
+
+Clean checkpoint inspected: `5a3a3028f009fa6aae38f176bd0bbf0cf7129435`.
+
+### Closed-question resolution
+
+| Q | Attempt 4 result | Independent evidence |
+|---:|---|---|
+| Q1 | **DIRECT** | The immutable external `acceptance-result.json` still hashes to `9b67285b816648e3225f14b80d186367ca764cbcfe1233cd3318fcb7d92aaf80`, exactly the failure-review value. The external bundle equals the archived prearm/suite/race objects structurally; their canonical suite/race digests are `487a624c…8e37` and `cc61adb0…8f38`, exactly the prearm values. Raw archived suite/race/prearm/custody hashes are `850f0c36…a320`, `05cdb279…040c`, `6f4715f5…fdf0`, and `4b7b1901…dddb`, exactly the four failure-review entries. Nonce commitment, one-call transcript, draw reservation, arm reservation, prearm seal, and arm order agree. The review says `rerun_same_draw=false`; the external result is `FAIL` with authority `null` and both prohibited capabilities `false`. |
+| Q2 | **DIRECT** | The external result preserves outer `917 passed, 4 failed, 115 subtests passed`. Its four outer failures all descend from `tests/test_m3d_meta_evaluation.py::test_generator_manifest_is_precommitted_and_has_no_acceptance_body`; at sealed code commit `a0ea755`, line 95 was a post-draw working-tree `glob("*acceptance*")`. The external failure receipt contains no benchmark metrics, and the failure review/phase keep M3-D at `0/8` without inferring quality PASS or FAIL. `RESULT-INVALID` is therefore the correct classification for this runner/chronology defect. |
+| Q3 | **DIRECT** | The current canonical test computes a two-element presence tuple for suite/race and requires `len(set(present)) == 1`, so one-body-only state fails. When both bodies exist it loads the current prearm, takes `prearm["code_commit"]`, and invokes `git cat-file -e <commit>:<each canonical path>` for both bodies, requiring both lookups to be absent. When neither body exists it requires the current prearm to be absent. This is the required canonical pair atomicity and sealed-commit check. |
+| Q4 | **LIMITATION — blocks PASS** | `test_failed_attempt_archive_proves_post_draw_chronology` passes the renamed archive paths `failed-attempt-1-acceptance-{suite,race}-suite.json` to the helper. The helper therefore checks absence of those **new archive names** at `a0ea755`, not absence of the historical canonical names `acceptance-suite.json` and `acceptance-race-suite.json`. Object inspection makes the non-equivalence concrete: at `604e1d0` both canonical bodies are present while both archive names are absent, so the current archive-path test would accept that path relation even though canonical bodies exist. Direct `git cat-file` inspection independently confirms that the two old canonical paths really are absent at `a0ea755`; the historical fact is true, but the dedicated executable test does not prove that fact. Required fix: keep the archived-file existence checks, but pass a separate pair of historical canonical Git paths to the sealed-commit lookup; then update the bound test hash and obtain a new clean critic checkpoint. |
+| Q5 | **DIRECT** | All five current canonical artifact paths are absent: suite, race suite, custody transcript, prearm seal, and final receipt (`0/5`). The external custody parent still contains only the `a0ea755…` directory; its result digest remains the failure-review digest and all external file mtimes precede correction commit `5a3a302`. This review performed read-only inspection only and did not call a custodian or acceptance script. |
+| Q6 | **DIRECT** | Blob-by-blob comparison over `a0ea755..5a3a302` is identical for `src/research_os/meta_evaluation.py`, `service.py`, `autonomy/loop.py`, `agent_install.py`, the generator/public-boundary/external/attack manifests, `m3d_custodian.py`, prepare/runner/verifier, and the protocol/external/release tests. Thus product, generator, public renderer/oracle/selector/metric/threshold, historical v0.2 binding, custodian, runner, and verifier bytes did not change. The executable change is restricted to the chronology test plus its release-manifest hash; the remaining changes archive Attempt 1 evidence and synchronize documentation. |
+| Q7 | **DIRECT** | The release manifest binds `tests/test_m3d_meta_evaluation.py` to exact SHA-256 `26be2ecb…c207`, which is the current file hash, and its whole pre-nonce binding test passes. Independent reproduction: focused M3-D `64 passed in 18.92s`; full collection `922 tests collected in 0.20s`; Ruff PASS; offline `ty` PASS; `git diff --check` PASS. These green checks do not close Q4 because the bound archived test is semantically pointed at the wrong historical paths. |
+| Q8 | **DIRECT** | Current canonical acceptance artifacts are absent and the custody root has no directory for `5a3a302`; only the invalid Attempt 1 `a0ea755…` custody remains. Phase §14.10/§14.15 requires a distinct clean code checkpoint, distinct custody path, new one-time nonce, and a later critic PASS before any new draw. Release manifest, failure result, failure review, and phase keep `product_multi_agent=false`, `live_migration=false`, and `authorized_action=null`; product multi-agent remains after NS6 and live pilot/migration remains post-v0.5. |
+
+### Blocking finding
+
+Q4's archived test proves the absence of paths that did not exist until the archive rename, not the absence of the
+two body paths that were canonical at the sealed code commit. The test passes and the underlying `a0ea755` chronology
+fact is independently true, but a false-positive witness remains possible because the path sets differ. Attempt 4
+therefore cannot authorize a new draw from `5a3a302`.
+
+The minimal correction is test-only: distinguish current archived artifact paths from historical sealed-commit body
+paths, assert the former exist and query the latter with `git cat-file`. That correction changes a release-bound byte,
+so it requires a new manifest hash, clean checkpoint, and independent critic re-verification. It does not authorize a
+same-draw rerun or any product/generator/oracle/metric/custodian/runner/verifier change.
+
+### Reproduction evidence
+
+- Archived/external consistency: external result SHA, bundle equality, raw archive digests, canonical suite/race
+  digests, nonce commitment, reservation and authority/capability fields all matched.
+- Git-object path matrix at `a0ea755`, `604e1d0`, and `5a3a302`: old canonical bodies are absent/present/absent;
+  renamed archive bodies are absent/absent/present.
+- Targeted chronology + manifest-binding nodes: `3 passed in 0.10s`.
+- Complete M3-D focused suite: `64 passed in 18.92s`.
+- Full collection: `922 tests collected in 0.20s`.
+- Targeted Ruff, offline `ty`, and `git diff --check`: PASS.
+- Attempt 4 audit count: questions `8`; DIRECT verified `7`; LIMITATION `1`; failed `1`.
+
+### Custody confirmation
+
+This review did not invoke `scripts.m3d_custodian`, `scripts/prepare_m3d_acceptance.py`,
+`scripts/run_m3d_acceptance.py`, a real nonce source, or any external write. External Attempt 1 custody was read only.
+No current suite, race suite, custody transcript, prearm seal, final receipt, new custody directory, or nonce was
+created. Acceptance Attempt 1 and critic Attempts 1–3 remain preserved unchanged.

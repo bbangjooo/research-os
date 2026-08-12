@@ -1,6 +1,6 @@
 # §14 — M3-D unseen benchmark and v0.5 release (2026-08-12)
 
-> Status: **ACCEPTANCE ATTEMPT 1 RESULT-INVALID — 0/8; immutable failed draw preserved; correction candidate pending critic Attempt 4**
+> Status: **ACCEPTANCE ATTEMPT 1 RESULT-INVALID — 0/8; critic Attempt 4 FAIL preserved; path-corrected candidate pending Attempt 5**
 > Previous phase: [§13](13-2026-08-12-m3-c-crash-resume.md) (`CLOSED 5/5` at `7b00e0b`)
 > Active milestone: `M3-D`; product multi-agent and live migration remain blocked
 
@@ -147,8 +147,8 @@ eight-gate threshold or the inclusive cap. The exact inclusive count is frozen i
 
 ## 14.10 Next action
 
-Validate the chronology correction, commit the archived Attempt 1 evidence and paired status/pipeline sync at a clean
-checkpoint, then obtain independent critic Attempt 4. Only after PASS may a new external custody path draw a new nonce
+Validate the path-corrected chronology proof and commit it at a clean checkpoint, then obtain independent critic
+Attempt 5. Only after PASS may a new external custody path draw a new nonce
 exactly once. Never rerun or reconstruct Attempt 1.
 
 ## 14.11 Pre-unseen critic Attempt 1 FAIL and correction contract
@@ -204,7 +204,7 @@ Current executable evidence before the Q4-only correction: M3-D focused `63/63`,
 correction, current focused is `64/64`, collection is `922`, and Ruff/ty/diff PASS. This remains engineering evidence:
 Attempt 1 has no valid paired result or release receipt, and the independent final progress audit does not exist.
 Therefore M3-D remains `ADVANCE 0/8`, product multi-agent/live migration stay blocked, and a new arm execution is
-prohibited until a new clean checkpoint receives critic Attempt 4 PASS and distinct custody preparation is committed.
+prohibited until a new clean checkpoint receives critic Attempt 5 PASS and distinct custody preparation is committed.
 
 ## 14.13 Critic Attempt 2 FAIL — Q4 crash durability correction
 
@@ -248,5 +248,19 @@ The pre-data correction replaces current-working-tree absence with a direct Git 
 absent at the prearm document's sealed `code_commit`. A dedicated archive test applies that proof to Attempt 1, so the
 post-draw chronology is immediately executable instead of relying on a body-absence test that becomes false by design.
 No generator, oracle, selector, metric threshold, v0.2 arm, or product policy changed. The correction requires focused
-and static PASS, a new clean checkpoint, independent critic Attempt 4, and a distinct code-commit custody path/new nonce
+and static PASS, a new clean checkpoint, independent critic Attempt 5, and a distinct code-commit custody path/new nonce
 before one new one-shot execution. M3-D remains `0/8`; product multi-agent and live migration remain blocked.
+
+## 14.16 Critic Attempt 4 FAIL — historical path correction
+
+Independent Attempt 4 verified Q1–Q3 and Q5–Q8 DIRECT but returned **FAIL** on Q4. The archived test proved that the
+new `failed-attempt-1-*` names were absent at `a0ea755`, not that the two then-canonical `acceptance-suite.json` and
+`acceptance-race-suite.json` paths were absent. Direct Git inspection confirmed the intended historical fact, but the
+executable witness did not encode it and could false-pass at `604e1d0`, where canonical bodies existed while archive
+names did not.
+
+The minimum test-only correction now separates current artifact paths from sealed Git lookup paths: archived files
+must exist under their preserved names, while `git cat-file` queries the historical canonical pair at the prearm code
+commit. The current-draw path uses the same canonical pair for both roles. No product, generator, oracle, selector,
+metric, threshold, historical arm, custodian, runner, or verifier byte changes. The bound manifest hash, focused/static
+evidence, a new clean checkpoint, and independent Attempt 5 PASS are required before any new draw.

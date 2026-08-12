@@ -81,7 +81,9 @@
     정확히 1회 실행했으나 post-draw working tree에서 body absence를 검사한 chronology test 때문에 outer
     full `917 passed, 4 failed, 115 subtests`로 `RESULT-INVALID`였다. 동일 draw는 재실행하지 않고 suite/race/
     prearm/custody/result를 Attempt 1 evidence로 보존했다. sealed code commit에서 body absence를 증명하는
-    pre-data correction은 새 checkpoint·critic Attempt 4 전이며 unseen 품질/8개 conjunct는 여전히 미청구다.
+    pre-data correction의 critic Attempt 4는 archive rename 경로를 조회한 Q4 결함으로 FAIL했다. 보존 파일
+    경로와 historical canonical Git lookup 경로를 분리한 test-only correction은 새 checkpoint·Attempt 5
+    전이며 unseen 품질/8개 conjunct는 여전히 미청구다.
 
 ### 0.2 현재 운영 상태 (확인 명령 포함)
 
@@ -102,8 +104,8 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 0.3 가장 먼저 할 일 (의사결정 트리)
 
-- [ ] **단일 최우선 행동:** Attempt 1 chronology correction을 focused/static 검증하고 clean checkpoint로
-      고정한 뒤 independent critic Attempt 4를 받는다. PASS 전에는 새 acceptance draw를 실행하지 않는다.
+- [ ] **단일 최우선 행동:** Attempt 4의 historical-path correction을 focused/static 검증하고 clean
+      checkpoint로 고정한 뒤 independent critic Attempt 5를 받는다. PASS 전에는 새 acceptance draw를 실행하지 않는다.
 
 ### 0.4 살아있는 산출물 (직전 세션 결과)
 
@@ -121,7 +123,7 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 | M3-A DecisionPacket | `docs/research-os-status/11-2026-08-12-m3-a-decision-packet.md` | closed 4/4 | receipt `32/32`; full `757+115`; critic + corrected audit PASS |
 | M3-B finite loop | `docs/research-os-status/12-2026-08-12-m3-b-finite-autonomy-loop.md` | closed 6/6 | frozen `43/43`; corrected `60/125`; critic + audit PASS |
 | M3-C crash resume | `docs/research-os-status/13-2026-08-12-m3-c-crash-resume.md` | closed 5/5 | frozen `31/31`; critic PASS; corrected audit PASS |
-| M3-D unseen/release | `docs/research-os-status/14-2026-08-12-m3-d-unseen-release.md` | Attempt 1 `RESULT-INVALID`, 0/8 | immutable draw/result archived; sealed-commit chronology correction pending critic Attempt 4 |
+| M3-D unseen/release | `docs/research-os-status/14-2026-08-12-m3-d-unseen-release.md` | Attempt 1 `RESULT-INVALID`, 0/8 | critic Attempt 4 Q4 FAIL preserved; historical canonical-path correction pending Attempt 5 |
 | M3-D Attempt 1 failure review | `docs/research-os-status/14-m3-d-attempt-1-failure-review.json` | immutable review evidence | same-draw rerun false; external result SHA recorded; authority null |
 | 방법론 pipeline core | `docs/research-os-pipeline.md` | active | Cycle 14 RESULT-INVALID correction; M3-D active |
 
@@ -281,7 +283,8 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - **Active M_i.j**: `M3-D` (`open`)
 - **직전 close가 가능하게 한 작업**: M3-C가 crash-resume/authority `5/5`, critic과 corrected audit를 PASS했다.
 - **현재 M3-D 상태**: pre-unseen critic Attempts 1/2 FAIL과 Attempt 3 PASS를 보존했다. Acceptance Attempt 1은
-  chronology root failure로 `RESULT-INVALID`; 동일 draw 재실행 금지, sealed-commit correction은 Attempt 4 전이다.
+  chronology root failure로 `RESULT-INVALID`; 동일 draw 재실행 금지다. Critic Attempt 4는 archive lookup
+  경로 결함으로 FAIL했고 historical canonical-path correction은 Attempt 5 전이다.
 - **이 M.j가 닫혀야 다음에 가능해지는 작업**: parent M3/v0.5 release close.
 - **현재 close 차단 gate**: M3-D precommitted generator/oracle, post-freeze unseen 36 episodes, compatibility/release evidence.
 - **M3 parent close까지 남은 sub**: M3-D.
@@ -354,7 +357,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 11 | 2026-08-12 / M3-A | [`research-os-status/11-2026-08-12-m3-a-decision-packet.md`](research-os-status/11-2026-08-12-m3-a-decision-packet.md) | DecisionPacket/provider 4/4 closed; critic + corrected audit PASS |
 | 12 | 2026-08-12 / M3-B | [`research-os-status/12-2026-08-12-m3-b-finite-autonomy-loop.md`](research-os-status/12-2026-08-12-m3-b-finite-autonomy-loop.md) | finite loop 6/6 closed; critic + audit Attempt 4 PASS; M3-C active |
 | 13 | 2026-08-12 / M3-C | [`research-os-status/13-2026-08-12-m3-c-crash-resume.md`](research-os-status/13-2026-08-12-m3-c-crash-resume.md) | crash-resume/authority 5/5 closed; critic + corrected audit PASS; M3-D active |
-| 14 | 2026-08-12 / M3-D | [`research-os-status/14-2026-08-12-m3-d-unseen-release.md`](research-os-status/14-2026-08-12-m3-d-unseen-release.md) | Acceptance Attempt 1 `RESULT-INVALID` preserved; sealed-commit chronology correction pending critic Attempt 4 |
+| 14 | 2026-08-12 / M3-D | [`research-os-status/14-2026-08-12-m3-d-unseen-release.md`](research-os-status/14-2026-08-12-m3-d-unseen-release.md) | Acceptance Attempt 1 `RESULT-INVALID`; critic Attempt 4 FAIL preserved; path-corrected candidate pending Attempt 5 |
 
 ---
 
@@ -363,7 +366,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - 현재 상태: 제품 candidate version `0.5.0`; M1/M2/M3-A/B/C closed, M3-D Attempt 1은 `RESULT-INVALID`다.
 - 마지막 유효 pre-unseen engineering 측정: checkpoint `20b35a5` focused `63`, adjacent `142`, full `921+115`;
   Attempt 1 outer `917/4+115`는 chronology root failure라 품질 측정으로 쓰지 않는다.
-- 다음 1행동: chronology correction focused/static PASS → clean checkpoint → independent critic Attempt 4.
+- 다음 1행동: historical-path correction focused/static PASS → clean checkpoint → independent critic Attempt 5.
 - 가장 큰 갭: M3-D sealed unseen 36-episode 학습 효과와 v0.5 release evidence다.
 
 ---
@@ -435,7 +438,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 | 11 M3-A close | product `1,081/1,100`; M3-A tests+fixtures `744/1,250` (frozen manifest `96` + provider fixture `51` + test `597`); phase+critic+receipt+audit docs `447/450`; result-triggered verifier correction `+119/-52`; paired-core additions `78`; inclusive gross `2,469/2,800` | frozen 32 CONFIRMATORY + historical-gate correction EXPLORATORY = MIXED; product/test/script sealed at `42c7557` | frozen `32/32`; focused `41`; adjacent `103`; full `757+115`; critic + corrected audit PASS |
 | 12 M3-B close | product `2,035 additions + 8 deletions = 2,043 churn`; tests+fixture `1,384`; paired+phase evidence `473`; exact inclusive `3,900/3,900` | product subtarget `1,600` miss is GENUINE-FINDING/EXPLORATORY; M3-C follow-up precommitted | frozen `43/43`; focused `60`; adjacent `125`; critic + audit Attempt 4 PASS |
 | 13 M3-C close | product `353/900`; tests+fixture `829/1,400`; paired evidence `489`; inclusive `1,671/2,800` | phase+critic+receipt+audit `419/500`; MIXED | frozen `31/31`; race `3/3`; focused `41`; adjacent `142`; critic + corrected audit PASS |
-| 14 M3-D active | benchmark/generator/release scripts `2,349/1,800`; prior pre-unseen tests+fixtures `1,696/2,400`; inclusive cap remains `6,000` | named subtarget miss = GENUINE-FINDING/EXPLORATORY; Attempt 1 archive + chronology correction accounting to be finalized at close | corrected focused `64`; collection `922`; Attempt 1 invalid outer `917/4+115`; critic Attempt 4 pending |
+| 14 M3-D active | benchmark/generator/release scripts `2,349/1,800`; prior pre-unseen tests+fixtures `1,696/2,400`; inclusive cap remains `6,000` | named subtarget miss = GENUINE-FINDING/EXPLORATORY; Attempt 1 archive + chronology correction accounting to be finalized at close | corrected focused `64`; collection `922`; Attempt 1 invalid outer `917/4+115`; critic Attempt 4 FAIL, Attempt 5 pending |
 
 ---
 
@@ -515,5 +518,7 @@ tests+fixture cap `1,100→1,250`은 EXPLORATORY이며 phase 전체 label은 `PI
 - [x] Cycle 14 status §12·§13과 pipeline §8.4·§8.5·§10 동기화; M chain definition unchanged
 - [x] Cycle 14 Acceptance Attempt 1 exactly once — outer `917/4+115`; chronology root defect로 **RESULT-INVALID**
 - [x] Cycle 14 동일 draw 재실행 금지; external result와 suite/race/prearm/custody archive 보존
-- [ ] Cycle 14 sealed-code-commit chronology correction focused/static PASS + clean checkpoint
-- [ ] Cycle 14 independent critic Attempt 4 PASS 뒤 distinct new-nonce acceptance exactly once
+- [x] Cycle 14 historical canonical-path correction focused `64`, collection `922`, ruff/ty/diff PASS
+- [x] Cycle 14 independent critic Attempt 4 — **FAIL** (archive name과 sealed canonical lookup path 혼동)
+- [ ] Cycle 14 historical canonical-path correction + independent critic Attempt 5 PASS
+- [ ] Cycle 14 Attempt 5 PASS 뒤 distinct new-nonce acceptance exactly once

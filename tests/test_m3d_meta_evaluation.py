@@ -44,6 +44,7 @@ ATTEMPT1_ACCEPTANCE_PATHS = (
     ROOT
     / "tests/fixtures/meta_evaluation/v1/failed-attempt-1-acceptance-race-suite.json",
 )
+ATTEMPT1_SEALED_PATHS = ACCEPTANCE_PATHS
 MANIFEST_SHA = "dd767fcb787aa44cdf1c5aaad851f5556205bbd5143ccde169cbf469066e04a3"
 DEVELOPMENT_NONCE = "11" * 32
 V02_COMMIT = "6f36a1b97cf8bc3c5925a3b35f0b189d82f6bcb6"
@@ -99,14 +100,17 @@ def _forbidden_key_hits(value: object, path: str = "$") -> list[str]:
 
 
 def _assert_bodies_absent_at_sealed_code_commit(
-    prearm_path: Path, acceptance_paths: tuple[Path, ...]
+    prearm_path: Path,
+    artifact_paths: tuple[Path, ...],
+    sealed_paths: tuple[Path, ...],
 ) -> None:
     assert prearm_path.is_file()
-    assert all(path.is_file() for path in acceptance_paths)
+    assert len(artifact_paths) == len(sealed_paths)
+    assert all(path.is_file() for path in artifact_paths)
     prearm = json.loads(prearm_path.read_text(encoding="utf-8"))
     code_commit = prearm["code_commit"]
     assert len(code_commit) == 40
-    for path in acceptance_paths:
+    for path in sealed_paths:
         relative = path.relative_to(ROOT).as_posix()
         frozen = subprocess.run(
             ["git", "cat-file", "-e", f"{code_commit}:{relative}"],
@@ -127,7 +131,11 @@ def test_generator_manifest_is_precommitted_and_has_no_acceptance_body() -> None
     present = tuple(path.exists() for path in ACCEPTANCE_PATHS)
     assert len(set(present)) == 1
     if present[0]:
-        _assert_bodies_absent_at_sealed_code_commit(PREARM_PATH, ACCEPTANCE_PATHS)
+        _assert_bodies_absent_at_sealed_code_commit(
+            PREARM_PATH,
+            ACCEPTANCE_PATHS,
+            ACCEPTANCE_PATHS,
+        )
     else:
         assert not PREARM_PATH.exists()
 
@@ -136,6 +144,7 @@ def test_failed_attempt_archive_proves_post_draw_chronology() -> None:
     _assert_bodies_absent_at_sealed_code_commit(
         ATTEMPT1_PREARM_PATH,
         ATTEMPT1_ACCEPTANCE_PATHS,
+        ATTEMPT1_SEALED_PATHS,
     )
 
 
