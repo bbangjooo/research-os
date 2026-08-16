@@ -12,6 +12,7 @@ from typing import Any, Never, Sequence
 from . import __version__
 from .agent_install import install_agent_skill
 from .errors import ResearchOSError
+from .frame_transition_service import FrameTransitionService
 from .scaffold import initialize_project
 from .service import ResearchService
 
@@ -221,6 +222,86 @@ def _parser() -> argparse.ArgumentParser:
         help="non-empty reason required for a successor generation",
     )
 
+    frame_gate_a = subparsers.add_parser(
+        "frame-transition-gate-a",
+        help="record a deterministic controlled frame-transition Gate A receipt",
+    )
+    frame_gate_a.add_argument("gate", type=Path, help="strict Gate A JSON")
+
+    frame_open = subparsers.add_parser(
+        "frame-transition-open",
+        help="open a material outer frame-transition inquiry",
+    )
+    frame_open.add_argument("inquiry", type=Path, help="strict inquiry JSON")
+
+    frame_decide = subparsers.add_parser(
+        "frame-transition-decide",
+        help="record a comparative frame-transition decision",
+    )
+    frame_decide.add_argument("decision", type=Path, help="strict decision JSON")
+
+    frame_authorize_pilot = subparsers.add_parser(
+        "frame-transition-authorize-pilot",
+        help="record distinct PILOT_ONLY authority",
+    )
+    frame_authorize_pilot.add_argument(
+        "authorization",
+        type=Path,
+        help="strict pilot authorization JSON",
+    )
+
+    frame_record_pilot = subparsers.add_parser(
+        "frame-transition-record-pilot",
+        help="record a controlled three-arm pilot result",
+    )
+    frame_record_pilot.add_argument(
+        "pilot_result",
+        type=Path,
+        help="strict pilot result JSON",
+    )
+
+    frame_review = subparsers.add_parser(
+        "frame-transition-review",
+        help="record a fresh independent adoption review",
+    )
+    frame_review.add_argument("review", type=Path, help="strict adoption review JSON")
+
+    frame_adopt_policy = subparsers.add_parser(
+        "frame-transition-adopt-policy",
+        help="record deterministic built-in POLICY_ADOPTION for an approved inquiry",
+    )
+    frame_adopt_policy.add_argument(
+        "inquiry_id",
+        help="approved inquiry identifier",
+    )
+
+    frame_revoke = subparsers.add_parser(
+        "frame-transition-revoke",
+        help="revoke an exact frame-transition authority receipt",
+    )
+    frame_revoke.add_argument("revocation", type=Path, help="strict revocation JSON")
+
+    frame_activate = subparsers.add_parser(
+        "frame-transition-activate",
+        help="separately write the current policy-adopted successor state",
+    )
+    frame_activate.add_argument("inquiry_id", help="policy-adopted inquiry identifier")
+    frame_activate.add_argument(
+        "contract",
+        type=Path,
+        help="strict successor StudyContract JSON",
+    )
+
+    frame_status = subparsers.add_parser(
+        "frame-transition-status",
+        help="show replay-derived controlled frame-transition state",
+    )
+    frame_status.add_argument(
+        "--inquiry",
+        dest="inquiry_id",
+        help="limit status to one inquiry identifier",
+    )
+
     subparsers.add_parser(
         "study-status",
         help="show the replay-derived active study generation and reserved budget",
@@ -290,6 +371,30 @@ def _dispatch(args: argparse.Namespace) -> Any:
             ),
             "next": "start Codex or Claude Code in a Research OS project and ask it to conduct research",
         }
+
+    if args.command.startswith("frame-transition-"):
+        frame_service = FrameTransitionService(args.project)
+        if args.command == "frame-transition-gate-a":
+            return frame_service.gate_a(args.gate)
+        if args.command == "frame-transition-open":
+            return frame_service.open_inquiry(args.inquiry)
+        if args.command == "frame-transition-decide":
+            return frame_service.decide_inquiry(args.decision)
+        if args.command == "frame-transition-authorize-pilot":
+            return frame_service.authorize_pilot(args.authorization)
+        if args.command == "frame-transition-record-pilot":
+            return frame_service.record_pilot(args.pilot_result)
+        if args.command == "frame-transition-review":
+            return frame_service.review_adoption(args.review)
+        if args.command == "frame-transition-adopt-policy":
+            return frame_service.adopt_policy(args.inquiry_id)
+        if args.command == "frame-transition-revoke":
+            return frame_service.revoke_authority(args.revocation)
+        if args.command == "frame-transition-activate":
+            return frame_service.activate(args.inquiry_id, args.contract)
+        if args.command == "frame-transition-status":
+            return frame_service.status(args.inquiry_id)
+        raise AssertionError(f"unhandled frame-transition command: {args.command}")
 
     service = ResearchService(args.project)
     if args.command == "inspect":

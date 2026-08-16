@@ -240,6 +240,75 @@ lifetime cap. Replacing the contract or seal therefore requires an explicit
 successor with `--predecessor-generation-id` and `--change-reason`; reopening the
 same contract cannot reset its budget.
 
+### Opt-in controlled frame transition
+
+The controlled frame-transition extension is an optional outer control plane
+for material J2/J3 (or ambiguous-material) changes. It leaves the v0.5 inner
+loop unchanged and records strict receipts in the same canonical EventLog:
+
+```bash
+research-os --project /path/to/project frame-transition-gate-a gate-a.json
+research-os --project /path/to/project frame-transition-open inquiry.json
+research-os --project /path/to/project frame-transition-decide decision.json
+research-os --project /path/to/project frame-transition-authorize-pilot authorization.json
+research-os --project /path/to/project frame-transition-record-pilot pilot-result.json
+research-os --project /path/to/project frame-transition-review review.json
+research-os --project /path/to/project frame-transition-adopt-policy frameinquiry_ID
+research-os --project /path/to/project frame-transition-revoke revocation.json
+research-os --project /path/to/project frame-transition-activate \
+  frameinquiry_ID successor-contract.json
+research-os --project /path/to/project frame-transition-status \
+  --inquiry frameinquiry_ID
+```
+
+Gate A, recommendation, `PILOT_ONLY`, pilot pass, independent `APPROVE`, and
+deterministic `POLICY_ADOPTION` are distinct receipts. Gate A prebinds
+`policy_id` = `research-os.controlled-frame-transition.policy.v1` and its exact
+`policy_digest`. That built-in policy requires `PASS_FOR_ADOPTION`, a fresh
+independent `APPROVE`, and exact activation bindings, while keeping external
+authority false. After an approved review,
+`frame-transition-adopt-policy frameinquiry_ID` accepts only the inquiry ID—no
+human ratifier identity and no caller-authored ratification file. The reducer
+derives the policy receipt's direct policy, review, candidate, contract,
+compatibility, expiry, and evidence fields from canonical state. Its
+`evidence_digest` is computed from the fixed policy digest plus the canonical
+pilot, review, candidate, contract, and compatibility digests; the caller
+supplies no evidence field. Source tree and predecessor remain transitively
+bound through the exact `review_receipt_digest`, rather than being duplicated
+as direct policy-receipt fields. The receipt expires with its review. The
+reviewer may revoke that review until the successor is opened; such a
+revocation invalidates the derived policy adoption.
+The literal final flow is `PASS_FOR_ADOPTION` -> independent `APPROVE` -> distinct
+deterministic `POLICY_ADOPTION` -> separate `frame-transition-activate`.
+
+Only `frame-transition-activate` delegates to the existing generation writer,
+which revalidates the exact unexpired and unrevoked chain under the EventLog
+append lock. All extension receipts and responses keep `authorized_action`
+literal null; `POLICY_ADOPTION` authorizes no external action. See the
+[controlled transition specification](docs/controlled-frame-transition-improvement.md).
+
+This extension validates supplied evidence; it does not collect or synthesize
+actual provider outputs, synthesize the independent review, or fabricate Gate A
+evidence. The Gate evidence digest is expected to bind an externally
+preregistered threshold and labeled corpus, and the pilot false-promotion cap
+is applied to the aggregate of all three frozen arms. Governance is enforced by
+the new opt-in path, not as a downgrade-resistant project epoch: old v0.5
+binaries and the unchanged administrative `open-generation` command do not
+interpret extension events. A reserved controlled change reason cannot be used
+through `open-generation` without the exact policy-adoption binding.
+
+Keep the review JSON in a private temporary directory outside the project
+source tree (for example, `FRAME_REVIEW_DIR="$(mktemp -d)"`). Policy adoption
+has no input file. The adoption review binds the current full source-tree
+digest, so creating or editing control-input files inside that tree after
+review correctly makes the review and derived policy adoption stale at
+activation.
+
+An autonomous agent may explicitly call `frame-transition-adopt-policy` after a
+current independent `APPROVE` and then call `frame-transition-activate`. This is
+a narrow, inquiry-scoped transition sequence, not a generalized background
+workflow engine, scheduler, or permission for external action.
+
 See [agent usage](docs/agent-usage.md) and
 [architecture](docs/architecture.md) for the complete contract.
 

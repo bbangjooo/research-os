@@ -60,6 +60,7 @@ from .graph_policy import (
     validate_graph_candidate_change,
     validate_graph_relationship,
 )
+from .kernel._canonical import utc_now
 from .kernel.events import Event, EventHeadMismatchError, EventLog
 from .kernel.ids import new_experiment_id, new_id, stable_id
 from .kernel.lifecycle import coerce_state, is_terminal
@@ -819,6 +820,7 @@ class ResearchService:
         *,
         predecessor_generation_id: str | None = None,
         change_reason: str | None = None,
+        controlled_transition: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Open one evaluation-sealed study generation atomically.
 
@@ -828,6 +830,54 @@ class ResearchService:
         append lock, with the evaluator certification held stable across the
         complete write.
         """
+
+        controlled_keys = {
+            "inquiry_id",
+            "policy_adoption_digest",
+            "source_tree_digest",
+            "successor_compatibility_digest",
+        }
+        controlled: dict[str, str] | None = None
+        if controlled_transition is not None:
+            normalized_controlled = normalize_json_object(
+                controlled_transition,
+                field_name="controlled frame-transition binding",
+            )
+            if set(normalized_controlled) != controlled_keys:
+                raise ScientificStateError(
+                    "FRAME_TRANSITION_ACTIVATION_INVALID",
+                    "controlled transition binding must have exact fields",
+                    details={
+                        "missing_fields": sorted(
+                            controlled_keys - set(normalized_controlled)
+                        ),
+                        "unknown_fields": sorted(
+                            set(normalized_controlled) - controlled_keys
+                        ),
+                    },
+                )
+            controlled_values: dict[str, str] = {}
+            for key in controlled_keys:
+                value = normalized_controlled[key]
+                if (
+                    not isinstance(value, str)
+                    or not value
+                    or value != value.strip()
+                ):
+                    raise ScientificStateError(
+                        "FRAME_TRANSITION_ACTIVATION_INVALID",
+                        "controlled transition binding values must be trimmed non-empty text",
+                    )
+                controlled_values[key] = value
+            controlled = controlled_values
+        elif isinstance(change_reason, str) and change_reason.startswith(
+            "controlled-frame-transition:"
+        ):
+            raise ScientificStateError(
+                "FRAME_TRANSITION_ACTIVATION_INVALID",
+                "controlled change reason requires an exact authority binding",
+            )
+        controlled_as_of = utc_now() if controlled is not None else None
 
         explicit_successor = (
             predecessor_generation_id is not None or change_reason is not None
@@ -846,6 +896,75 @@ class ResearchService:
             else self._load_json_object(contract, label="study contract")
         )
         study_contract = StudyContract.from_mapping(raw_contract)
+
+        def validate_controlled_binding(
+            locked_events: Sequence[Event],
+            seal: EvaluationSeal,
+            source_tree_digest: object,
+            *,
+            as_of: str | None = None,
+        ) -> dict[str, Any] | None:
+            if controlled is None or controlled_as_of is None:
+                return None
+            from .frame_transition import validate_controlled_activation
+
+            if not isinstance(change_reason, str):
+                raise ScientificStateError(
+                    "FRAME_TRANSITION_ACTIVATION_INVALID",
+                    "controlled activation requires a change reason",
+                )
+
+            if (
+                seal.compatibility_digest
+                != controlled["successor_compatibility_digest"]
+            ):
+                raise ScientificStateError(
+                    "FRAME_TRANSITION_COMPATIBILITY_MISMATCH",
+                    "current evaluation seal does not match approved successor compatibility",
+                    details={
+                        "approved_compatibility_digest": controlled[
+                            "successor_compatibility_digest"
+                        ],
+                        "current_compatibility_digest": seal.compatibility_digest,
+                    },
+                )
+            if source_tree_digest != controlled["source_tree_digest"]:
+                raise ScientificStateError(
+                    "FRAME_TRANSITION_TREE_MISMATCH",
+                    "current source tree does not match the approved adoption review",
+                    details={
+                        "approved_tree_digest": controlled["source_tree_digest"],
+                        "current_tree_digest": source_tree_digest,
+                    },
+                )
+            binding = validate_controlled_activation(
+                tuple(locked_events),
+                project_id=self.config.project_id,
+                inquiry_id=controlled["inquiry_id"],
+                policy_adoption_digest=controlled["policy_adoption_digest"],
+                target_contract_digest=study_contract.digest,
+                target_successor_compatibility_digest=controlled[
+                    "successor_compatibility_digest"
+                ],
+                change_reason=change_reason,
+                as_of=controlled_as_of if as_of is None else as_of,
+            )
+            approved_source_tree_digest = binding.get("source_tree_digest")
+            if not isinstance(approved_source_tree_digest, str):
+                raise IntegrityError(
+                    "controlled activation replay omitted the approved source tree"
+                )
+            if controlled["source_tree_digest"] != approved_source_tree_digest:
+                raise ScientificStateError(
+                    "FRAME_TRANSITION_TREE_MISMATCH",
+                    "controlled transition source tree does not match the adoption review",
+                    details={
+                        "approved_tree_digest": approved_source_tree_digest,
+                        "controlled_tree_digest": controlled["source_tree_digest"],
+                    },
+                )
+            return binding
+
         self._assert_config_unchanged()
         self.event_log.verify()
         events = tuple(self.event_log.read())
@@ -878,6 +997,11 @@ class ResearchService:
                 # locked while deriving them; append-required plans are then
                 # rerun under the exclusive append lock below.
                 with self.event_log.locked_read() as planning_events:
+                    validate_controlled_binding(
+                        planning_events,
+                        evaluation_seal,
+                        report.fingerprints.get("source_tree_digest"),
+                    )
                     plan = plan_generation_open(
                         tuple(planning_events),
                         project_id=self.config.project_id,
@@ -942,6 +1066,24 @@ class ResearchService:
                             raise IntegrityError(
                                 "evaluation seal changed before generation commit"
                             )
+                        controlled_binding = validate_controlled_binding(
+                            locked_events,
+                            fresh_seal,
+                            fresh_report.fingerprints.get("source_tree_digest"),
+                            as_of=utc_now(),
+                        )
+                        if (
+                            controlled_binding is not None
+                            and controlled_binding["already_activated"]
+                        ):
+                            successor_generation_id = controlled_binding[
+                                "successor_generation_id"
+                            ]
+                            if not isinstance(successor_generation_id, str):
+                                raise IntegrityError(
+                                    "controlled replay omitted its successor generation"
+                                )
+                            raise _GenerationAlreadyOpen(successor_generation_id)
                         locked_plan = plan_generation_open(
                             locked_events,
                             project_id=self.config.project_id,
@@ -964,6 +1106,7 @@ class ResearchService:
                     event = self.event_log.append(
                         plan.event_type,
                         proposed_payload,
+                        occurred_at=controlled_as_of,
                         precondition=validate_locked_plan,
                         postcondition=validate_locked_plan,
                     )
