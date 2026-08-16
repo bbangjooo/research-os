@@ -1,0 +1,5 @@
+# Research sessions default to the quality-preserving scientific profile.
+# Use scripts/research-agent for lower-cost control work or independent audits.
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+model_verbosity = "low"

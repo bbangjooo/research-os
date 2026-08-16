@@ -45,6 +45,26 @@ Never edit the constitution, adapter, evaluator, protected paths, evidence, or
 candidate schema during research mode. Switch to change-control mode and seal a
 new compatible baseline after an approved semantic change.
 
+## Respect the provider model route
+
+Research OS is provider-neutral and cannot change the active root model. Treat
+the caller's model selection as a session boundary, not scientific evidence:
+
+- **Control route:** status, doctor, replay, bounded context retrieval, and
+  mechanical formatting may use a balanced model at medium effort.
+- **Research route:** hypothesis generation, candidate design, terminal
+  Diagnosis, parent selection, and graph-action choice require the configured
+  high-quality research model at high effort.
+- **Audit route:** evaluator certification and adversarial review require a
+  fresh, independent session using the configured frontier model at xhigh effort.
+
+Do not claim to switch the active root model during a session. If a request
+combines control work with scientific judgment, use the research route for the
+whole session. If an audit must be independent, start it in a fresh session and
+pass only the digest-bound review subject and allowed read-only evidence. Ultra,
+agent-team, or maximum-compute modes are exceptional and never the default for
+the sequential experiment loop.
+
 ## Set up or change a project
 
 <!-- EVALUATOR_CERTIFICATION_GATE -->
