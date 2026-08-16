@@ -85,6 +85,11 @@ The agent handles the Research OS CLI and translates structured results into a
 human-readable answer. The user does not need to edit candidate JSON or inspect
 raw event records.
 
+For quality-preserving model allocation, this repository defaults scientific
+sessions to a high-reasoning frontier model and provides explicit lower-cost
+control and independent-audit routes for Codex and Claude Code. See
+[Model routing for Research OS agents](docs/model-routing.md).
+
 ## What it enforces
 
 - isolated, disposable experiment workspaces;
