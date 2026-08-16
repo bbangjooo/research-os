@@ -1,7 +1,6 @@
 # Research OS discovery lane 개선 설계 명세
 
-> 상태: 구현 명세 (미착수)
-> 실행 방식: 일반 코드 작업, 새 세션에서 진행
+> 상태: 구현됨 (§18의 1–6단계; 7단계 D2는 §12 측정 게이트 뒤로 보류)
 > 적용 경계: opt-in advisory extension (frame-transition seam 재사용)
 > 비권한 원칙: 모든 discovery 이벤트와 산출물의 `authorized_action`은 literal `null`
 
@@ -179,20 +178,23 @@ cross-generation / cross-compatibility 증거는 advisory여야 한다고 fail-c
 "창의적으로 제안하라"는 채점 불가능한 넛지다. 대신 점프의 기계적 형태를 과제로
 준다: **실패한 class의 공유 불변항을 부정하라.**
 
-closed class 안에서 REJECTED로 끝난 proposal들이 공통으로 선언한 assumption은
-canonical state에서 계산된다. 이를 projection으로 뽑아 다음 형태로 제시한다.
+`Proposal`은 assumption 목록을 별도 필드로 갖지 않고 `mechanism`,
+`predicted_effect`, `falsifier`를 기록한다. 따라서 공유 전제를 직접 계산할 수는
+없고, closed class 안에서 REJECTED로 끝난 proposal들의 **mechanism 집합**을 제시해
+공유 commitment의 진술을 과제의 일부로 넘긴다.
 
 ```text
-이 N개 실험이 실패했다.
-생존한 모든 가설이 공유한 전제는 P다.
-P가 거짓인 프레임을 제안하라.
+이 N개 실험이 closed hypothesis class 안에서 실패했다.
+[실패한 mechanism 목록과 각각의 falsifier]
+이 mechanism들이 공유하는 commitment를 진술하라.
+그 commitment가 거짓인 프레임을 제안하라.
 ```
 
-새 truth를 만들지 않는다 — 기존 ProgramLog 위의 projection 1개다. 넛지가 아니라
-**계산된 과제**이므로 산출물을 결정적으로 채점할 수 있고, 과제 자체가 재현된다.
+새 truth를 만들지 않는다 — canonical state 위의 projection 1개다. 넛지가 아니라
+**계산된 과제**이므로 과제 자체가 결정적으로 재현된다.
 
-P가 계산되지 않는 경우(공유 assumption 없음, closed class 부재)에는 필드를 생략한다.
-빈 과제를 생성하지 않는다.
+closed class가 없거나 REJECTED 이력이 없으면 해당 class를 생략한다. 빈 과제를
+생성하지 않는다.
 
 ## 10. G3 — 생성 시점의 발산 강제
 
@@ -272,17 +274,23 @@ generation마다 다음을 로그한다.
 research-os --project ABS discovery-note note.json
 research-os --project ABS discovery-status [--kind KIND] [--limit N]
 research-os --project ABS discovery-status --exhaustion
+research-os --project ABS discovery-status --residual
 research-os --project ABS discovery-status --yield
-research-os --project ABS discovery-analogies query.json
+research-os --project ABS discovery-analogies query.json \
+  --program-root ABS_PROGRAM_ROOT --program-id PROGRAM_ID
 ```
 
 - `discovery-note`: strict JSON 1건을 §5 스키마와 §11 선별기로 검증 후 append.
   성공 시 event ID와 digest를 반환한다. 수정·삭제 명령은 제공하지 않는다
   (append-only; 정정은 새 note로).
 - `discovery-status`: replay-derived 장부 조회. kind 필터, 최신 N건, 각 엔트리의
-  digest와 refs 포함.
+  digest와 refs 포함. `--exhaustion` / `--residual` / `--yield`는 상호 배타적이다.
 - `discovery-analogies`: G1 유추 검색. `AnalogyResult`를 반환하며 모든 hit에
-  `lane: "advisory"`가 붙는다.
+  `lane: "advisory"`가 붙는다. ProgramLog는 `ResearchService` 밖에서 소유되므로
+  store를 명시적으로 지정한다.
+
+advisory lane은 canonical project state를 부트스트랩하지 않는다. 초기화되지 않은
+프로젝트에서는 `doctor`를 먼저 실행해야 한다.
 
 ## 15. 명시적 비목표
 
@@ -333,14 +341,17 @@ research-os --project ABS discovery-analogies query.json
 
 ## 17. 구현 파일 (제안)
 
-- `src/research_os/discovery.py`: contracts, pure reducer, projection, G4 선별기
+- `src/research_os/discovery.py`: contracts, pure reducer, G4 선별기,
+  exhaustion / residual / yield projection
 - `src/research_os/discovery_service.py`: EventLog append/replay, native API
-- `src/research_os/memory/retrieval.py`: `retrieve_analogies`, `AnalogyResult` 추가
+- `src/research_os/memory/retrieval.py`: `AnalogyQuery`, `AnalogyHit`,
+  `AnalogyResult`, `retrieve_analogies` 추가
   (`retrieve_claims`, `_base_match`는 변경하지 않음)
-- `src/research_os/frame_transition.py`: fingerprint 헬퍼 추출, canonical 신호 ≥1 요구
+- `src/research_os/frame_transition.py`: `rival_fingerprint` 헬퍼 추출,
+  canonical 신호 ≥1 요구
 - `src/research_os/cli.py`: `discovery-note`, `discovery-status`, `discovery-analogies` dispatch
-- `src/research_os/resources/research-os/SKILL.md`: §13 프로토콜 추가
-  (frame-transition 사용 프로토콜 포함)
+- `src/research_os/resources/research-os/SKILL.md`: discovery 프로토콜 +
+  frame-transition 사용 프로토콜
 - `tests/test_discovery.py`, `tests/test_discovery_service_cli.py`,
   `tests/test_analogy_retrieval.py`
 

@@ -275,6 +275,65 @@ or interruption, replay the Project, Program, and autonomy logs and resume only
 the recorded pending seam. The loop grants no live migration, deployment,
 trading, or multi-agent authority; `authorized_action` remains `null`.
 
+## Keep a discovery journal
+
+The advisory discovery lane records what the inner loop cannot: anomalies,
+assumption conflicts, and rival frame drafts. Two of the four exhaustion signal
+kinds a frame-transition inquiry can cite live only in diagnosis interpretation,
+which disappears at session end. Recording them as they occur is what makes them
+citable later.
+
+- After every diagnosis, if the interpretation reveals an anomaly or an
+  assumption conflict, record it with `discovery-note`. This is not an exception
+  to research mode's inbox-only rule: `discovery-note` appends to the EventLog
+  and touches no project file.
+- Use `discovery-status --exhaustion` to see which signal kinds currently have
+  material. Use `discovery-status --residual` to read the residual task for each
+  closed hypothesis class: state the commitment the failed mechanisms share, then
+  propose a frame in which that commitment is false.
+- Use `discovery-analogies` to read cross-frame claims. Canonical retrieval is
+  exact-class by design, so this is the only path to material from another class
+  or compatibility generation. Everything it returns is advisory. Record the
+  originating query digest on any draft it informs.
+- Record rival frame drafts with `kind: rival_draft`. A draft needs at least one
+  falsifier, at least one canonical reference, and assumptions plus a mechanism
+  that no recorded draft already states. Generating none is a valid outcome.
+- Never claim a discovery entry as canonical evidence, and never let one justify
+  a budget increase or the reopening of a closed class.
+- The journal is append-only. There is no edit or delete command; correct a note
+  by recording a new one.
+
+## Propose a frame transition only on real exhaustion
+
+Suggest opening an inquiry when a rival draft exists **and**
+`discovery-status --exhaustion` reports `inquiry_signal_conditions_met`: at least
+two distinct signal kinds including at least one canonical row. Advisory notes
+corroborate exhaustion; they never establish it alone. Ask the user before
+opening an inquiry and never open one automatically.
+
+The controlled path runs in this order, and each receipt is stage-bound and
+non-reusable:
+
+1. `frame-transition-gate-a` — deterministic go/no-go. `NO_BUILD` and
+   `UNSTABLE_RUBRIC` are normal successful endings with zero product change.
+2. `frame-transition-open` — a material J2/J3/ambiguous inquiry with at least two
+   rivals that differ substantively and a discriminator fixed before results.
+3. `frame-transition-decide` — exactly `ABSTAIN`, `REJECT`, or
+   `RECOMMEND_FOR_PILOT`. The first two close with no successor.
+4. `frame-transition-authorize-pilot` — `PILOT_ONLY` authority for isolated
+   non-canonical state. **Pilot authorization is not adoption.**
+5. `frame-transition-record-pilot` — the three-arm result. Every non-pass leaves
+   zero durable writes.
+6. `frame-transition-review` — a fresh independent review against the current
+   source tree. A pass grants review eligibility, not adoption.
+7. `frame-transition-adopt-policy` — deterministic policy adoption.
+8. `frame-transition-activate` — opens exactly one compatibility-separated
+   successor generation.
+
+Never author a proposal and approve it in the same session role. Report the
+inquiry's exact outcome, including abstain and reject, rather than presenting
+only the branch that advanced.
+
 ## Preserve authority boundaries
 
 - Treat `VALIDATED` as research evidence, not permission to merge, deploy,

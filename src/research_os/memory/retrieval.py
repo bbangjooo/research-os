@@ -20,6 +20,8 @@ from .claims import (
 
 RETRIEVAL_QUERY_SCHEMA_VERSION = 1
 RETRIEVAL_RESULT_SCHEMA_VERSION = 1
+ANALOGY_QUERY_SCHEMA_VERSION = 1
+ANALOGY_RESULT_SCHEMA_VERSION = 1
 MAX_RETRIEVAL_LIMIT = 100
 _HASH_LENGTH = 64
 _RETRIEVAL_RELATION_TYPES = frozenset({"contradicts"})
@@ -468,13 +470,320 @@ def retrieve_claims(
     )
 
 
+@dataclass(frozen=True, slots=True)
+class AnalogyQuery:
+    """A deliberately cross-frame query over the same audited ClaimSnapshot.
+
+    This is a distinct type from :class:`RetrievalQuery` on purpose.  Canonical
+    registration binds a proposal to a ``RetrievalQuery`` whose
+    ``hypothesis_class_id`` must equal the proposal's class, so an advisory
+    analogy read cannot be substituted for confirmatory retrieval by accident.
+    The excluded-field names below make an accidental swap fail loudly rather
+    than silently widen canonical evidence.
+    """
+
+    analogy_query_schema_version: int
+    query_id: str
+    program_id: str
+    program_head_sequence: int
+    program_head_hash: str
+    excluded_hypothesis_class_id: str
+    excluded_compatibility_digest: str
+    claim_kinds: tuple[str, ...]
+    limit: int
+    authorized_action: None = None
+
+    _KEYS: ClassVar[frozenset[str]] = frozenset(
+        {
+            "analogy_query_schema_version",
+            "query_id",
+            "program_id",
+            "program_head",
+            "excluded_hypothesis_class_id",
+            "excluded_compatibility_digest",
+            "claim_kinds",
+            "limit",
+            "authorized_action",
+        }
+    )
+
+    @classmethod
+    def from_mapping(cls, raw: Mapping[str, Any]) -> AnalogyQuery:
+        code = "ANALOGY_QUERY_INVALID"
+        value = _object(raw, cls._KEYS, path="$", code=code)
+        version = value["analogy_query_schema_version"]
+        if (
+            isinstance(version, bool)
+            or not isinstance(version, int)
+            or version != ANALOGY_QUERY_SCHEMA_VERSION
+        ):
+            raise _error(
+                code,
+                "unsupported analogy query schema",
+                path="$.analogy_query_schema_version",
+            )
+        head = _object(
+            value["program_head"], {"sequence", "hash"}, path="$.program_head", code=code
+        )
+        sequence = head["sequence"]
+        if isinstance(sequence, bool) or not isinstance(sequence, int) or sequence < 1:
+            raise _error(
+                code,
+                "program head sequence must be positive",
+                path="$.program_head.sequence",
+            )
+        kinds = tuple(
+            _text(item, path="$.claim_kinds[]", code=code)
+            for item in _array(value["claim_kinds"], path="$.claim_kinds", code=code)
+        )
+        if not kinds or kinds != tuple(sorted(set(kinds))) or any(
+            item not in CLAIM_KINDS for item in kinds
+        ):
+            raise _error(code, "claim_kinds must be non-empty, unique, sorted, and supported")
+        limit = value["limit"]
+        if (
+            isinstance(limit, bool)
+            or not isinstance(limit, int)
+            or not 1 <= limit <= MAX_RETRIEVAL_LIMIT
+        ):
+            raise _error(code, f"limit must be an integer from 1 to {MAX_RETRIEVAL_LIMIT}")
+        if value["authorized_action"] is not None:
+            raise _error(code, "authorized_action must be literal null", path="$.authorized_action")
+        return cls(
+            ANALOGY_QUERY_SCHEMA_VERSION,
+            _identifier(value["query_id"], "query", path="$.query_id", code=code),
+            _identifier(value["program_id"], "program", path="$.program_id", code=code),
+            sequence,
+            _digest(head["hash"], path="$.program_head.hash", code=code),
+            _text(
+                value["excluded_hypothesis_class_id"],
+                path="$.excluded_hypothesis_class_id",
+                code=code,
+            ),
+            _digest(
+                value["excluded_compatibility_digest"],
+                path="$.excluded_compatibility_digest",
+                code=code,
+            ),
+            kinds,
+            limit,
+        )
+
+    @property
+    def program_head(self) -> tuple[int, str]:
+        return self.program_head_sequence, self.program_head_hash
+
+    @property
+    def digest(self) -> str:
+        return sha256_json(self.to_dict())
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "analogy_query_schema_version": self.analogy_query_schema_version,
+            "query_id": self.query_id,
+            "program_id": self.program_id,
+            "program_head": {
+                "sequence": self.program_head_sequence,
+                "hash": self.program_head_hash,
+            },
+            "excluded_hypothesis_class_id": self.excluded_hypothesis_class_id,
+            "excluded_compatibility_digest": self.excluded_compatibility_digest,
+            "claim_kinds": list(self.claim_kinds),
+            "limit": self.limit,
+            "authorized_action": None,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class AnalogyHit:
+    """One cross-frame claim, permanently marked advisory.
+
+    ``source_generation_id`` and ``source_compatibility_digest`` are carried so
+    that a hit can be quoted directly as an advisory exhaustion signal without
+    a lossy conversion step.
+    """
+
+    view: ClaimView
+    distance: str
+    reasons: tuple[str, ...]
+    order_key: tuple[int, int, str]
+    lane: ClassVar[Literal["advisory"]] = "advisory"
+    authorized_action: None = None
+
+    @property
+    def claim_id(self) -> str:
+        return self.view.claim.claim_id
+
+    def to_dict(self) -> dict[str, Any]:
+        applicability = self.view.claim.applicability
+        return {
+            "claim": self.view.claim.to_dict(),
+            "claim_digest": self.view.claim_digest,
+            "effective_status": self.view.effective_status,
+            "effective_maturity": self.view.effective_maturity,
+            "lane": self.lane,
+            "distance": self.distance,
+            "source_generation_id": applicability.generation_id,
+            "source_hypothesis_class_id": applicability.hypothesis_class_id,
+            "source_compatibility_digest": applicability.compatibility_digest,
+            "reasons": list(self.reasons),
+            "order_key": list(self.order_key),
+            "authorized_action": None,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class AnalogyResult:
+    analogy_result_schema_version: int
+    query: AnalogyQuery
+    hits: tuple[AnalogyHit, ...]
+    excluded_superseded_claim_ids: tuple[str, ...]
+    candidate_count: int
+    matched_before_limit: int
+    truncated: bool
+    lane: ClassVar[Literal["advisory"]] = "advisory"
+    authorized_action: None = None
+
+    @property
+    def program_id(self) -> str:
+        return self.query.program_id
+
+    @property
+    def program_head(self) -> tuple[int, str]:
+        return self.query.program_head
+
+    @property
+    def returned_claim_ids(self) -> tuple[str, ...]:
+        return tuple(item.claim_id for item in self.hits)
+
+    @property
+    def digest(self) -> str:
+        return sha256_json(self.to_dict())
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "analogy_result_schema_version": self.analogy_result_schema_version,
+            "query_digest": self.query.digest,
+            "program_id": self.program_id,
+            "program_head": {
+                "sequence": self.program_head[0],
+                "hash": self.program_head[1],
+            },
+            "lane": self.lane,
+            "hits": [item.to_dict() for item in self.hits],
+            "excluded_superseded_claim_ids": list(self.excluded_superseded_claim_ids),
+            "candidate_count": self.candidate_count,
+            "matched_before_limit": self.matched_before_limit,
+            "returned_count": len(self.hits),
+            "truncated": self.truncated,
+            "authorized_action": None,
+        }
+
+
+def _analogy_distance(view: ClaimView, query: AnalogyQuery) -> tuple[int, str] | None:
+    """Rank how far a claim sits from the query's frame, or reject same-frame.
+
+    Rank 0 is cross-class material inside the same compatibility digest, which
+    is the most directly comparable analogy source.  Rank 1 is the same class
+    seen under a different compatibility digest.  Rank 2 differs on both axes.
+    A claim matching the query on both axes is same-frame canonical material and
+    is never returned here.
+    """
+
+    applicability = view.claim.applicability
+    same_class = applicability.hypothesis_class_id == query.excluded_hypothesis_class_id
+    same_compatibility = (
+        applicability.compatibility_digest == query.excluded_compatibility_digest
+    )
+    if same_class and same_compatibility:
+        return None
+    if same_compatibility:
+        return 0, "distance:cross_class"
+    if same_class:
+        return 1, "distance:cross_compatibility"
+    return 2, "distance:cross_class_and_compatibility"
+
+
+def retrieve_analogies(
+    snapshot: ClaimSnapshot,
+    query: AnalogyQuery | Mapping[str, Any],
+) -> AnalogyResult:
+    """Select cross-frame Claims as advisory material with a canonical order.
+
+    This never returns a claim from the query's own class and compatibility
+    digest, so it cannot restate canonical same-frame evidence in an advisory
+    wrapper.  Superseded claims are excluded and reported, matching
+    :func:`retrieve_claims`.
+    """
+
+    if not isinstance(snapshot, ClaimSnapshot):
+        raise TypeError("snapshot must be a ClaimSnapshot")
+    if not isinstance(query, AnalogyQuery):
+        query = AnalogyQuery.from_mapping(query)
+    if snapshot.program_id != query.program_id or snapshot.program_head != query.program_head:
+        raise _error(
+            "ANALOGY_STALE",
+            "analogy query does not bind the current Program head",
+            expected_program_id=snapshot.program_id,
+            expected_program_head=snapshot.program_head,
+            observed_program_id=query.program_id,
+            observed_program_head=query.program_head,
+        )
+
+    superseded: list[str] = []
+    hits: list[AnalogyHit] = []
+    for view in snapshot.claims:
+        if view.claim.statement.kind not in query.claim_kinds:
+            continue
+        ranked = _analogy_distance(view, query)
+        if ranked is None:
+            continue
+        if view.effective_status == "superseded":
+            superseded.append(view.claim.claim_id)
+            continue
+        rank, distance = ranked
+        status_priority = 0 if view.effective_status == "active" else 1
+        hits.append(
+            AnalogyHit(
+                view,
+                distance,
+                (
+                    "program:exact",
+                    "lane:advisory",
+                    distance,
+                    f"kind:{view.claim.statement.kind}",
+                    f"status:{view.effective_status}",
+                ),
+                (rank, status_priority, view.claim.claim_id),
+            )
+        )
+
+    hits.sort(key=lambda item: item.order_key)
+    selected = hits[: query.limit]
+    return AnalogyResult(
+        ANALOGY_RESULT_SCHEMA_VERSION,
+        query,
+        tuple(selected),
+        tuple(sorted(superseded)),
+        len(snapshot.claims),
+        len(hits),
+        len(hits) > query.limit,
+    )
+
+
 __all__ = [
+    "ANALOGY_QUERY_SCHEMA_VERSION",
+    "ANALOGY_RESULT_SCHEMA_VERSION",
     "MAX_RETRIEVAL_LIMIT",
     "RETRIEVAL_QUERY_SCHEMA_VERSION",
     "RETRIEVAL_RESULT_SCHEMA_VERSION",
+    "AnalogyHit",
+    "AnalogyQuery",
+    "AnalogyResult",
     "RetrievalHit",
     "RetrievalQuery",
     "RetrievalResult",
     "RetrievalScope",
+    "retrieve_analogies",
     "retrieve_claims",
 ]
