@@ -22,7 +22,7 @@ from research_os.agent_install import (
     shipped_skill_tree_digest,
 )
 
-_RELEASE_COMMITS = {"0.5.0": "2bb7a88"}
+_RELEASE_COMMITS = {"0.5.0": "2bb7a88", "0.6.0": "b8b7b8f"}
 _RESOURCE_PREFIX = "src/research_os/resources/research-os/"
 
 

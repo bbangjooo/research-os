@@ -323,6 +323,32 @@ citable later.
 - The journal is append-only. There is no edit or delete command; correct a note
   by recording a new one.
 
+## Ground new frames in sealed external evidence
+
+The OS never reaches outside the project: `discovery-analogies` reads only the
+local claim store, and nothing in the kernel fetches a URL. Surveying prior
+external work — papers, practitioner write-ups, domain references — is your
+job, and it belongs **before** rival drafting, not after a frame is chosen.
+
+- Do the retrieval outside the OS and stage the material in a scratch area.
+  Compute the SHA-256 of the exact bytes you read.
+- Seal each source as a `kind: external_evidence` note: `source_locator` (URL,
+  DOI, or citation), `snapshot_digest` (the SHA-256 of the retrieved bytes),
+  at least one extracted claim, and at least one limitation. A source you
+  cannot state a limitation for is a source you have not read critically.
+- Cite the external_evidence note ids in the `refs` of every rival draft the
+  survey informed. Recording the first external_evidence note opts the project
+  into prior binding: from then on the screen rejects any new rival draft that
+  cites no external_evidence note. Drafts recorded earlier stay valid.
+- `discovery-status --yield` reports `prior_binding_active` and
+  `prior_backed_rival_draft_count`; the jump dossier carries an
+  `external_prior` section and a `literature_prior` authoring obligation. Read
+  them before proposing an inquiry, and treat an unbacked draft as a draft
+  whose survey is still owed.
+- External evidence is advisory like every other note: it is never canonical
+  evidence, never a substitute for an experiment, and never a reason to loosen
+  a gate. It grounds frame candidates; it proves nothing.
+
 ## Propose a frame transition only on real exhaustion
 
 Suggest opening an inquiry when a rival draft exists **and**

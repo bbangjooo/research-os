@@ -36,7 +36,7 @@ response keeps `authorized_action` literal `null`.
 | Lane | Purpose | Authority |
 | --- | --- | --- |
 | **Confirmatory loop** | Run pre-registered experiments inside a fixed contract | Opens experiments and generations |
-| **Discovery** (opt-in) | Record anomalies, assumption conflicts, and rival frame drafts; read cross-frame material | None — advisory only |
+| **Discovery** (opt-in) | Record anomalies, assumption conflicts, sealed external evidence, and rival frame drafts; read cross-frame material | None — advisory only |
 | **Frame transition** (opt-in) | Compare rival frames and adopt a successor after isolated piloting and independent review | Opens exactly one successor generation |
 
 The cost is deliberately asymmetric. Discovery is nearly frictionless because it
