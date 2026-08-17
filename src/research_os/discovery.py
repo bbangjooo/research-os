@@ -571,6 +571,146 @@ def exhaustion_projection(
     }
 
 
+def _margin_trajectory(scientific: Any, class_id: str) -> list[dict[str, Any]]:
+    """Extract the ordered decision-margin series for one hypothesis class.
+
+    Raw evidence, deliberately unjudged: whether a flattening series means
+    stagnation, noise, or a dead axis is an interpretation, and interpretation
+    belongs to the reader, not to this projection.
+    """
+
+    rows: list[tuple[int, dict[str, Any]]] = []
+    for registration in scientific.registrations:
+        if registration.proposal.hypothesis_class_id != class_id:
+            continue
+        if registration.terminal_status is None:
+            continue
+        payload = registration.terminal_payload
+        decision = payload.get("decision") if isinstance(payload, Mapping) else None
+        margin = decision.get("promotion_margin") if isinstance(decision, Mapping) else None
+        rows.append(
+            (
+                registration.terminal_event_sequence
+                if registration.terminal_event_sequence is not None
+                else 2**63,
+                {
+                    "experiment_id": registration.experiment_id,
+                    "terminal_status": registration.terminal_status,
+                    "promotion_margin": margin,
+                    "mechanism": registration.proposal.mechanism,
+                },
+            )
+        )
+    rows.sort(key=lambda item: item[0])
+    return [row for _, row in rows]
+
+
+#: The questions a frame-health packet asks its reader to answer.  These name
+#: the exhaustion modes the canonical signals cannot count: a frame can be
+#: wrong long before it is exhausted, and locally improving margins can mask a
+#: dead axis.  The OS deliberately computes no verdict for any of them.
+FRAME_HEALTH_INTERPRETATION_REQUESTS = (
+    {
+        "id": "stagnation",
+        "question": (
+            "Looking at each open class's margin trajectory, is progress "
+            "converging toward zero while the class stays open?  Counting "
+            "rejections cannot see this."
+        ),
+        "if_judged_yes": (
+            "Record an `anomaly` discovery note citing the experiment IDs in "
+            "the flattening series; it becomes an unresolved_anomaly signal."
+        ),
+    },
+    {
+        "id": "assumption_misfit",
+        "question": (
+            "Do the mechanisms tried so far share a commitment that the "
+            "accumulated evidence quietly contradicts, even where individual "
+            "experiments still pass?"
+        ),
+        "if_judged_yes": (
+            "Record an `assumption_conflict` note naming the shared commitment "
+            "and citing the contradicting experiments or diagnoses."
+        ),
+    },
+    {
+        "id": "frame_misfit",
+        "question": (
+            "Is the declared hypothesis-class list itself the wrong carving -- "
+            "would a differently shaped class, representation, or objective "
+            "explain the pattern of failures better than any member of the "
+            "declared classes?"
+        ),
+        "if_judged_yes": (
+            "Draft one or more `rival_draft` notes; generate several and let "
+            "the fingerprint screen discard the ones that only relabel."
+        ),
+    },
+)
+
+
+def frame_health_projection(
+    events: Sequence[Event | Mapping[str, Any]],
+    *,
+    project_id: str,
+) -> dict[str, Any]:
+    """Assemble the evidence an LLM needs to judge whether a jump is due.
+
+    This is an interpretation packet, not a verdict.  Canonical facts -- class
+    lifecycles, margin trajectories, closure counters, the all-classes-closed
+    stop condition, journal contents -- are laid out next to the explicit
+    questions only a reader can answer.  The packet never says "stagnating" or
+    "misfit"; it says what happened and asks.
+    """
+
+    scientific = reduce_scientific_state(events, project_id=project_id)
+    discovery = reduce_discovery_state(events, project_id=project_id)
+
+    classes = []
+    for class_state in scientific.class_states:
+        classes.append(
+            {
+                "hypothesis_class_id": class_state.hypothesis_class_id,
+                "lifecycle": class_state.lifecycle,
+                "support": class_state.support,
+                "conclusive_rejections": class_state.conclusive_rejections,
+                "conclusive_rejection_limit": class_state.conclusive_rejection_limit,
+                "closure_reason": class_state.closure_reason,
+                "margin_trajectory": _margin_trajectory(
+                    scientific, class_state.hypothesis_class_id
+                ),
+            }
+        )
+
+    open_questions = [
+        {
+            "note_id": note["note_id"],
+            "kind": note["kind"],
+            "open_question": note["body"]["open_question"],
+        }
+        for note in discovery.notes
+        if note.get("kind") in SIGNAL_BEARING_KINDS
+    ]
+
+    study_stop = scientific.study_stop
+    return {
+        "schema_version": DISCOVERY_SCHEMA_VERSION,
+        "project_id": project_id,
+        "lane": "advisory",
+        "active_generation_id": scientific.active_generation_id,
+        "study_stop": study_stop,
+        "all_classes_closed": bool(study_stop.get("all_classes_closed")),
+        "classes": classes,
+        "recorded_open_questions": open_questions,
+        "rival_draft_count": len(discovery.notes_of_kind("rival_draft")),
+        "interpretation_requests": [
+            dict(item) for item in FRAME_HEALTH_INTERPRETATION_REQUESTS
+        ],
+        "authorized_action": None,
+    }
+
+
 def residual_task(
     events: Sequence[Event | Mapping[str, Any]],
     *,
@@ -665,10 +805,148 @@ def yield_projection(
     }
 
 
+def jump_dossier(
+    events: Sequence[Event | Mapping[str, Any]],
+    *,
+    project_id: str,
+    note_id: str,
+) -> dict[str, Any]:
+    """Assemble everything an LLM must hold to author a real frame jump.
+
+    A rival draft is advisory free text; a real J2/J3 change is a successor
+    StudyContract plus, usually, a new candidate schema and a fresh evaluator
+    certification.  Between the two sits a cliff of project-owned obligations
+    that nothing previously enumerated.  The dossier makes every wall of that
+    cliff explicit -- current contract facts on one side, the draft on the
+    other, and the ordered authoring obligations in between.
+
+    It grants nothing and generates nothing: the successor contract, the schema
+    delta, and the inquiry inputs are all authored by the reader.  A dossier is
+    a map of the climb, not a lift.
+    """
+
+    scientific = reduce_scientific_state(events, project_id=project_id)
+    discovery = reduce_discovery_state(events, project_id=project_id)
+
+    draft = next(
+        (note for note in discovery.notes_of_kind("rival_draft") if note["note_id"] == note_id),
+        None,
+    )
+    if draft is None:
+        raise _error(
+            "DISCOVERY_NOTE_UNKNOWN",
+            "no rival_draft with this note identity is recorded",
+            note_id=note_id,
+        )
+
+    contract = scientific.contract
+    current_frame: dict[str, Any] | None = None
+    if contract is not None:
+        current_frame = {
+            "study_id": contract.study_id,
+            "study_contract_digest": contract.digest,
+            "hypothesis_classes": [
+                {
+                    "id": item.id,
+                    "description": item.description,
+                    "conclusive_rejection_limit": item.conclusive_rejection_limit,
+                }
+                for item in contract.hypothesis_classes
+            ],
+            "evaluation_scopes": [scope.to_dict() for scope in contract.evaluation_scopes],
+            "intervention_surface": contract.intervention_surface.to_dict(),
+        }
+
+    exhaustion = exhaustion_projection(events, project_id=project_id)
+
+    # Ordered, explicit, and advisory: each obligation names what must be
+    # authored or re-certified and by whom.  None of them is performed here.
+    obligations = [
+        {
+            "id": "successor_contract",
+            "owner": "author",
+            "obligation": (
+                "Write the successor StudyContract: new hypothesis classes "
+                "expressing the draft's mechanism, evaluation scopes, "
+                "intervention surface, stop policy, and budget.  The draft's "
+                "assumptions and falsifiers should reappear as class "
+                "descriptions and stop conditions, not vanish in translation."
+            ),
+        },
+        {
+            "id": "candidate_schema",
+            "owner": "author",
+            "obligation": (
+                "Decide whether the draft's representation fits the current "
+                "candidate schema.  If not, the project's candidate.schema.json "
+                "must change, and the successor contract's "
+                "intervention_surface.candidate_schema_digest must bind the new "
+                "bytes."
+            ),
+        },
+        {
+            "id": "evaluator_recertification",
+            "owner": "independent_reviewer",
+            "obligation": (
+                "A changed candidate schema or evaluator is a semantic change: "
+                "an independent reviewer must re-certify via `certify-evaluator "
+                "--replace` with a fresh review binding the new "
+                "evaluator-review-subject digest.  The author may not perform "
+                "this step."
+            ),
+        },
+        {
+            "id": "objective_change_control",
+            "owner": "independent_reviewer",
+            "obligation": (
+                "If the draft changes the objective, metric, or evaluator "
+                "meaning (J3), the evaluator itself and possibly the adapter "
+                "change; that passes through project change-control before any "
+                "inquiry can bind it."
+            ),
+        },
+        {
+            "id": "frame_transition_inquiry",
+            "owner": "author",
+            "obligation": (
+                "Open the governed path: a current Gate A GO receipt, at least "
+                "two substantively distinct rivals (this draft may be one), "
+                "exhaustion signals of two distinct kinds including at least "
+                "one canonical, and a discriminator frozen before results."
+            ),
+        },
+        {
+            "id": "adoption_boundary",
+            "owner": "designated_human",
+            "obligation": (
+                "Pilot authorization is not adoption.  A durable successor "
+                "opens only after PASS_FOR_ADOPTION, a fresh independent "
+                "APPROVE, deterministic POLICY_ADOPTION, and a separate "
+                "activate call binding the exact successor contract."
+            ),
+        },
+    ]
+
+    return {
+        "schema_version": DISCOVERY_SCHEMA_VERSION,
+        "project_id": project_id,
+        "lane": "advisory",
+        "active_generation_id": scientific.active_generation_id,
+        "draft": json_value(draft),
+        "draft_fingerprint": draft_fingerprint(draft["body"]),
+        "current_frame": current_frame,
+        "exhaustion": exhaustion,
+        "inquiry_signal_conditions_met": exhaustion["inquiry_signal_conditions_met"],
+        "authoring_obligations": obligations,
+        "authorized_action": None,
+    }
+
+
 __all__ = [
     "DISCOVERY_EVENT_TYPES",
     "DISCOVERY_NOTE_EVENT_TYPE",
     "DISCOVERY_SCHEMA_VERSION",
+    "FRAME_HEALTH_INTERPRETATION_REQUESTS",
     "NOTE_KINDS",
     "SIGNAL_BEARING_KINDS",
     "SIGNAL_KIND_BY_NOTE_KIND",
@@ -676,6 +954,8 @@ __all__ = [
     "DiscoveryState",
     "draft_fingerprint",
     "exhaustion_projection",
+    "frame_health_projection",
+    "jump_dossier",
     "plan_discovery_note",
     "reduce_discovery_state",
     "residual_task",

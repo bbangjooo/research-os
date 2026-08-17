@@ -19,6 +19,8 @@ from research_os.discovery import (
     DiscoveryPlan,
     DiscoveryState,
     exhaustion_projection,
+    frame_health_projection,
+    jump_dossier,
     plan_discovery_note,
     reduce_discovery_state,
     residual_task,
@@ -166,6 +168,31 @@ class DiscoveryService:
                 project_id=self.config.project_id,
             )
         return normalize_json_object(projection, field_name="discovery residual task")
+
+    def frame_health(self) -> dict[str, Any]:
+        """Emit the interpretation packet an LLM reads to judge frame health."""
+
+        self.research._assert_config_unchanged()
+        with self.event_log.locked_read() as events:
+            projection = frame_health_projection(
+                tuple(events),
+                project_id=self.config.project_id,
+            )
+        return normalize_json_object(projection, field_name="discovery frame health")
+
+    def dossier(self, note_id: str) -> dict[str, Any]:
+        """Emit the authoring dossier for one recorded rival draft."""
+
+        if not isinstance(note_id, str) or not note_id.strip():
+            raise ValueError("note_id must be a non-empty string")
+        self.research._assert_config_unchanged()
+        with self.event_log.locked_read() as events:
+            projection = jump_dossier(
+                tuple(events),
+                project_id=self.config.project_id,
+                note_id=note_id,
+            )
+        return normalize_json_object(projection, field_name="discovery jump dossier")
 
     def yield_curve(self) -> dict[str, Any]:
         """Report the admissible-distinct draft yield used to keep or drop the lane."""
