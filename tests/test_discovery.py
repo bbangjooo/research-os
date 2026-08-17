@@ -13,6 +13,8 @@ from research_os.discovery import (
     NOTE_KINDS,
     draft_fingerprint,
     exhaustion_projection,
+    frame_health_projection,
+    jump_dossier,
     plan_discovery_note,
     reduce_discovery_state,
     residual_task,
@@ -355,3 +357,69 @@ def test_analogy_query_digest_must_be_a_digest() -> None:
 
 def test_note_event_type_is_namespaced_outside_the_scientific_reducer() -> None:
     assert DISCOVERY_NOTE_EVENT_TYPE == "research.discovery_note.v1"
+
+
+# --- frame health and dossier ----------------------------------------------
+
+
+def test_frame_health_carries_questions_not_verdicts() -> None:
+    events = _journal(_anomaly())
+    packet = frame_health_projection(events, project_id=_PROJECT_ID)
+
+    request_ids = [item["id"] for item in packet["interpretation_requests"]]
+    assert request_ids == ["stagnation", "assumption_misfit", "frame_misfit"]
+    # The packet must never pre-judge what only a reader can decide.  If a
+    # future edit adds a computed verdict, this names the regression.
+    for forbidden in ("stagnating", "misfit_detected", "jump_recommended"):
+        assert forbidden not in packet
+    assert packet["lane"] == "advisory"
+    assert packet["authorized_action"] is None
+
+
+def test_frame_health_surfaces_recorded_open_questions() -> None:
+    events = _journal(_anomaly(), _anomaly(kind="assumption_conflict"))
+    packet = frame_health_projection(events, project_id=_PROJECT_ID)
+
+    kinds = {row["kind"] for row in packet["recorded_open_questions"]}
+    assert kinds == {"anomaly", "assumption_conflict"}
+    for row in packet["recorded_open_questions"]:
+        assert row["open_question"]
+        assert row["note_id"].startswith("discoverynote_")
+
+
+def test_frame_health_writes_nothing() -> None:
+    events = _journal(_anomaly())
+    before = copy.deepcopy(events)
+    frame_health_projection(events, project_id=_PROJECT_ID)
+    assert events == before
+
+
+def test_dossier_requires_a_recorded_rival_draft() -> None:
+    events = _journal(_anomaly())
+    with pytest.raises(ScientificStateError) as excinfo:
+        jump_dossier(events, project_id=_PROJECT_ID, note_id="discoverynote_" + "0" * 32)
+    assert excinfo.value.code == "DISCOVERY_NOTE_UNKNOWN"
+
+
+def test_dossier_refuses_a_non_draft_note_identity() -> None:
+    events = _journal(_anomaly())
+    anomaly_id = events[0]["payload"]["note_id"]
+    with pytest.raises(ScientificStateError) as excinfo:
+        jump_dossier(events, project_id=_PROJECT_ID, note_id=anomaly_id)
+    assert excinfo.value.code == "DISCOVERY_NOTE_UNKNOWN"
+
+
+def test_dossier_separates_authoring_owners() -> None:
+    events = _journal(_draft())
+    draft_id = events[0]["payload"]["note_id"]
+    dossier = jump_dossier(events, project_id=_PROJECT_ID, note_id=draft_id)
+
+    owners = {row["id"]: row["owner"] for row in dossier["authoring_obligations"]}
+    # The separation of powers is the content: the author may not certify, and
+    # neither author nor reviewer may ratify adoption.
+    assert owners["successor_contract"] == "author"
+    assert owners["evaluator_recertification"] == "independent_reviewer"
+    assert owners["adoption_boundary"] == "designated_human"
+    assert dossier["draft_fingerprint"] == draft_fingerprint(_draft()["body"])
+    assert dossier["lane"] == "advisory"
+    assert dossier["authorized_action"] is None

@@ -345,6 +345,18 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="show the admissible-distinct draft yield curve",
     )
+    discovery_view.add_argument(
+        "--frame-health",
+        dest="frame_health",
+        action="store_true",
+        help="emit the frame-health interpretation packet for reader judgement",
+    )
+
+    discovery_dossier = subparsers.add_parser(
+        "discovery-dossier",
+        help="emit the authoring dossier for one recorded rival draft",
+    )
+    discovery_dossier.add_argument("note_id", help="rival_draft note identity")
 
     discovery_analogies = subparsers.add_parser(
         "discovery-analogies",
@@ -470,7 +482,11 @@ def _dispatch(args: argparse.Namespace) -> Any:
                 return discovery_service.residual()
             if args.yield_curve:
                 return discovery_service.yield_curve()
+            if args.frame_health:
+                return discovery_service.frame_health()
             return discovery_service.status(kind=args.kind, limit=args.limit)
+        if args.command == "discovery-dossier":
+            return discovery_service.dossier(args.note_id)
         if args.command == "discovery-analogies":
             return discovery_service.analogies(
                 args.query,

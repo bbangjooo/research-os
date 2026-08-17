@@ -371,3 +371,76 @@ class ClosedClassResidualTests(unittest.TestCase):
         self.assertEqual(projection["closed_hypothesis_class_ids"], ["class-a"])
         # Two canonical kinds satisfy the gate without any advisory note.
         self.assertTrue(projection["inquiry_signal_conditions_met"])
+
+
+class FrameHealthAndDossierTests(unittest.TestCase):
+    """The interpretation surfaces reach the CLI and stay read-only."""
+
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.project = Path(self.temporary.name) / "project"
+        shutil.copytree(ROOT / "examples" / "toy_optimization", self.project)
+        runtime = self.project / ".research-os" / "runtime"
+        if runtime.exists():
+            shutil.rmtree(runtime)
+        _configure_agent_files(self.project)
+        ResearchService(self.project).doctor()
+        self.service = DiscoveryService(self.project)
+
+    def test_frame_health_matches_cold_replay_and_writes_nothing(self) -> None:
+        self.service.note(_anomaly())
+        research = ResearchService(self.project)
+        before = [event.hash for event in research.event_log.read()]
+
+        live = self.service.frame_health()
+        cold = DiscoveryService(self.project).frame_health()
+
+        self.assertEqual(live, cold)
+        self.assertEqual(before, [event.hash for event in research.event_log.read()])
+        self.assertEqual(
+            [row["id"] for row in live["interpretation_requests"]],
+            ["stagnation", "assumption_misfit", "frame_misfit"],
+        )
+
+    def test_dossier_round_trips_through_the_cli(self) -> None:
+        recorded = self.service.note(_draft())
+        stream = io.StringIO()
+        with contextlib.redirect_stdout(stream):
+            code = main(
+                [
+                    "--project",
+                    str(self.project),
+                    "discovery-dossier",
+                    recorded["note_id"],
+                ]
+            )
+        self.assertEqual(code, 0, stream.getvalue())
+        dossier = json.loads(stream.getvalue())
+        self.assertEqual(dossier["draft"]["note_id"], recorded["note_id"])
+        self.assertEqual(
+            [row["owner"] for row in dossier["authoring_obligations"]],
+            [
+                "author",
+                "author",
+                "independent_reviewer",
+                "independent_reviewer",
+                "author",
+                "designated_human",
+            ],
+        )
+        self.assertIsNone(dossier["authorized_action"])
+
+    def test_frame_health_is_exclusive_with_the_other_views(self) -> None:
+        stream = io.StringIO()
+        with contextlib.redirect_stdout(stream):
+            code = main(
+                [
+                    "--project",
+                    str(self.project),
+                    "discovery-status",
+                    "--frame-health",
+                    "--yield",
+                ]
+            )
+        self.assertEqual(code, 2, stream.getvalue())

@@ -147,6 +147,49 @@ exhaustion 신호 fixture는 모두 `"lane": "canonical"`이며, advisory-only�
 class 연속 REJECTED, 미해결 anomaly note를 집계해 `discovery-status --exhaustion`으로
 노출한다. 새 이벤트 없음 — 순수 조회다.
 
+### 7.1 frame-health 해석 패킷 — 판정하지 않는 감지
+
+canonical 신호(`class_closure`, `repeated_failure`)는 전부 **셈하기에 의한 소진**이다.
+정체에 의한 소진(열린 class의 margin이 0으로 수렴)과 오류에 의한 소진(프레임 자체가
+틀린 carving)은 기계적으로 판정할 수 없고, 판정하려는 시도 자체가 잘못이다 — 그것은
+해석이고, 해석은 읽는 쪽의 일이다.
+
+`discovery-status --frame-health`는 판정 없는 증거 패킷을 낸다:
+
+- class별 lifecycle, closure 카운터, **margin 궤적 원시 수열** (experiment ID,
+  terminal status, promotion_margin, mechanism 순서대로)
+- `study_stop.all_classes_closed` (사전등록 프레임 전체 소진의 최강 canonical 신호)
+- 장부에 기록된 open question들
+- `interpretation_requests` — 읽는 LLM이 스스로 답해야 하는 세 질문:
+  `stagnation`, `assumption_misfit`, `frame_misfit`. 각 질문은 "예"로 판단했을 때
+  기록할 note kind를 지시한다.
+
+패킷은 `stagnating: true` 같은 계산된 결론을 절대 싣지 않는다 (테스트로 고정).
+LLM이 "예"라고 판단해 note를 기록하면, 그 판단이 canonical ID를 인용한
+advisory exhaustion 신호가 된다. 즉 감지 루프는 **OS가 증거를 나르고 LLM이
+판단하는** 구조로 닫힌다.
+
+### 7.2 jump dossier — 절벽의 지도
+
+rival_draft는 advisory 자유 텍스트고, 실제 J2/J3는 successor StudyContract +
+(대개) 새 candidate schema + 재인증이다. 그 사이의 프로젝트 소유 의무들은 지금까지
+어디에도 열거되지 않은 수동 절벽이었다.
+
+`discovery-dossier NOTE_ID`는 draft 하나에 대해 다음을 한 문서로 낸다:
+
+- draft 본문과 fingerprint
+- 현재 프레임 사실: 선언된 hypothesis class들, evaluation scope들,
+  `intervention_surface` (candidate_schema_digest 포함)
+- exhaustion 스냅샷과 inquiry 개설 조건 충족 여부
+- `authoring_obligations` — 순서 있는 의무 목록, 각각 소유자 명시:
+  successor contract 저작(author), candidate schema 판단(author),
+  재인증(independent_reviewer), objective 변경 change-control(independent_reviewer),
+  frame-transition inquiry 입력(author), adoption 경계(designated_human)
+
+dossier는 지도이지 승강기가 아니다 — 아무 단계도 수행하지 않고 아무 권한도 만들지
+않는다. successor contract는 LLM이 저작하고, 재인증과 ratification의 권한 분리는
+그대로 유지된다.
+
 ---
 
 ## 8. G1 — 유추 검색 레인 (생성 레인, 레버리지 최대)

@@ -287,6 +287,15 @@ citable later.
   assumption conflict, record it with `discovery-note`. This is not an exception
   to research mode's inbox-only rule: `discovery-note` appends to the EventLog
   and touches no project file.
+- Every few diagnosis cycles, read `discovery-status --frame-health` and answer
+  its `interpretation_requests` yourself. The packet is evidence without
+  verdicts: margin trajectories, class lifecycles, and recorded open questions.
+  You — not the OS — judge whether an open class is stagnating, whether the
+  tried mechanisms share a contradicted commitment, or whether the declared
+  class list is the wrong carving. The canonical signals only count rejections;
+  a frame can be wrong long before it is exhausted, and only you can see that.
+  When you judge yes, record the note the request names; that judgement, cited
+  to canonical IDs, is what turns your reading into a citable exhaustion signal.
 - Use `discovery-status --exhaustion` to see which signal kinds currently have
   material. Use `discovery-status --residual` to read the residual task for each
   closed hypothesis class: state the commitment the failed mechanisms share, then
@@ -298,6 +307,17 @@ citable later.
 - Record rival frame drafts with `kind: rival_draft`. A draft needs at least one
   falsifier, at least one canonical reference, and assumptions plus a mechanism
   that no recorded draft already states. Generating none is a valid outcome.
+- When you do generate, generate several. Answer one residual task with two or
+  more drafts whose assumptions genuinely differ — the fingerprint screen
+  rejects relabelings for you, so lean on it rather than self-censoring toward
+  one safe candidate. A single draft is a guess; a divergent set is a search.
+- To carry a draft toward a real frame change, run
+  `discovery-dossier NOTE_ID`. The dossier lays out the current contract, the
+  exhaustion state, and the ordered authoring obligations between an advisory
+  draft and a durable successor: you author the successor StudyContract and any
+  candidate-schema change; an independent reviewer re-certifies a changed
+  schema or evaluator; a designated human ratifies adoption. The dossier is a
+  map, not a lift — it performs none of these steps and grants nothing.
 - Never claim a discovery entry as canonical evidence, and never let one justify
   a budget increase or the reopening of a closed class.
 - The journal is append-only. There is no edit or delete command; correct a note
