@@ -136,6 +136,16 @@ rg -n '^version =|__version__' pyproject.toml src/research_os/__init__.py
 
 ### 0.5 알려진 잔여 이슈
 
+- **Historical release witness와 live monitoring이 default test graph에 섞여 있다.** v0.5.0 witness는
+  라이브 설치기 결과를 frozen 기대값과 비교하므로 `__version__`이 0.5.0을 벗어나면 재현되지 않는다.
+  0.6.0 범프 이후 `test_m3d_release_gate.py::test_v05_managed_upgrade_and_rollback`의
+  `exact-0.2/0.3/0.4-to-0.5` 3건과 `test_v05_release_manifest_binds_every_pre_nonce_byte`가 이 이유로
+  실패한다. witness는 역사적 기록이므로 새 버전으로 고쳐 쓰지 않는다. 해소 방법은 v0.6.0 릴리스를
+  정식으로 수행해 자체 fixture manifest를 만들고 witness 계열을 live suite에서 분리하는 것이다.
+- v0.5.0은 agent skill 트리를 배포하면서 자기 서명을 `_KNOWN_MANAGED_RELEASE_FILES`에 등록하지
+  않았고, 이후 트리가 같은 버전에서 두 번 바뀌었다. 그래서 그 시점 이후 설치본은 upgrade 경로가
+  식별하지 못한다(수동 제거 후 재설치만 가능). 0.5.0 서명 등록 + 0.6.0 범프 + `_SHIPPED_SKILL_TREE_DIGEST`
+  가드로 재발을 막았고, 이미 배포된 중간 상태 설치본은 여전히 인식되지 않는다 — 의도된 동작이다.
 - candidate-only `VERIFY`를 구현한 외부 adapter는 baseline VERIFY 추가에 change-control이 필요하며, 실제 호환성은 v0.5 이후 pilot 전 별도 판정한다.
 - `.venv`/기본 `uv run`이 Python 3.10을 선택할 수 있어 프로젝트 요구사항 Python ≥3.11을 만족하는 명시적 검증 명령이 필요하다.
 - M1-C/M1-D historical regression floor의 상호 재귀는 차단했지만 top-level full이 self-oracle

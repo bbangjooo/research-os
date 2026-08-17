@@ -127,7 +127,41 @@ _KNOWN_MANAGED_RELEASE_FILES: Final[dict[str, dict[Path, tuple[int, str]]]] = {
             "5e7654d2913dc7bde67eff937126cf25808b92b4cf87625aa6f354a7f4da429e",
         ),
     },
+    # The 0.5.0 signature is the tree published at commit 2bb7a88.  It was
+    # omitted at release time, which is why an installation made from the
+    # genuine 0.5.0 release could not be upgraded.
+    "0.5.0": {
+        Path(".research-os-managed.json"): (
+            595,
+            "6f52a50f04e88681adb05aff8b4586a410b8a9cad3572d6e4495ca9e7fcce521",
+        ),
+        Path("SKILL.md"): (
+            16854,
+            "8ee52ee54d8ccd5a60ea13d4fb425130d0fff92d6b460506cff560c570f30f40",
+        ),
+        Path("agents/openai.yaml"): (
+            218,
+            "a4e0ea2cb6b7ee315c578092a09c09e961e86cb729b457fe276b056c903b359b",
+        ),
+        Path("references/scientific-protocol.md"): (
+            16009,
+            "f8b32832b912c2ed766490e78aeadfb4ad2246e3f211112f71d4ebeb8a794e80",
+        ),
+        Path("references/status-actions.md"): (
+            2686,
+            "5e7654d2913dc7bde67eff937126cf25808b92b4cf87625aa6f354a7f4da429e",
+        ),
+    },
 }
+# The exact tree an installation writes at the current __version__.  Changing a
+# shipped skill byte or the release identity must be deliberate: register the
+# outgoing tree above, bump __version__, then update this digest.  v0.5.0 shipped
+# and the tree then changed twice without either step, which left every
+# installation made afterwards unrecognizable to the upgrade path.
+_SHIPPED_SKILL_TREE_DIGEST: Final = (
+    "3c2ed90e788120a27a611ae7402c47a3c43b39cb5ae013e62952e33c1d0444e5"
+)
+
 _KNOWN_MANAGED_RELEASE_DIRECTORIES: Final = frozenset(
     {Path("agents"), Path("references")}
 )
@@ -234,6 +268,35 @@ def _expected_files() -> dict[Path, bytes]:
     expected = dict(packaged)
     expected[_MANIFEST_PATH] = _managed_manifest(packaged)
     return expected
+
+
+def shipped_skill_tree_digest() -> str:
+    """Digest the exact tree an installation would write right now.
+
+    The manifest embeds ``__version__``, so this changes when either a resource
+    byte or the release identity changes.  ``_SHIPPED_SKILL_TREE_DIGEST`` pins
+    it, which forces any such change to be a deliberate edit here rather than a
+    silent one somewhere in the resource tree.
+    """
+
+    rows = [
+        {
+            "path": relative.as_posix(),
+            "sha256": hashlib.sha256(content).hexdigest(),
+            "size_bytes": len(content),
+        }
+        for relative, content in sorted(
+            _expected_files().items(), key=lambda item: item[0].as_posix()
+        )
+    ]
+    rendered = json.dumps(
+        rows,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+    return hashlib.sha256(rendered.encode("utf-8")).hexdigest()
 
 
 def _expected_directories(files: Iterable[Path]) -> frozenset[Path]:
@@ -1255,4 +1318,4 @@ def install_agent_skill(
         return _records(states, prepared_by_target)
 
 
-__all__ = ["install_agent_skill"]
+__all__ = ["install_agent_skill", "shipped_skill_tree_digest"]

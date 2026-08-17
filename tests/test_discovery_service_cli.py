@@ -12,12 +12,18 @@ from pathlib import Path
 from typing import Any
 
 from research_os.cli import main
+from research_os.contracts import sha256_json
 from research_os.discovery import DISCOVERY_NOTE_EVENT_TYPE
 from research_os.discovery_service import DiscoveryService
 from research_os.errors import ScientificStateError
 from research_os.science.state import reduce_scientific_state
 from research_os.service import ResearchService
-from tests.test_m1b_service_cli import ROOT, _configure_agent_files
+from tests.test_m1b_service_cli import (
+    RESEARCH_BRIEF_TEMPLATE,
+    ROOT,
+    _configure_agent_files,
+    _passing_review,
+)
 
 
 def _anomaly(summary: str = "Residual drift persists after the sweep.") -> dict[str, Any]:
@@ -237,3 +243,131 @@ class DiscoveryCLITests(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover - convenience runner
     unittest.main()
+
+
+class ClosedClassResidualTests(unittest.TestCase):
+    """Drive a real hypothesis class to closure, then read the residual task.
+
+    ``test_residual_task_is_empty_without_a_closed_class`` covers the empty
+    path.  Nothing else exercises the populated one, so the instruction could
+    stop naming the evidence it is derived from without a test noticing.  This
+    runs the real adapter, the real decision, and real Diagnoses; the only
+    fixture concession is advertising the v2 evaluation-scope capability on the
+    example adapter, exactly as the M1-C manifest oracle does.
+    """
+
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.project = Path(self.temporary.name) / "project"
+        shutil.copytree(ROOT / "examples" / "toy_optimization", self.project)
+        control = self.project / ".research-os"
+        shutil.rmtree(control / "runtime", ignore_errors=True)
+
+        adapter = control / "adapter.py"
+        source = adapter.read_text(encoding="utf-8")
+        legacy = 'payload={"capabilities": sorted(OPERATIONS), "side_effects": []},'
+        scoped = (
+            'payload={"capabilities": sorted(OPERATIONS | {"evaluation_scope_v1"}), '
+            '"side_effects": []},'
+        )
+        self.assertEqual(source.count(legacy), 1)
+        adapter.write_text(source.replace(legacy, scoped), encoding="utf-8")
+
+        fixtures = ROOT / "tests" / "fixtures" / "scientific_state"
+        (control / "candidate.schema.json").write_bytes(
+            (fixtures / "v2" / "m1c-candidate-schema.json").read_bytes()
+        )
+        (control / "research-brief.md").write_text(
+            RESEARCH_BRIEF_TEMPLATE.replace("REPLACE_ME", "Closed-class residual task"),
+            encoding="utf-8",
+        )
+        (self.project / "parameter.json").write_text('{"x": 0.0, "y": 0.0}\n', encoding="utf-8")
+
+        self.service = ResearchService(self.project)
+        subject = self.service.evaluator_review_subject()
+        self.service.certify_evaluator(
+            _passing_review(
+                Path(self.temporary.name) / "review.json",
+                subject_digest=str(subject["digest"]),
+            ),
+            replace=True,
+        )
+        self.service.open_generation(fixtures / "v3" / "m1d-contract.json")
+        self.service.baseline(evaluation_scope_id="development")
+
+    def _write(self, name: str, body: dict[str, Any]) -> Path:
+        path = Path(self.temporary.name) / name
+        path.write_text(json.dumps(body, sort_keys=True) + "\n", encoding="utf-8")
+        return path
+
+    def _reject(self, tag: str, x: float, mechanism: str) -> None:
+        candidate = {"x": x, "y": 0.0}
+        proposal = {
+            "proposal_schema_version": 1,
+            "generation_id": self.service.study_status()["active_generation_id"],
+            "candidate_digest": sha256_json(candidate),
+            "hypothesis_class_id": "class-a",
+            "action": "explore",
+            "mechanism": mechanism,
+            "predicted_effect": "The primary metric improves against the same-scope baseline.",
+            "falsifier": "The sealed evaluation shows no positive primary-metric improvement.",
+            "parent_experiment_id": None,
+            "evaluation_scope_id": "development",
+            "intervention_json_pointers": ["/x"],
+            "authorized_action": None,
+        }
+        result = self.service.run_once(
+            self._write(f"candidate-{tag}.json", candidate),
+            proposal=self._write(f"proposal-{tag}.json", proposal),
+        )
+        self.assertEqual(result["decision"]["reason_code"], "NO_MEANINGFUL_IMPROVEMENT")
+
+        body = dict(self.service.diagnosis_template())
+        body["interpretation"] = (
+            "The sealed evaluation moved the primary metric away from the same-scope "
+            "baseline, so this class-a direction is refuted."
+        )
+        body["failure_type"] = "mechanism"
+        body["falsifier"] = (
+            "A repeat at the same scope shows a positive primary-metric margin for "
+            "this same /x direction."
+        )
+        body["recommendation"] = "stop"
+        self.service.record_diagnosis(self._write(f"diagnosis-{tag}.json", body))
+
+    def test_residual_task_names_the_failed_mechanisms_of_a_closed_class(self) -> None:
+        self._reject("1", -0.05, "Shift /x negatively to test the class-a direction.")
+        self._reject("2", -0.4, "Shift /x further negative at larger scale.")
+
+        closed = [
+            row["class_state"]
+            for row in self.service.study_status()["class_states"]
+            if row["class_state"]["lifecycle"] == "closed"
+        ]
+        self.assertEqual([row["hypothesis_class_id"] for row in closed], ["class-a"])
+        self.assertEqual(closed[0]["closure_reason"], "CONCLUSIVE_REJECTION_LIMIT_REACHED")
+
+        projection = DiscoveryService(self.project).residual()
+        tasks = projection["residual_tasks"]
+        self.assertEqual(len(tasks), 1)
+        task = tasks[0]
+        self.assertEqual(task["hypothesis_class_id"], "class-a")
+        self.assertEqual(task["closure_reason"], "CONCLUSIVE_REJECTION_LIMIT_REACHED")
+        self.assertEqual(task["failed_attempt_count"], 2)
+        mechanisms = [row["mechanism"] for row in task["failed_attempts"]]
+        self.assertIn("Shift /x negatively to test the class-a direction.", mechanisms)
+        self.assertIn("commitment", task["instruction"])
+        self.assertIsNone(projection["authorized_action"])
+
+    def test_exhaustion_reports_canonical_kinds_once_a_class_closes(self) -> None:
+        self._reject("1", -0.05, "Shift /x negatively to test the class-a direction.")
+        self._reject("2", -0.4, "Shift /x further negative at larger scale.")
+
+        projection = DiscoveryService(self.project).exhaustion()
+        self.assertEqual(
+            projection["canonical_signal_kinds"], ["class_closure", "repeated_failure"]
+        )
+        self.assertEqual(projection["closed_hypothesis_class_ids"], ["class-a"])
+        # Two canonical kinds satisfy the gate without any advisory note.
+        self.assertTrue(projection["inquiry_signal_conditions_met"])
