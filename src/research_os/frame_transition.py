@@ -836,6 +836,7 @@ def _validate_signals(
     ids: set[str] = set()
     kinds: set[str] = set()
     evidence_digests: set[str] = set()
+    canonical_count = 0
     for index, value_row in enumerate(rows):
         path = f"$.exhaustion_signals[{index}]"
         row = _object(value_row, _SIGNAL_KEYS, path=path)
@@ -883,6 +884,8 @@ def _validate_signals(
                 "cross-generation or cross-compatibility evidence must be advisory",
                 path=f"{path}.lane",
             )
+        if lane == "canonical":
+            canonical_count += 1
         result.append(row)
     if len(kinds) < 2:
         raise _error(
@@ -890,7 +893,38 @@ def _validate_signals(
             "one signal kind cannot authorize a frame inquiry",
             path="$.exhaustion_signals",
         )
+    if canonical_count < 1:
+        # Advisory material is self-authored and carries no compatibility seal.
+        # It may corroborate exhaustion but must never establish it alone, or a
+        # maker could open an inquiry purely from notes they wrote themselves.
+        raise _error(
+            "FRAME_TRANSITION_EVIDENCE_INSUFFICIENT",
+            "advisory signals alone cannot authorize a frame inquiry",
+            path="$.exhaustion_signals",
+        )
     return result
+
+
+def rival_fingerprint(assumptions: Sequence[str], mechanism: str) -> str:
+    """Digest the substantive content of one rival frame.
+
+    Assumption order, casing, and repeated whitespace are presentation, not a
+    substantive rival-frame difference, so they are normalized away.  Two rivals
+    sharing a fingerprint are the same frame under different labels.
+
+    This is exported so that draft generation can enforce the same divergence
+    rule before an inquiry exists, rather than discovering collisions only at
+    inquiry-open time.
+    """
+
+    return sha256_json(
+        {
+            "assumptions": sorted(
+                {" ".join(assumption.casefold().split()) for assumption in assumptions}
+            ),
+            "mechanism": " ".join(mechanism.casefold().split()),
+        }
+    )
 
 
 def _validate_rivals(value: Any) -> list[dict[str, Any]]:
@@ -912,18 +946,7 @@ def _validate_rivals(value: Any) -> list[dict[str, Any]]:
         _text(row["label"], path=f"{path}.label")
         assumptions = _text_array(row["assumptions"], path=f"{path}.assumptions")
         mechanism = _text(row["mechanism"], path=f"{path}.mechanism")
-        # Assumption order, casing, and repeated whitespace are presentation,
-        # not a substantive rival-frame difference.  Normalize them before
-        # checking distinctness so relabeling/permutation cannot satisfy the
-        # minimum-rival gate.
-        fingerprint = sha256_json(
-            {
-                "assumptions": sorted(
-                    {" ".join(assumption.casefold().split()) for assumption in assumptions}
-                ),
-                "mechanism": " ".join(mechanism.casefold().split()),
-            }
-        )
+        fingerprint = rival_fingerprint(assumptions, mechanism)
         if fingerprint in substantive_fingerprints:
             raise _error(
                 "FRAME_TRANSITION_RIVALS_INVALID",
@@ -2726,6 +2749,7 @@ __all__ = [
     "plan_policy_adoption",
     "plan_authority_revocation",
     "reduce_frame_transition_state",
+    "rival_fingerprint",
     "validate_frame_transition_commit_time",
     "validate_controlled_activation",
 ]

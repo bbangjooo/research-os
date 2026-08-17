@@ -11,6 +11,8 @@ from typing import Any, Never, Sequence
 
 from . import __version__
 from .agent_install import install_agent_skill
+from .discovery import NOTE_KINDS
+from .discovery_service import DiscoveryService
 from .errors import ResearchOSError
 from .frame_transition_service import FrameTransitionService
 from .scaffold import initialize_project
@@ -302,6 +304,67 @@ def _parser() -> argparse.ArgumentParser:
         help="limit status to one inquiry identifier",
     )
 
+    discovery_note = subparsers.add_parser(
+        "discovery-note",
+        help="append one screened advisory discovery note",
+    )
+    discovery_note.add_argument("note", type=Path, help="strict discovery note JSON")
+
+    discovery_status = subparsers.add_parser(
+        "discovery-status",
+        help="show the replay-derived advisory discovery journal",
+    )
+    discovery_status.add_argument(
+        "--kind",
+        dest="kind",
+        choices=sorted(NOTE_KINDS),
+        help="limit the journal to one note kind",
+    )
+    discovery_status.add_argument(
+        "--limit",
+        dest="limit",
+        type=int,
+        help="return only the most recent N notes",
+    )
+    discovery_view = discovery_status.add_mutually_exclusive_group()
+    discovery_view.add_argument(
+        "--exhaustion",
+        dest="exhaustion",
+        action="store_true",
+        help="show which exhaustion signal kinds currently have material",
+    )
+    discovery_view.add_argument(
+        "--residual",
+        dest="residual",
+        action="store_true",
+        help="show the residual generation task for each closed hypothesis class",
+    )
+    discovery_view.add_argument(
+        "--yield",
+        dest="yield_curve",
+        action="store_true",
+        help="show the admissible-distinct draft yield curve",
+    )
+
+    discovery_analogies = subparsers.add_parser(
+        "discovery-analogies",
+        help="read cross-frame claims as advisory material",
+    )
+    discovery_analogies.add_argument("query", type=Path, help="strict analogy query JSON")
+    discovery_analogies.add_argument(
+        "--program-root",
+        dest="program_root",
+        required=True,
+        type=Path,
+        help="ProgramStore root directory",
+    )
+    discovery_analogies.add_argument(
+        "--program-id",
+        dest="program_id",
+        required=True,
+        help="ProgramStore program identifier",
+    )
+
     subparsers.add_parser(
         "study-status",
         help="show the replay-derived active study generation and reserved budget",
@@ -395,6 +458,26 @@ def _dispatch(args: argparse.Namespace) -> Any:
         if args.command == "frame-transition-status":
             return frame_service.status(args.inquiry_id)
         raise AssertionError(f"unhandled frame-transition command: {args.command}")
+
+    if args.command.startswith("discovery-"):
+        discovery_service = DiscoveryService(args.project)
+        if args.command == "discovery-note":
+            return discovery_service.note(args.note)
+        if args.command == "discovery-status":
+            if args.exhaustion:
+                return discovery_service.exhaustion()
+            if args.residual:
+                return discovery_service.residual()
+            if args.yield_curve:
+                return discovery_service.yield_curve()
+            return discovery_service.status(kind=args.kind, limit=args.limit)
+        if args.command == "discovery-analogies":
+            return discovery_service.analogies(
+                args.query,
+                program_root=args.program_root,
+                program_id=args.program_id,
+            )
+        raise AssertionError(f"unhandled discovery command: {args.command}")
 
     service = ResearchService(args.project)
     if args.command == "inspect":
