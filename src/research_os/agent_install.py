@@ -159,7 +159,7 @@ _KNOWN_MANAGED_RELEASE_FILES: Final[dict[str, dict[Path, tuple[int, str]]]] = {
 # and the tree then changed twice without either step, which left every
 # installation made afterwards unrecognizable to the upgrade path.
 _SHIPPED_SKILL_TREE_DIGEST: Final = (
-    "3c2ed90e788120a27a611ae7402c47a3c43b39cb5ae013e62952e33c1d0444e5"
+    "b23bbae8e93f928e8d0c59cbba13baddc4d09c4c4975bc804d17ebe25a0fff61"
 )
 
 _KNOWN_MANAGED_RELEASE_DIRECTORIES: Final = frozenset(
