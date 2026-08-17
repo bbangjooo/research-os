@@ -66,6 +66,25 @@ def _draft(**overrides: Any) -> dict[str, Any]:
     return raw
 
 
+def _external(**overrides: Any) -> dict[str, Any]:
+    raw = {
+        "schema_version": 1,
+        "kind": "external_evidence",
+        "body": {
+            "summary": "Regime-switching survey covering two-state mixtures.",
+            "source_locator": "doi:10.0000/regime-switching-survey",
+            "snapshot_digest": "b" * 64,
+            "claims": ["Two-state mixtures explain drift in comparable series"],
+            "limitations": ["Evidence is from a different asset universe"],
+        },
+        "refs": [],
+        "analogy_query_digest": None,
+        "authorized_action": None,
+    }
+    raw.update(overrides)
+    return raw
+
+
 def _event(plan: Any) -> dict[str, Any]:
     return {
         "project_id": _PROJECT_ID,
@@ -423,3 +442,143 @@ def test_dossier_separates_authoring_owners() -> None:
     assert dossier["draft_fingerprint"] == draft_fingerprint(_draft()["body"])
     assert dossier["lane"] == "advisory"
     assert dossier["authorized_action"] is None
+
+
+# --- external evidence and prior binding -----------------------------------
+
+
+def test_external_evidence_is_screened_and_needs_no_reference() -> None:
+    core = screen_note(_external())
+    assert core["kind"] == "external_evidence"
+    assert core["refs"] == []
+
+
+def test_external_evidence_snapshot_digest_must_be_a_digest() -> None:
+    raw = _external()
+    raw["body"] = {**raw["body"], "snapshot_digest": "https://example.com"}
+    with pytest.raises(ScientificStateError) as excinfo:
+        screen_note(raw)
+    assert excinfo.value.code == "DISCOVERY_INVALID"
+
+
+def test_external_evidence_requires_claims_and_limitations() -> None:
+    for field in ("claims", "limitations"):
+        raw = _external()
+        raw["body"] = {**raw["body"], field: []}
+        with pytest.raises(ScientificStateError) as excinfo:
+            screen_note(raw)
+        assert excinfo.value.code == "DISCOVERY_EVIDENCE_INSUFFICIENT"
+
+
+def test_rival_draft_before_external_evidence_needs_no_prior() -> None:
+    events = _journal(_draft(), _external())
+    state = reduce_discovery_state(events, project_id=_PROJECT_ID)
+    assert state.note_count == 2
+
+
+def test_new_rival_draft_must_cite_prior_once_evidence_exists() -> None:
+    events = _journal(_external())
+    with pytest.raises(ScientificStateError) as excinfo:
+        plan_discovery_note(
+            events,
+            project_id=_PROJECT_ID,
+            raw=_draft(),
+            recorded_at=_T0,
+        )
+    assert excinfo.value.code == "DISCOVERY_PRIOR_REQUIRED"
+
+
+def test_prior_citing_rival_draft_is_accepted() -> None:
+    events = _journal(_external())
+    evidence_id = events[0]["payload"]["note_id"]
+    draft = _draft(refs=["experiment_0001", evidence_id])
+    plan = plan_discovery_note(
+        events,
+        project_id=_PROJECT_ID,
+        raw=draft,
+        recorded_at=_T0,
+    )
+    state = reduce_discovery_state([*events, _event(plan)], project_id=_PROJECT_ID)
+    assert state.note_count == 2
+
+
+def test_prior_rule_is_enforced_on_replay() -> None:
+    from research_os.kernel.ids import stable_id
+
+    events = _journal(_external())
+    core = screen_note(_draft())
+    note_sequence = 1
+    body = {
+        **core,
+        "note_id": stable_id("discoverynote", core["content_digest"], note_sequence),
+        "note_sequence": note_sequence,
+        "recorded_at": _T0,
+    }
+    payload = {**body, "receipt_digest": sha256_json(body)}
+    forged = [
+        *events,
+        {
+            "project_id": _PROJECT_ID,
+            "event_type": DISCOVERY_NOTE_EVENT_TYPE,
+            "occurred_at": _T0,
+            "payload": payload,
+        },
+    ]
+    with pytest.raises(ScientificStateError) as excinfo:
+        reduce_discovery_state(forged, project_id=_PROJECT_ID)
+    assert excinfo.value.code == "DISCOVERY_PRIOR_REQUIRED"
+
+
+def test_yield_projection_reports_prior_backing() -> None:
+    events = _journal(_external())
+    evidence_id = events[0]["payload"]["note_id"]
+    events = _journal(_external(), _draft(refs=[evidence_id]))
+    projection = yield_projection(events, project_id=_PROJECT_ID)
+    assert projection["external_evidence_note_count"] == 1
+    assert projection["prior_binding_active"] is True
+    assert projection["prior_backed_rival_draft_count"] == 1
+
+
+def test_yield_projection_prior_binding_inactive_without_evidence() -> None:
+    events = _journal(_draft())
+    projection = yield_projection(events, project_id=_PROJECT_ID)
+    assert projection["external_evidence_note_count"] == 0
+    assert projection["prior_binding_active"] is False
+    assert projection["prior_backed_rival_draft_count"] == 0
+
+
+def test_frame_health_reports_external_evidence_count() -> None:
+    events = _journal(_anomaly(), _external())
+    packet = frame_health_projection(events, project_id=_PROJECT_ID)
+    assert packet["external_evidence_note_count"] == 1
+
+
+def test_dossier_reports_external_prior_for_a_backed_draft() -> None:
+    events = _journal(_external())
+    evidence_id = events[0]["payload"]["note_id"]
+    events = _journal(_external(), _draft(refs=[evidence_id]))
+    draft_id = events[1]["payload"]["note_id"]
+    dossier = jump_dossier(events, project_id=_PROJECT_ID, note_id=draft_id)
+
+    prior = dossier["external_prior"]
+    assert prior["prior_binding_active"] is True
+    assert prior["draft_prior_backed"] is True
+    assert prior["cited_external_evidence_note_ids"] == [evidence_id]
+
+    obligation_ids = [row["id"] for row in dossier["authoring_obligations"]]
+    assert "literature_prior" in obligation_ids
+    assert obligation_ids.index("literature_prior") < obligation_ids.index(
+        "frame_transition_inquiry"
+    )
+    owners = {row["id"]: row["owner"] for row in dossier["authoring_obligations"]}
+    assert owners["literature_prior"] == "author"
+
+
+def test_dossier_external_prior_without_lane_adoption() -> None:
+    events = _journal(_draft())
+    draft_id = events[0]["payload"]["note_id"]
+    dossier = jump_dossier(events, project_id=_PROJECT_ID, note_id=draft_id)
+    prior = dossier["external_prior"]
+    assert prior["prior_binding_active"] is False
+    assert prior["draft_prior_backed"] is False
+    assert prior["cited_external_evidence_note_ids"] == []

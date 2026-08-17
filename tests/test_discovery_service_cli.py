@@ -426,6 +426,7 @@ class FrameHealthAndDossierTests(unittest.TestCase):
                 "independent_reviewer",
                 "independent_reviewer",
                 "author",
+                "author",
                 "designated_human",
             ],
         )

@@ -1,7 +1,8 @@
 """Pure contracts and replay for the opt-in advisory discovery lane.
 
-Discovery records observations, anomalies, assumption conflicts, ideas, and
-rival frame drafts.  Every entry is advisory: it grants no authority, is never
+Discovery records observations, anomalies, assumption conflicts, ideas, sealed
+external evidence, and rival frame drafts.  Every entry is advisory: it grants
+no authority, is never
 read by the scientific reducer or ProgramLog, and cannot be an input to
 registration, validation, promotion, sealing, or a successor generation.  Its
 only downstream consumers are human/LLM reading and the evidence an outer
@@ -34,7 +35,14 @@ DISCOVERY_EVENT_TYPES = frozenset({DISCOVERY_NOTE_EVENT_TYPE})
 DISCOVERY_SCHEMA_VERSION = 1
 
 NOTE_KINDS = frozenset(
-    {"observation", "anomaly", "assumption_conflict", "idea", "rival_draft"}
+    {
+        "observation",
+        "anomaly",
+        "assumption_conflict",
+        "idea",
+        "external_evidence",
+        "rival_draft",
+    }
 )
 
 #: Kinds whose notes may be quoted as an advisory exhaustion signal.  These
@@ -91,11 +99,21 @@ _RIVAL_DRAFT_KEYS = frozenset(
 _SIGNAL_BODY_KEYS = frozenset({"summary", "evidence_refs", "open_question"})
 _IDEA_BODY_KEYS = frozenset({"summary", "motivating_refs"})
 
+# External material enters the journal only as a sealed snapshot: the OS never
+# fetches anything itself, so the locator plus the digest of the retrieved
+# bytes is what keeps a non-deterministic outside read replayable and
+# auditable.  Claims and limitations are both mandatory because a source that
+# was read critically has at least one of each.
+_EXTERNAL_EVIDENCE_KEYS = frozenset(
+    {"summary", "source_locator", "snapshot_digest", "claims", "limitations"}
+)
+
 _BODY_KEYS_BY_KIND: dict[str, frozenset[str]] = {
     "observation": _SIGNAL_BODY_KEYS,
     "anomaly": _SIGNAL_BODY_KEYS,
     "assumption_conflict": _SIGNAL_BODY_KEYS,
     "idea": _IDEA_BODY_KEYS,
+    "external_evidence": _EXTERNAL_EVIDENCE_KEYS,
     "rival_draft": _RIVAL_DRAFT_KEYS,
 }
 
@@ -230,11 +248,25 @@ def _validate_rival_draft_body(body: Mapping[str, Any]) -> dict[str, Any]:
     return result
 
 
+def _validate_external_evidence_body(body: Mapping[str, Any]) -> dict[str, Any]:
+    result = dict(body)
+    _text(result["summary"], path="$.body.summary")
+    _text(result["source_locator"], path="$.body.source_locator")
+    # The digest binds the exact bytes that were read.  Without it an
+    # external claim would rest on a mutable URL, and replay could never
+    # tell whether the cited source is still the cited source.
+    _digest(result["snapshot_digest"], path="$.body.snapshot_digest")
+    _unique_text_array(result["claims"], path="$.body.claims", minimum=1)
+    _unique_text_array(result["limitations"], path="$.body.limitations", minimum=1)
+    return result
+
+
 _BODY_VALIDATORS = {
     "observation": _validate_signal_body,
     "anomaly": _validate_signal_body,
     "assumption_conflict": _validate_signal_body,
     "idea": _validate_idea_body,
+    "external_evidence": _validate_external_evidence_body,
     "rival_draft": _validate_rival_draft_body,
 }
 
@@ -318,6 +350,12 @@ class DiscoveryState:
             draft_fingerprint(note["body"])
             for note in self.notes
             if note.get("kind") == "rival_draft"
+        )
+
+    @property
+    def external_evidence_note_ids(self) -> frozenset[str]:
+        return frozenset(
+            str(note["note_id"]) for note in self.notes_of_kind("external_evidence")
         )
 
     def notes_of_kind(self, kind: str) -> tuple[Mapping[str, Any], ...]:
@@ -408,6 +446,7 @@ def reduce_discovery_state(
     notes: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
     seen_fingerprints: set[str] = set()
+    external_evidence_ids: set[str] = set()
     for event in events:
         event_type, payload, _occurred_at = _event_parts(event, project_id=project_id)
         if event_type != DISCOVERY_NOTE_EVENT_TYPE:
@@ -447,6 +486,22 @@ def reduce_discovery_state(
                     note_id=note_id,
                 )
             seen_fingerprints.add(fingerprint)
+            # Adopting the external-evidence lane is what opts a project into
+            # prior binding: from the first sealed source onward, a frame
+            # candidate that cites no recorded prior is inadmissible.  Drafts
+            # recorded before the first external_evidence note stay valid,
+            # because an append-only journal offers them no way to comply.
+            if external_evidence_ids and not (
+                set(note["refs"]) & external_evidence_ids
+            ):
+                raise _error(
+                    "DISCOVERY_PRIOR_REQUIRED",
+                    "recorded external evidence exists, so a new rival draft "
+                    "must cite at least one external_evidence note",
+                    note_id=note_id,
+                )
+        elif note["kind"] == "external_evidence":
+            external_evidence_ids.add(note_id)
         seen_ids.add(note_id)
         notes.append(note)
     return DiscoveryState(project_id=project_id, notes=tuple(notes))
@@ -479,6 +534,14 @@ def plan_discovery_note(
                 "DISCOVERY_DRAFT_NOT_DISTINCT",
                 "a recorded rival draft already states these assumptions and mechanism",
                 path="$.body",
+            )
+        external_evidence_ids = state.external_evidence_note_ids
+        if external_evidence_ids and not (set(core["refs"]) & external_evidence_ids):
+            raise _error(
+                "DISCOVERY_PRIOR_REQUIRED",
+                "recorded external evidence exists, so a new rival draft must "
+                "cite at least one external_evidence note",
+                path="$.refs",
             )
     note_sequence = state.note_count
     note_id = _note_identity(core["content_digest"], note_sequence)
@@ -704,6 +767,9 @@ def frame_health_projection(
         "classes": classes,
         "recorded_open_questions": open_questions,
         "rival_draft_count": len(discovery.notes_of_kind("rival_draft")),
+        "external_evidence_note_count": len(
+            discovery.notes_of_kind("external_evidence")
+        ),
         "interpretation_requests": [
             dict(item) for item in FRAME_HEALTH_INTERPRETATION_REQUESTS
         ],
@@ -786,6 +852,10 @@ def yield_projection(
     analogy_backed = tuple(
         note for note in drafts if note.get("analogy_query_digest") is not None
     )
+    external_evidence_ids = discovery.external_evidence_note_ids
+    prior_backed = tuple(
+        note for note in drafts if set(note["refs"]) & external_evidence_ids
+    )
     return {
         "schema_version": DISCOVERY_SCHEMA_VERSION,
         "project_id": project_id,
@@ -801,6 +871,9 @@ def yield_projection(
         "analogy_backed_ratio_microunits": (
             0 if not drafts else (len(analogy_backed) * 1_000_000) // len(drafts)
         ),
+        "external_evidence_note_count": len(external_evidence_ids),
+        "prior_binding_active": bool(external_evidence_ids),
+        "prior_backed_rival_draft_count": len(prior_backed),
         "authorized_action": None,
     }
 
@@ -859,6 +932,15 @@ def jump_dossier(
 
     exhaustion = exhaustion_projection(events, project_id=project_id)
 
+    external_evidence_ids = discovery.external_evidence_note_ids
+    cited_external = sorted(set(draft["refs"]) & external_evidence_ids)
+    external_prior = {
+        "external_evidence_note_count": len(external_evidence_ids),
+        "prior_binding_active": bool(external_evidence_ids),
+        "cited_external_evidence_note_ids": cited_external,
+        "draft_prior_backed": bool(cited_external),
+    }
+
     # Ordered, explicit, and advisory: each obligation names what must be
     # authored or re-certified and by whom.  None of them is performed here.
     obligations = [
@@ -906,6 +988,19 @@ def jump_dossier(
             ),
         },
         {
+            "id": "literature_prior",
+            "owner": "author",
+            "obligation": (
+                "Survey prior external work before authoring the successor: "
+                "retrieve material outside the OS, seal each source as an "
+                "external_evidence note (source locator, snapshot digest, "
+                "extracted claims, limitations), and cite those note ids from "
+                "the rival drafts the inquiry will quote.  Once the journal "
+                "holds any external_evidence note, a new rival draft that "
+                "cites none is rejected at the screen."
+            ),
+        },
+        {
             "id": "frame_transition_inquiry",
             "owner": "author",
             "obligation": (
@@ -935,6 +1030,7 @@ def jump_dossier(
         "draft": json_value(draft),
         "draft_fingerprint": draft_fingerprint(draft["body"]),
         "current_frame": current_frame,
+        "external_prior": external_prior,
         "exhaustion": exhaustion,
         "inquiry_signal_conditions_met": exhaustion["inquiry_signal_conditions_met"],
         "authoring_obligations": obligations,

@@ -235,4 +235,4 @@ def test_v04_release_contract_binds_all_literal_ids() -> None:
         "publish-failure-retains-recovery",
     )
     assert M2D_MANIFEST["release"]["version"] == "0.4.0"
-    assert __version__ == "0.6.0"
+    assert __version__ == "0.7.0"

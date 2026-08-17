@@ -152,6 +152,29 @@ _KNOWN_MANAGED_RELEASE_FILES: Final[dict[str, dict[Path, tuple[int, str]]]] = {
             "5e7654d2913dc7bde67eff937126cf25808b92b4cf87625aa6f354a7f4da429e",
         ),
     },
+    # The 0.6.0 signature is the tree published at commit b8b7b8f.
+    "0.6.0": {
+        Path(".research-os-managed.json"): (
+            595,
+            "9baec4afe992817a4225511e46c770e3a76cb5efba47f7d102e9b7c0b708fa9e",
+        ),
+        Path("SKILL.md"): (
+            22890,
+            "c85aa297b7e3db8538dcaa0e051fbfee2808dbd88422b8d0d6e047139b47780b",
+        ),
+        Path("agents/openai.yaml"): (
+            218,
+            "a4e0ea2cb6b7ee315c578092a09c09e961e86cb729b457fe276b056c903b359b",
+        ),
+        Path("references/scientific-protocol.md"): (
+            16009,
+            "f8b32832b912c2ed766490e78aeadfb4ad2246e3f211112f71d4ebeb8a794e80",
+        ),
+        Path("references/status-actions.md"): (
+            2686,
+            "5e7654d2913dc7bde67eff937126cf25808b92b4cf87625aa6f354a7f4da429e",
+        ),
+    },
 }
 # The exact tree an installation writes at the current __version__.  Changing a
 # shipped skill byte or the release identity must be deliberate: register the
@@ -159,7 +182,7 @@ _KNOWN_MANAGED_RELEASE_FILES: Final[dict[str, dict[Path, tuple[int, str]]]] = {
 # and the tree then changed twice without either step, which left every
 # installation made afterwards unrecognizable to the upgrade path.
 _SHIPPED_SKILL_TREE_DIGEST: Final = (
-    "b23bbae8e93f928e8d0c59cbba13baddc4d09c4c4975bc804d17ebe25a0fff61"
+    "801bd4a3fec833da4526fab1f560a2ee8f05a42eeecd520081d9d0c680368667"
 )
 
 _KNOWN_MANAGED_RELEASE_DIRECTORIES: Final = frozenset(
