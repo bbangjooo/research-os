@@ -1,0 +1,169 @@
+# Experiment loop spec template. The comments in this file are the schema.
+#
+# One trial is one folder under `loop/runs/`. Copy this template into it, name the
+# folder after the loop_id, fill in the stages, and commit:
+#
+#   mkdir -p loop/runs/2026-08-18-ruff-any
+#   cp loop/template.yaml loop/runs/2026-08-18-ruff-any/spec.yaml
+#   # set loop_id to the folder name minus the date, then fill in the stages
+#   git switch -c loop/ruff-any
+#   git add loop/runs/2026-08-18-ruff-any/spec.yaml && git commit -m 'exp: ruff-any spec'
+#   uv run python loop/experiment_loop.py validate loop/runs/2026-08-18-ruff-any/spec.yaml
+#   uv run python loop/experiment_loop.py run      loop/runs/2026-08-18-ruff-any/spec.yaml
+#
+# Commit the spec before running, as a real file named spec.yaml — not a symlink, and
+# one per trial folder. A rejected iteration runs `git clean -fd`, so an untracked spec
+# inside the worktree is deleted mid-run; the loop refuses to start on one. An
+# in-worktree spec is also pinned under `integrity` automatically, so an agent that
+# rewrites its own rules voids that iteration — `validate` prints the pinned set per
+# stage as `effective_integrity`. A spec kept outside the worktree (say /tmp) is exempt
+# from all of this and gets no summary.
+#
+# The loop refuses to start on a dirty worktree or on main/master, and it reverts
+# every rejected iteration with `git reset --hard`. Do not point it at a branch
+# whose uncommitted work you care about.
+
+loop_id: ruff-any
+
+agent:
+  # Any argv. `{prompt_file}` is replaced with the path to the generated prompt and
+  # `{prompt}` with its text; both are also exported as EXPERIMENT_LOOP_PROMPT_FILE.
+  # EXPERIMENT_LOOP_STAGE carries the current stage id, so one agent command can
+  # serve every stage. The loop is agent-agnostic — a plain script works as well as
+  # a CLI agent.
+  #
+  # Pin the model here when the agent has one. The loop does not parse this argv and
+  # has no `model:` key of its own — a plain script has no model, and a key that
+  # guessed the flag's spelling would tie the tool to one vendor. What it does do is
+  # record `agent.command` verbatim in baseline.json and summary.json, so a pinned
+  # model lands in the evidence and an unpinned one leaves the trial unable to say
+  # who ran it. Use the full id, not an alias: when the id retires the run fails
+  # loudly, which is what a reproducible trial should do.
+  command:
+    ["claude", "-p", "{prompt}", "--model", "claude-opus-5", "--dangerously-skip-permissions"]
+  timeout_seconds: 1800
+  summary_prefix: "SUMMARY:"
+
+integrity:
+  # Pinned for every stage. Digested when a stage starts and re-checked after each
+  # agent run; a change voids the whole iteration instead of merely rejecting it.
+  # A stage may pin more (see `stages[].integrity`) but never less.
+  - loop/experiment_loop.py
+
+revert:
+  # `git clean -fd` by default; set true for `-fdx` when stale ignored build output
+  # would otherwise leak into the next measurement.
+  clean_ignored: false
+
+stages:
+  # Stages run in order, each with its own objective, guards, budget and prompt.
+  # They exist because one number cannot describe work that changes shape: preparing
+  # the ground and doing the work are different measurements, and the guards that
+  # *can* pass differ with them. Declare guards once, globally, and either the first
+  # stage cannot start or the last stage runs unguarded.
+  #
+  # Expect guard strength to increase down the list. Every stage's guards must pass
+  # when that stage starts — that check is also the stage's entry gate.
+  #
+  # A spec with no `stages:` is read as one stage named `main`, with `objective`,
+  # `guards`, `integrity`, `budget` and `prompt` at the top level. The two forms are
+  # exclusive.
+
+  - id: scaffold
+    # Stage 1 builds what stage 2 measures with. It cannot pin those files — it has
+    # to create them.
+    objective:
+      command: ["bash", "-c", "test -f .importlinter; echo $?"]
+      direction: minimize
+      margin: 1 # ★ margin 0 accepts an iteration that did not move the number at all
+      target: 0 # stop as soon as the objective reaches this value
+      timeout_seconds: 120
+    guards:
+      - id: unit-tests
+        command: ["uv", "run", "pytest", "-q", "libs/python"]
+        kind: exit_zero
+        timeout_seconds: 1800
+    budget:
+      iterations: 6
+    prompt: |
+      Create the missing scaffold artifact. Do not touch production code.
+
+  - id: work
+    # Stage 2 pins what stage 1 built, so an iteration cannot make progress by
+    # rewriting its own measurement.
+    integrity:
+      - .importlinter
+    objective:
+      # Read twice on the unchanged tree at stage entry; disagreeing readings refuse the
+      # run. Every accept in this stage compares two readings of this command, so one
+      # that samples the clock or a random seed does not decide anything — it commits
+      # whichever sample happened to look like progress. Print the one number you mean.
+      command: ["bash", "-c", "grep -rc ': Any' libs/python | awk -F: '{s+=$2} END {print s+0}'"]
+      direction: minimize
+      margin: 1
+      target: 0
+      timeout_seconds: 300
+    guards:
+      # Guards decide whether the change is *allowed*, the objective only decides
+      # whether it is *better*. A loop is only as trustworthy as this list.
+      - id: unit-tests
+        command: ["uv", "run", "pytest", "-q", "libs/python"]
+        kind: exit_zero
+        timeout_seconds: 1800
+
+      # The classic failure mode is an agent that improves the metric by deleting the
+      # checks. Counting collected tests and refusing any drop closes that path.
+      #
+      # Read the count out of the summary line, not every digit on it: pytest prints
+      # "241 tests collected in 0.07s", so stripping non-digits yields a number that
+      # moves with the clock and makes `non_decreasing_number` reject at random. An
+      # empty match (collection failed) is not a number, so the guard fails closed.
+      - id: test-count
+        command:
+          - bash
+          - -c
+          - >-
+            uv run pytest --collect-only -q libs/python
+            | sed -n 's/^\([0-9][0-9]*\) tests\{0,1\} collected.*/\1/p' | tail -1
+        kind: non_decreasing_number
+        timeout_seconds: 900
+        # Without this the floor is the *stage-entry* reading, not the best reading so
+        # far: an iteration may add checks and a later one hand them back, and both are
+        # accepted because both end at or above where the stage started. `ratchet` moves
+        # the floor up to whatever an accepted iteration actually read. Default is off,
+        # because a stage that must legitimately trade this metric away needs the slack.
+        ratchet: true
+
+      # `non_increasing_number` is the mirror: some metrics must not grow. Debt lines,
+      # latency, artifact size. `tolerance` widens the comparison by that fraction of
+      # the recorded value's magnitude, which is how a noisy measurement is expressed
+      # without giving up the guard — here p95 may drift 5% and no further. A zero
+      # baseline has no magnitude and therefore no band; pick a metric that cannot sit
+      # at zero rather than raising the tolerance. `tolerance` and `ratchet` apply only
+      # to the two numeric kinds; on `exit_zero` or `unchanged_output` they are rejected.
+      # - id: p95-latency
+      #   command: ["bash", "-c", "uv run python bench/p95.py"]
+      #   kind: non_increasing_number
+      #   tolerance: 0.05
+      #   timeout_seconds: 900
+
+      # For a pure production-code refactor, the strongest available guard is the
+      # existing proof gate — it is the only check here that reasons about behaviour
+      # rather than sampling it. The proof contract is owned by the refactor skill
+      # (.agents/skills/refactor/SKILL.md); only PROVEN_EQUIVALENT_AND_CONFORMANT passes.
+      # - id: refactor-proof
+      #   command: ["bash", "-c", "python3 scripts/refactor_proof.py verify --base $LOOP_BASE"]
+      #   kind: exit_zero
+      #   timeout_seconds: 3600
+    budget:
+      iterations: 20
+    # `stop` (default) ends the run when this stage misses its target — a later stage
+    # that assumes this one finished would otherwise work on a half-prepared tree.
+    # `continue` carries on regardless.
+    on_incomplete: stop
+    prompt: |
+      Remove `: Any` annotations from libs/python by giving each value a real type.
+
+      Do not weaken a type to make an annotation disappear — introduce a Protocol, a
+      TypedDict, or a concrete class instead. If a value genuinely cannot be typed
+      more precisely, leave it alone and pick a different one.
