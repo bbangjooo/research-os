@@ -1,0 +1,25 @@
+{
+  "schema": "kernel-vendor-manifest-v1",
+  "upstream": {
+    "repo": "infocz/gos",
+    "local_path": "/Users/bbangjo/infocz/gos",
+    "commit": "be1dfe6239a9cd5192e641113b2dfb1aae85e85d",
+    "commit_subject": "feat(loop): guard에 non_increasing·tolerance·ratchet, objective에 결정성 게이트 (#972) (#976)",
+    "commit_date": "2026-08-19"
+  },
+  "vendored_at": "2026-08-19",
+  "files": {
+    "loop/experiment_loop.py": {
+      "upstream_path": "loop/experiment_loop.py",
+      "sha256": "8b895d778b44fcf797a5ae259d3f41658e9119938ca304e48ecc8fe633def258"
+    },
+    "loop/template.yaml": {
+      "upstream_path": "loop/template.yaml",
+      "sha256": "eb112d60f3bf0835e71849450978bfe1c167389680ac515e89c302aba1b63b79"
+    },
+    "tests/test_experiment_loop.py": {
+      "upstream_path": "tests/test_experiment_loop.py",
+      "sha256": "03c193b5dea2cf14e611e65589c76616865fc5a3753e209c8378ce8ee33a1529"
+    }
+  }
+}
