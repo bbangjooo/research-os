@@ -1,5 +1,13 @@
 # Research OS
 
+> **FROZEN (2026-08-19).** This repository is a frozen archive. It is superseded
+> by **Research OS 2** (`~/research-os2`), a ground-up rewrite on the
+> kernel/OS/application architecture described in
+> [docs/research-os2-design.md](docs/research-os2-design.md). No new features
+> land here; the v0.5 historical receipts and all evidence are preserved
+> unchanged. The successor's journal cites this repository's `main` head and
+> the alpha-factory EventLog digest in its bootstrap lineage.
+
 A local-first control plane for bounded, reproducible, and auditable autonomous
 research.
 
